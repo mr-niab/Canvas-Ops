@@ -1,6 +1,30 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { View, Project, Task, Stakeholder, LogEntry } from './types';
 import { initialProjects, initialTasks, initialStakeholders, initialLogEntries } from './data';
+
+const TASKS_STORAGE_KEY = 'canvasops:tasks:v1';
+
+function loadPersistedTasks(): Task[] {
+  if (typeof window === 'undefined') return initialTasks;
+  try {
+    const raw = window.localStorage.getItem(TASKS_STORAGE_KEY);
+    if (!raw) return initialTasks;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return initialTasks;
+    const valid = parsed.every(
+      (t: unknown) =>
+        t !== null &&
+        typeof t === 'object' &&
+        typeof (t as Task).id === 'string' &&
+        typeof (t as Task).title === 'string' &&
+        typeof (t as Task).status === 'string' &&
+        typeof (t as Task).discipline === 'string'
+    );
+    return valid ? (parsed as Task[]) : initialTasks;
+  } catch {
+    return initialTasks;
+  }
+}
 
 interface AppContextType {
   currentView: View;
@@ -28,9 +52,18 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentView, setCurrentView] = useState<View>('home');
   const [projects] = useState<Project[]>(initialProjects);
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [tasks, setTasks] = useState<Task[]>(loadPersistedTasks);
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>(initialStakeholders);
   const [logEntries, setLogEntries] = useState<LogEntry[]>(initialLogEntries);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks));
+    } catch {
+      // Quota exceeded or storage disabled — fail silently; in-memory state still works.
+    }
+  }, [tasks]);
 
   const [isTaskModalOpen, setTaskModalOpen] = useState(false);
   const [isStakeholderModalOpen, setStakeholderModalOpen] = useState(false);
