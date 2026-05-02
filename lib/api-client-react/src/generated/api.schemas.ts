@@ -8,3 +8,107 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface ErrorEnvelope {
+  error: string;
+}
+
+export interface UploadUrlRequest {
+  /**
+   * Original file name.
+   * @minLength 1
+   */
+  name: string;
+  /**
+   * File size in bytes.
+   * @minimum 1
+   */
+  size: number;
+  /**
+   * MIME type of the file.
+   * @minLength 1
+   */
+  contentType: string;
+}
+
+export interface UploadUrlResponse {
+  /** Presigned GCS URL for PUT upload. */
+  uploadURL: string;
+  /** Normalized object path (e.g. `/objects/uploads/uuid`). */
+  objectPath: string;
+  metadata?: UploadUrlRequest;
+}
+
+export interface EvidenceFile {
+  id: string;
+  projectId: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  addedBy: string;
+  addedAt: string;
+  /** Normalized server object path used to fetch the stored file. */
+  objectPath: string;
+  /** Public URL the browser can use to preview/download the file. */
+  previewUrl?: string;
+}
+
+export interface CreateEvidenceFileRequest {
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 1 */
+  mimeType: string;
+  /** @minimum 0 */
+  size: number;
+  /** @minLength 1 */
+  addedBy: string;
+  /**
+   * Normalized object path returned by the upload-url endpoint.
+   * @minLength 1
+   */
+  objectPath: string;
+}
+
+export type LinkedBoardProvider =
+  (typeof LinkedBoardProvider)[keyof typeof LinkedBoardProvider];
+
+export const LinkedBoardProvider = {
+  miro: "miro",
+  figjam: "figjam",
+} as const;
+
+export interface LinkedBoard {
+  id: string;
+  projectId: string;
+  provider: LinkedBoardProvider;
+  url: string;
+  embedUrl: string;
+  title: string;
+  linkedBy: string;
+  linkedAt: string;
+}
+
+export type CreateLinkedBoardRequestProvider =
+  (typeof CreateLinkedBoardRequestProvider)[keyof typeof CreateLinkedBoardRequestProvider];
+
+export const CreateLinkedBoardRequestProvider = {
+  miro: "miro",
+  figjam: "figjam",
+} as const;
+
+export interface CreateLinkedBoardRequest {
+  provider: CreateLinkedBoardRequestProvider;
+  /** @minLength 1 */
+  url: string;
+  /** @minLength 1 */
+  embedUrl: string;
+  /** @minLength 1 */
+  title: string;
+  /** @minLength 1 */
+  linkedBy: string;
+}
+
+export interface ProjectEvidence {
+  files: EvidenceFile[];
+  boards: LinkedBoard[];
+}

@@ -5,18 +5,31 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  CreateEvidenceFileRequest,
+  CreateLinkedBoardRequest,
+  ErrorEnvelope,
+  EvidenceFile,
+  HealthStatus,
+  LinkedBoard,
+  ProjectEvidence,
+  UploadUrlRequest,
+  UploadUrlResponse,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -99,3 +112,615 @@ export function useHealthCheck<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Returns a presigned GCS URL for direct upload. The client sends JSON
+metadata here, then uploads the file directly to the returned URL.
+
+ * @summary Request a presigned URL for file upload
+ */
+export const getRequestUploadUrlUrl = () => {
+  return `/api/storage/uploads/request-url`;
+};
+
+export const requestUploadUrl = async (
+  uploadUrlRequest: UploadUrlRequest,
+  options?: RequestInit,
+): Promise<UploadUrlResponse> => {
+  return customFetch<UploadUrlResponse>(getRequestUploadUrlUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(uploadUrlRequest),
+  });
+};
+
+export const getRequestUploadUrlMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    TError,
+    { data: BodyType<UploadUrlRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestUploadUrl>>,
+  TError,
+  { data: BodyType<UploadUrlRequest> },
+  TContext
+> => {
+  const mutationKey = ["requestUploadUrl"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    { data: BodyType<UploadUrlRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return requestUploadUrl(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RequestUploadUrlMutationResult = NonNullable<
+  Awaited<ReturnType<typeof requestUploadUrl>>
+>;
+export type RequestUploadUrlMutationBody = BodyType<UploadUrlRequest>;
+export type RequestUploadUrlMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Request a presigned URL for file upload
+ */
+export const useRequestUploadUrl = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestUploadUrl>>,
+    TError,
+    { data: BodyType<UploadUrlRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof requestUploadUrl>>,
+  TError,
+  { data: BodyType<UploadUrlRequest> },
+  TContext
+> => {
+  return useMutation(getRequestUploadUrlMutationOptions(options));
+};
+
+/**
+ * @summary Serve an object entity from PRIVATE_OBJECT_DIR
+ */
+export const getGetStorageObjectUrl = (objectPath: string) => {
+  return `/api/storage/objects/${objectPath}`;
+};
+
+export const getStorageObject = async (
+  objectPath: string,
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(getGetStorageObjectUrl(objectPath), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetStorageObjectQueryKey = (objectPath: string) => {
+  return [`/api/storage/objects/${objectPath}`] as const;
+};
+
+export const getGetStorageObjectQueryOptions = <
+  TData = Awaited<ReturnType<typeof getStorageObject>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  objectPath: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStorageObject>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetStorageObjectQueryKey(objectPath);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getStorageObject>>
+  > = ({ signal }) =>
+    getStorageObject(objectPath, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!objectPath,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getStorageObject>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetStorageObjectQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getStorageObject>>
+>;
+export type GetStorageObjectQueryError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Serve an object entity from PRIVATE_OBJECT_DIR
+ */
+
+export function useGetStorageObject<
+  TData = Awaited<ReturnType<typeof getStorageObject>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  objectPath: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getStorageObject>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetStorageObjectQueryOptions(objectPath, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List files and linked boards for a project
+ */
+export const getListProjectEvidenceUrl = (projectId: string) => {
+  return `/api/projects/${projectId}/evidence`;
+};
+
+export const listProjectEvidence = async (
+  projectId: string,
+  options?: RequestInit,
+): Promise<ProjectEvidence> => {
+  return customFetch<ProjectEvidence>(getListProjectEvidenceUrl(projectId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListProjectEvidenceQueryKey = (projectId: string) => {
+  return [`/api/projects/${projectId}/evidence`] as const;
+};
+
+export const getListProjectEvidenceQueryOptions = <
+  TData = Awaited<ReturnType<typeof listProjectEvidence>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  projectId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listProjectEvidence>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListProjectEvidenceQueryKey(projectId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listProjectEvidence>>
+  > = ({ signal }) =>
+    listProjectEvidence(projectId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!projectId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listProjectEvidence>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListProjectEvidenceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listProjectEvidence>>
+>;
+export type ListProjectEvidenceQueryError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary List files and linked boards for a project
+ */
+
+export function useListProjectEvidence<
+  TData = Awaited<ReturnType<typeof listProjectEvidence>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  projectId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listProjectEvidence>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListProjectEvidenceQueryOptions(projectId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Persist metadata for an uploaded evidence file
+ */
+export const getCreateEvidenceFileUrl = (projectId: string) => {
+  return `/api/projects/${projectId}/evidence/files`;
+};
+
+export const createEvidenceFile = async (
+  projectId: string,
+  createEvidenceFileRequest: CreateEvidenceFileRequest,
+  options?: RequestInit,
+): Promise<EvidenceFile> => {
+  return customFetch<EvidenceFile>(getCreateEvidenceFileUrl(projectId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createEvidenceFileRequest),
+  });
+};
+
+export const getCreateEvidenceFileMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createEvidenceFile>>,
+    TError,
+    { projectId: string; data: BodyType<CreateEvidenceFileRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createEvidenceFile>>,
+  TError,
+  { projectId: string; data: BodyType<CreateEvidenceFileRequest> },
+  TContext
+> => {
+  const mutationKey = ["createEvidenceFile"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createEvidenceFile>>,
+    { projectId: string; data: BodyType<CreateEvidenceFileRequest> }
+  > = (props) => {
+    const { projectId, data } = props ?? {};
+
+    return createEvidenceFile(projectId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateEvidenceFileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createEvidenceFile>>
+>;
+export type CreateEvidenceFileMutationBody =
+  BodyType<CreateEvidenceFileRequest>;
+export type CreateEvidenceFileMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Persist metadata for an uploaded evidence file
+ */
+export const useCreateEvidenceFile = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createEvidenceFile>>,
+    TError,
+    { projectId: string; data: BodyType<CreateEvidenceFileRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createEvidenceFile>>,
+  TError,
+  { projectId: string; data: BodyType<CreateEvidenceFileRequest> },
+  TContext
+> => {
+  return useMutation(getCreateEvidenceFileMutationOptions(options));
+};
+
+/**
+ * @summary Delete a previously uploaded evidence file
+ */
+export const getDeleteEvidenceFileUrl = (projectId: string, fileId: string) => {
+  return `/api/projects/${projectId}/evidence/files/${fileId}`;
+};
+
+export const deleteEvidenceFile = async (
+  projectId: string,
+  fileId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteEvidenceFileUrl(projectId, fileId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteEvidenceFileMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteEvidenceFile>>,
+    TError,
+    { projectId: string; fileId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteEvidenceFile>>,
+  TError,
+  { projectId: string; fileId: string },
+  TContext
+> => {
+  const mutationKey = ["deleteEvidenceFile"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteEvidenceFile>>,
+    { projectId: string; fileId: string }
+  > = (props) => {
+    const { projectId, fileId } = props ?? {};
+
+    return deleteEvidenceFile(projectId, fileId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteEvidenceFileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteEvidenceFile>>
+>;
+
+export type DeleteEvidenceFileMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Delete a previously uploaded evidence file
+ */
+export const useDeleteEvidenceFile = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteEvidenceFile>>,
+    TError,
+    { projectId: string; fileId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteEvidenceFile>>,
+  TError,
+  { projectId: string; fileId: string },
+  TContext
+> => {
+  return useMutation(getDeleteEvidenceFileMutationOptions(options));
+};
+
+/**
+ * @summary Link a Miro or FigJam board to a project
+ */
+export const getCreateLinkedBoardUrl = (projectId: string) => {
+  return `/api/projects/${projectId}/evidence/boards`;
+};
+
+export const createLinkedBoard = async (
+  projectId: string,
+  createLinkedBoardRequest: CreateLinkedBoardRequest,
+  options?: RequestInit,
+): Promise<LinkedBoard> => {
+  return customFetch<LinkedBoard>(getCreateLinkedBoardUrl(projectId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createLinkedBoardRequest),
+  });
+};
+
+export const getCreateLinkedBoardMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createLinkedBoard>>,
+    TError,
+    { projectId: string; data: BodyType<CreateLinkedBoardRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createLinkedBoard>>,
+  TError,
+  { projectId: string; data: BodyType<CreateLinkedBoardRequest> },
+  TContext
+> => {
+  const mutationKey = ["createLinkedBoard"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createLinkedBoard>>,
+    { projectId: string; data: BodyType<CreateLinkedBoardRequest> }
+  > = (props) => {
+    const { projectId, data } = props ?? {};
+
+    return createLinkedBoard(projectId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateLinkedBoardMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createLinkedBoard>>
+>;
+export type CreateLinkedBoardMutationBody = BodyType<CreateLinkedBoardRequest>;
+export type CreateLinkedBoardMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Link a Miro or FigJam board to a project
+ */
+export const useCreateLinkedBoard = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createLinkedBoard>>,
+    TError,
+    { projectId: string; data: BodyType<CreateLinkedBoardRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createLinkedBoard>>,
+  TError,
+  { projectId: string; data: BodyType<CreateLinkedBoardRequest> },
+  TContext
+> => {
+  return useMutation(getCreateLinkedBoardMutationOptions(options));
+};
+
+/**
+ * @summary Remove a linked board from a project
+ */
+export const getDeleteLinkedBoardUrl = (projectId: string, boardId: string) => {
+  return `/api/projects/${projectId}/evidence/boards/${boardId}`;
+};
+
+export const deleteLinkedBoard = async (
+  projectId: string,
+  boardId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteLinkedBoardUrl(projectId, boardId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteLinkedBoardMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteLinkedBoard>>,
+    TError,
+    { projectId: string; boardId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteLinkedBoard>>,
+  TError,
+  { projectId: string; boardId: string },
+  TContext
+> => {
+  const mutationKey = ["deleteLinkedBoard"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteLinkedBoard>>,
+    { projectId: string; boardId: string }
+  > = (props) => {
+    const { projectId, boardId } = props ?? {};
+
+    return deleteLinkedBoard(projectId, boardId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteLinkedBoardMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteLinkedBoard>>
+>;
+
+export type DeleteLinkedBoardMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Remove a linked board from a project
+ */
+export const useDeleteLinkedBoard = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteLinkedBoard>>,
+    TError,
+    { projectId: string; boardId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteLinkedBoard>>,
+  TError,
+  { projectId: string; boardId: string },
+  TContext
+> => {
+  return useMutation(getDeleteLinkedBoardMutationOptions(options));
+};

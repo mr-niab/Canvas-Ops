@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAppContext } from '../AppContext';
 import { EvidenceFile, LinkedBoard } from '../types';
 import { detectBoardProvider, PROVIDER_BADGE_CLASS, PROVIDER_LABEL } from '../lib/boards';
@@ -14,6 +14,7 @@ function formatBytes(bytes: number): string {
 
 function formatStamp(iso: string): string {
   const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
   const day = String(d.getDate()).padStart(2, '0');
   const month = d.toLocaleString('en-GB', { month: 'short' });
   const year = d.getFullYear();
@@ -35,13 +36,20 @@ function fileGlyph(mimeType: string, name: string): string {
   return '📎';
 }
 
+function describeError(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message;
+  return 'Something went wrong, please try again.';
+}
+
 function FilesSection({ projectId, files }: { projectId: string; files: EvidenceFile[] }) {
-  const { addEvidenceFile, removeEvidenceFile } = useAppContext();
+  const { uploadEvidenceFile, removeEvidenceFile } = useAppContext();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadingNames, setUploadingNames] = useState<string[]>([]);
+  const [removingIds, setRemovingIds] = useState<string[]>([]);
 
-  const ingestFiles = (list: FileList | File[]) => {
+  const ingestFiles = async (list: FileList | File[]) => {
     const arr = Array.from(list);
     if (arr.length === 0) return;
 
@@ -51,21 +59,22 @@ function FilesSection({ projectId, files }: { projectId: string; files: Evidence
       return;
     }
     setError(null);
+    setUploadingNames(prev => [...prev, ...arr.map(f => f.name)]);
 
     for (const f of arr) {
-      let previewUrl: string | undefined;
       try {
-        previewUrl = URL.createObjectURL(f);
-      } catch {
-        previewUrl = undefined;
+        await uploadEvidenceFile(projectId, f, CURRENT_USER);
+      } catch (err) {
+        setError(`Couldn't upload "${f.name}" — ${describeError(err)}`);
+      } finally {
+        setUploadingNames(prev => {
+          const idx = prev.indexOf(f.name);
+          if (idx === -1) return prev;
+          const next = [...prev];
+          next.splice(idx, 1);
+          return next;
+        });
       }
-      addEvidenceFile(projectId, {
-        name: f.name,
-        mimeType: f.type || 'application/octet-stream',
-        size: f.size,
-        addedBy: CURRENT_USER,
-        previewUrl,
-      });
     }
   };
 
@@ -73,7 +82,7 @@ function FilesSection({ projectId, files }: { projectId: string; files: Evidence
     e.preventDefault();
     setDragOver(false);
     if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
-      ingestFiles(e.dataTransfer.files);
+      void ingestFiles(e.dataTransfer.files);
     }
   };
 
@@ -81,6 +90,17 @@ function FilesSection({ projectId, files }: { projectId: string; files: Evidence
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       inputRef.current?.click();
+    }
+  };
+
+  const handleRemove = async (fileId: string) => {
+    setRemovingIds(prev => [...prev, fileId]);
+    try {
+      await removeEvidenceFile(projectId, fileId);
+    } catch (err) {
+      setError(describeError(err));
+    } finally {
+      setRemovingIds(prev => prev.filter(id => id !== fileId));
     }
   };
 
@@ -107,47 +127,71 @@ function FilesSection({ projectId, files }: { projectId: string; files: Evidence
         multiple
         style={{ display: 'none' }}
         onChange={e => {
-          if (e.target.files) ingestFiles(e.target.files);
+          if (e.target.files) void ingestFiles(e.target.files);
           e.target.value = '';
         }}
       />
       {error && <div className="form-error" style={{ marginTop: 'var(--space-2)' }}>{error}</div>}
 
-      {files.length === 0 ? (
+      {uploadingNames.length > 0 && (
+        <div className="evidence-list" style={{ marginTop: 'var(--space-3)' }}>
+          {uploadingNames.map((name, idx) => (
+            <div className="evidence-row" key={`uploading-${name}-${idx}`}>
+              <div className="evidence-icon" aria-hidden>⏳</div>
+              <div className="evidence-meta">
+                <div className="item-title" title={name}>{name}</div>
+                <div className="item-sub">Uploading…</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {files.length === 0 && uploadingNames.length === 0 ? (
         <div className="evidence-empty" style={{ marginTop: 'var(--space-3)' }}>
           No files yet. Drop research notes, screenshots, or briefs here so the team can find them later.
         </div>
       ) : (
         <div className="evidence-list">
-          {files.map(file => (
-            <div className="evidence-row" key={file.id}>
-              <div className="evidence-icon" aria-hidden>{fileGlyph(file.mimeType, file.name)}</div>
-              <div className="evidence-meta">
-                <div className="item-title" title={file.name}>{file.name}</div>
-                <div className="item-sub">
-                  {formatBytes(file.size)} · Added by {file.addedBy} · {formatStamp(file.addedAt)}
+          {files.map(file => {
+            const isRemoving = removingIds.includes(file.id);
+            return (
+              <div className="evidence-row" key={file.id}>
+                <div className="evidence-icon" aria-hidden>{fileGlyph(file.mimeType, file.name)}</div>
+                <div className="evidence-meta">
+                  <div className="item-title" title={file.name}>{file.name}</div>
+                  <div className="item-sub">
+                    {formatBytes(file.size)} · Added by {file.addedBy} · {formatStamp(file.addedAt)}
+                  </div>
+                </div>
+                <div className="board-card-actions">
+                  {file.previewUrl ? (
+                    <a className="btn" href={file.previewUrl} target="_blank" rel="noreferrer noopener">Open</a>
+                  ) : (
+                    <button className="btn" disabled>Open</button>
+                  )}
+                  <button
+                    className="btn"
+                    onClick={() => void handleRemove(file.id)}
+                    disabled={isRemoving}
+                  >
+                    {isRemoving ? 'Removing…' : 'Remove'}
+                  </button>
                 </div>
               </div>
-              <div className="board-card-actions">
-                {file.previewUrl ? (
-                  <a className="btn" href={file.previewUrl} target="_blank" rel="noreferrer noopener">Open</a>
-                ) : (
-                  <button className="btn" disabled>Open</button>
-                )}
-                <button className="btn" onClick={() => removeEvidenceFile(projectId, file.id)}>Remove</button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-function BoardCard({ projectId, board }: { projectId: string; board: LinkedBoard }) {
+function BoardCard({ projectId, board, onRemoveError }: { projectId: string; board: LinkedBoard; onRemoveError: (msg: string) => void }) {
   const { removeLinkedBoard } = useAppContext();
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   const onCopy = async () => {
     try {
@@ -156,6 +200,17 @@ function BoardCard({ projectId, board }: { projectId: string; board: LinkedBoard
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
       // Clipboard might be blocked — silently ignore.
+    }
+  };
+
+  const onRemove = async () => {
+    setRemoving(true);
+    try {
+      await removeLinkedBoard(projectId, board.id);
+    } catch (err) {
+      onRemoveError(describeError(err));
+    } finally {
+      setRemoving(false);
     }
   };
 
@@ -177,7 +232,9 @@ function BoardCard({ projectId, board }: { projectId: string; board: LinkedBoard
           </button>
           <a className="btn" href={board.url} target="_blank" rel="noreferrer noopener">Open</a>
           <button className="btn" onClick={onCopy}>{copied ? 'Copied' : 'Copy link'}</button>
-          <button className="btn" onClick={() => removeLinkedBoard(projectId, board.id)}>Remove</button>
+          <button className="btn" onClick={() => void onRemove()} disabled={removing}>
+            {removing ? 'Removing…' : 'Remove'}
+          </button>
         </div>
       </div>
       {expanded && (
@@ -203,8 +260,9 @@ function BoardsSection({ projectId, boards }: { projectId: string; boards: Linke
   const { addLinkedBoard } = useAppContext();
   const [url, setUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const onAdd = (e: React.FormEvent) => {
+  const onAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = url.trim();
     if (!trimmed) {
@@ -220,15 +278,23 @@ function BoardsSection({ projectId, boards }: { projectId: string; boards: Linke
       setError("That link doesn't look like a Miro or FigJam share URL. Try pasting the public share link.");
       return;
     }
-    addLinkedBoard(projectId, {
-      provider: detection.provider,
-      url: trimmed,
-      embedUrl: detection.embedUrl,
-      title: detection.title,
-      linkedBy: CURRENT_USER,
-    });
-    setUrl('');
-    setError(null);
+
+    setSubmitting(true);
+    try {
+      await addLinkedBoard(projectId, {
+        provider: detection.provider,
+        url: trimmed,
+        embedUrl: detection.embedUrl,
+        title: detection.title,
+        linkedBy: CURRENT_USER,
+      });
+      setUrl('');
+      setError(null);
+    } catch (err) {
+      setError(describeError(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -241,8 +307,11 @@ function BoardsSection({ projectId, boards }: { projectId: string; boards: Linke
           onChange={e => { setUrl(e.target.value); if (error) setError(null); }}
           placeholder="Paste a Miro or FigJam share URL…"
           aria-label="Board share URL"
+          disabled={submitting}
         />
-        <button type="submit" className="btn primary">Add</button>
+        <button type="submit" className="btn primary" disabled={submitting}>
+          {submitting ? 'Adding…' : 'Add'}
+        </button>
       </form>
       {error && <div className="form-error" style={{ marginTop: 'var(--space-2)' }}>{error}</div>}
 
@@ -253,7 +322,12 @@ function BoardsSection({ projectId, boards }: { projectId: string; boards: Linke
       ) : (
         <div className="board-list">
           {boards.map(b => (
-            <BoardCard key={b.id} projectId={projectId} board={b} />
+            <BoardCard
+              key={b.id}
+              projectId={projectId}
+              board={b}
+              onRemoveError={msg => setError(msg)}
+            />
           ))}
         </div>
       )}
@@ -262,8 +336,12 @@ function BoardsSection({ projectId, boards }: { projectId: string; boards: Linke
 }
 
 export function EvidencePanel({ projectId }: { projectId: string }) {
-  const { getProjectEvidence } = useAppContext();
+  const { getProjectEvidence, loadProjectEvidence } = useAppContext();
   const evidence = getProjectEvidence(projectId);
+
+  useEffect(() => {
+    void loadProjectEvidence(projectId);
+  }, [projectId, loadProjectEvidence]);
 
   return (
     <div className="card pad">
@@ -279,10 +357,28 @@ export function EvidencePanel({ projectId }: { projectId: string }) {
           <span className="tag">{evidence.boards.length} boards</span>
         </div>
       </div>
-      <div className="evidence-stack">
-        <FilesSection projectId={projectId} files={evidence.files} />
-        <BoardsSection projectId={projectId} boards={evidence.boards} />
-      </div>
+      {evidence.error && (
+        <div className="form-error" style={{ marginTop: 'var(--space-2)' }}>
+          Couldn't load evidence — {evidence.error}.{' '}
+          <button
+            className="btn"
+            onClick={() => void loadProjectEvidence(projectId)}
+            style={{ marginLeft: 'var(--space-2)' }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+      {evidence.loading && evidence.files.length === 0 && evidence.boards.length === 0 ? (
+        <div className="evidence-empty" style={{ marginTop: 'var(--space-3)' }}>
+          Loading evidence…
+        </div>
+      ) : (
+        <div className="evidence-stack">
+          <FilesSection projectId={projectId} files={evidence.files} />
+          <BoardsSection projectId={projectId} boards={evidence.boards} />
+        </div>
+      )}
     </div>
   );
 }

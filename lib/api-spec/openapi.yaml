@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: Storage
+    description: Object storage upload and serving endpoints.
+  - name: Evidence
+    description: Project evidence (files and linked boards) persistence.
 paths:
   /healthz:
     get:
@@ -24,6 +28,229 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /storage/uploads/request-url:
+    post:
+      tags: [Storage]
+      operationId: requestUploadUrl
+      summary: Request a presigned URL for file upload
+      description: |
+        Returns a presigned GCS URL for direct upload. The client sends JSON
+        metadata here, then uploads the file directly to the returned URL.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadUrlRequest'
+      responses:
+        '200':
+          description: Presigned upload URL generated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadUrlResponse'
+        '400':
+          description: Missing or invalid required fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Failed to generate upload URL.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /storage/objects/{objectPath}:
+    get:
+      tags: [Storage]
+      operationId: getStorageObject
+      summary: Serve an object entity from PRIVATE_OBJECT_DIR
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Object path within the private object dir.
+      responses:
+        '200':
+          description: Object content streamed with correct Content-Type.
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Object not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Failed to serve object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /projects/{projectId}/evidence:
+    get:
+      tags: [Evidence]
+      operationId: listProjectEvidence
+      summary: List files and linked boards for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Evidence for the project.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectEvidence'
+        '500':
+          description: Failed to load evidence.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /projects/{projectId}/evidence/files:
+    post:
+      tags: [Evidence]
+      operationId: createEvidenceFile
+      summary: Persist metadata for an uploaded evidence file
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEvidenceFileRequest'
+      responses:
+        '200':
+          description: Evidence file persisted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceFile'
+        '400':
+          description: Invalid request body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Failed to persist file.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /projects/{projectId}/evidence/files/{fileId}:
+    delete:
+      tags: [Evidence]
+      operationId: deleteEvidenceFile
+      summary: Delete a previously uploaded evidence file
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Evidence file deleted.
+        '404':
+          description: Evidence file not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Failed to delete file.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /projects/{projectId}/evidence/boards:
+    post:
+      tags: [Evidence]
+      operationId: createLinkedBoard
+      summary: Link a Miro or FigJam board to a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLinkedBoardRequest'
+      responses:
+        '200':
+          description: Linked board persisted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkedBoard'
+        '400':
+          description: Invalid request body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Failed to persist board.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /projects/{projectId}/evidence/boards/{boardId}:
+    delete:
+      tags: [Evidence]
+      operationId: deleteLinkedBoard
+      summary: Remove a linked board from a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: boardId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Linked board deleted.
+        '404':
+          description: Linked board not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Failed to delete board.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
 components:
   schemas:
     HealthStatus:
@@ -33,4 +260,136 @@ components:
           type: string
       required:
         - status
-
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Original file name.
+        size:
+          type: integer
+          minimum: 1
+          description: File size in bytes.
+        contentType:
+          type: string
+          minLength: 1
+          description: MIME type of the file.
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL:
+          type: string
+          format: uri
+          description: Presigned GCS URL for PUT upload.
+        objectPath:
+          type: string
+          description: Normalized object path (e.g. `/objects/uploads/uuid`).
+        metadata:
+          $ref: '#/components/schemas/UploadUrlRequest'
+    EvidenceFile:
+      type: object
+      required: [id, projectId, name, mimeType, size, addedBy, addedAt, objectPath]
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        name:
+          type: string
+        mimeType:
+          type: string
+        size:
+          type: integer
+        addedBy:
+          type: string
+        addedAt:
+          type: string
+          format: date-time
+        objectPath:
+          type: string
+          description: Normalized server object path used to fetch the stored file.
+        previewUrl:
+          type: string
+          description: Public URL the browser can use to preview/download the file.
+    CreateEvidenceFileRequest:
+      type: object
+      required: [name, mimeType, size, addedBy, objectPath]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        mimeType:
+          type: string
+          minLength: 1
+        size:
+          type: integer
+          minimum: 0
+        addedBy:
+          type: string
+          minLength: 1
+        objectPath:
+          type: string
+          minLength: 1
+          description: Normalized object path returned by the upload-url endpoint.
+    LinkedBoard:
+      type: object
+      required: [id, projectId, provider, url, embedUrl, title, linkedBy, linkedAt]
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        provider:
+          type: string
+          enum: [miro, figjam]
+        url:
+          type: string
+        embedUrl:
+          type: string
+        title:
+          type: string
+        linkedBy:
+          type: string
+        linkedAt:
+          type: string
+          format: date-time
+    CreateLinkedBoardRequest:
+      type: object
+      required: [provider, url, embedUrl, title, linkedBy]
+      properties:
+        provider:
+          type: string
+          enum: [miro, figjam]
+        url:
+          type: string
+          minLength: 1
+        embedUrl:
+          type: string
+          minLength: 1
+        title:
+          type: string
+          minLength: 1
+        linkedBy:
+          type: string
+          minLength: 1
+    ProjectEvidence:
+      type: object
+      required: [files, boards]
+      properties:
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvidenceFile'
+        boards:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinkedBoard'

@@ -6,4 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./createEvidenceFileRequest";
+export * from "./createLinkedBoardRequest";
+export * from "./createLinkedBoardRequestProvider";
+export * from "./errorEnvelope";
+export * from "./evidenceFile";
 export * from "./healthStatus";
+export * from "./linkedBoard";
+export * from "./linkedBoardProvider";
+export * from "./projectEvidence";
+export * from "./uploadUrlRequest";
+export * from "./uploadUrlResponse";

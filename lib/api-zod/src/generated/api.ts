@@ -14,3 +14,162 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Returns a presigned GCS URL for direct upload. The client sends JSON
+metadata here, then uploads the file directly to the returned URL.
+
+ * @summary Request a presigned URL for file upload
+ */
+
+export const RequestUploadUrlBody = zod.object({
+  name: zod.string().min(1).describe("Original file name."),
+  size: zod.number().min(1).describe("File size in bytes."),
+  contentType: zod.string().min(1).describe("MIME type of the file."),
+});
+
+export const RequestUploadUrlResponse = zod.object({
+  uploadURL: zod.string().url().describe("Presigned GCS URL for PUT upload."),
+  objectPath: zod
+    .string()
+    .describe("Normalized object path (e.g. `\/objects\/uploads\/uuid`)."),
+  metadata: zod
+    .object({
+      name: zod.string().min(1).describe("Original file name."),
+      size: zod.number().min(1).describe("File size in bytes."),
+      contentType: zod.string().min(1).describe("MIME type of the file."),
+    })
+    .optional(),
+});
+
+/**
+ * @summary Serve an object entity from PRIVATE_OBJECT_DIR
+ */
+export const GetStorageObjectParams = zod.object({
+  objectPath: zod.coerce
+    .string()
+    .describe("Object path within the private object dir."),
+});
+
+/**
+ * @summary List files and linked boards for a project
+ */
+export const ListProjectEvidenceParams = zod.object({
+  projectId: zod.coerce.string(),
+});
+
+export const ListProjectEvidenceResponse = zod.object({
+  files: zod.array(
+    zod.object({
+      id: zod.string(),
+      projectId: zod.string(),
+      name: zod.string(),
+      mimeType: zod.string(),
+      size: zod.number(),
+      addedBy: zod.string(),
+      addedAt: zod.coerce.date(),
+      objectPath: zod
+        .string()
+        .describe(
+          "Normalized server object path used to fetch the stored file.",
+        ),
+      previewUrl: zod
+        .string()
+        .optional()
+        .describe(
+          "Public URL the browser can use to preview\/download the file.",
+        ),
+    }),
+  ),
+  boards: zod.array(
+    zod.object({
+      id: zod.string(),
+      projectId: zod.string(),
+      provider: zod.enum(["miro", "figjam"]),
+      url: zod.string(),
+      embedUrl: zod.string(),
+      title: zod.string(),
+      linkedBy: zod.string(),
+      linkedAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary Persist metadata for an uploaded evidence file
+ */
+export const CreateEvidenceFileParams = zod.object({
+  projectId: zod.coerce.string(),
+});
+
+export const createEvidenceFileBodySizeMin = 0;
+
+export const CreateEvidenceFileBody = zod.object({
+  name: zod.string().min(1),
+  mimeType: zod.string().min(1),
+  size: zod.number().min(createEvidenceFileBodySizeMin),
+  addedBy: zod.string().min(1),
+  objectPath: zod
+    .string()
+    .min(1)
+    .describe("Normalized object path returned by the upload-url endpoint."),
+});
+
+export const CreateEvidenceFileResponse = zod.object({
+  id: zod.string(),
+  projectId: zod.string(),
+  name: zod.string(),
+  mimeType: zod.string(),
+  size: zod.number(),
+  addedBy: zod.string(),
+  addedAt: zod.coerce.date(),
+  objectPath: zod
+    .string()
+    .describe("Normalized server object path used to fetch the stored file."),
+  previewUrl: zod
+    .string()
+    .optional()
+    .describe("Public URL the browser can use to preview\/download the file."),
+});
+
+/**
+ * @summary Delete a previously uploaded evidence file
+ */
+export const DeleteEvidenceFileParams = zod.object({
+  projectId: zod.coerce.string(),
+  fileId: zod.coerce.string(),
+});
+
+/**
+ * @summary Link a Miro or FigJam board to a project
+ */
+export const CreateLinkedBoardParams = zod.object({
+  projectId: zod.coerce.string(),
+});
+
+export const CreateLinkedBoardBody = zod.object({
+  provider: zod.enum(["miro", "figjam"]),
+  url: zod.string().min(1),
+  embedUrl: zod.string().min(1),
+  title: zod.string().min(1),
+  linkedBy: zod.string().min(1),
+});
+
+export const CreateLinkedBoardResponse = zod.object({
+  id: zod.string(),
+  projectId: zod.string(),
+  provider: zod.enum(["miro", "figjam"]),
+  url: zod.string(),
+  embedUrl: zod.string(),
+  title: zod.string(),
+  linkedBy: zod.string(),
+  linkedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Remove a linked board from a project
+ */
+export const DeleteLinkedBoardParams = zod.object({
+  projectId: zod.coerce.string(),
+  boardId: zod.coerce.string(),
+});

@@ -45,7 +45,6 @@ export const initialProjects: Project[] = [
     statusClass: 'good',
     progress: 4,
     totalProgress: 5,
-    evidence: { files: [], boards: [] },
     teamId: 'team1',
   },
   {
@@ -58,7 +57,6 @@ export const initialProjects: Project[] = [
     statusClass: 'risk',
     progress: 3,
     totalProgress: 5,
-    evidence: { files: [], boards: [] },
     teamId: 'team2',
   },
   {
@@ -71,7 +69,6 @@ export const initialProjects: Project[] = [
     statusClass: 'blocked',
     progress: 1,
     totalProgress: 5,
-    evidence: { files: [], boards: [] },
     teamId: 'team3',
   },
   {
@@ -84,7 +81,6 @@ export const initialProjects: Project[] = [
     statusClass: 'good',
     progress: 5,
     totalProgress: 5,
-    evidence: { files: [], boards: [] },
     teamId: 'team1',
   },
 ];

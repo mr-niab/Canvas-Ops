@@ -6,11 +6,13 @@ export type Discipline = 'UX/UI Design' | 'User Research' | 'Service Design';
 
 export type EvidenceFile = {
   id: string;
+  projectId: string;
   name: string;
   mimeType: string;
   size: number;
   addedBy: string;
   addedAt: string;
+  objectPath: string;
   previewUrl?: string;
 };
 
@@ -18,6 +20,7 @@ export type BoardProvider = 'miro' | 'figjam';
 
 export type LinkedBoard = {
   id: string;
+  projectId: string;
   provider: BoardProvider;
   url: string;
   embedUrl: string;
@@ -41,7 +44,6 @@ export type Project = {
   statusClass: string;
   progress: number;
   totalProgress: number;
-  evidence: ProjectEvidence;
   teamId?: string;
 };
 

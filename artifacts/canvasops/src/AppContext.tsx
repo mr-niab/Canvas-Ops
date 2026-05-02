@@ -1,7 +1,15 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { View, Project, Task, Stakeholder, LogEntry, EvidenceFile, LinkedBoard, ProjectEvidence, Organisation, Team, Teammate } from './types';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { View, Project, Task, Stakeholder, LogEntry, EvidenceFile, LinkedBoard, ProjectEvidence, Organisation, Team, Teammate, BoardProvider } from './types';
 import { initialProjects, initialTasks, initialStakeholders, initialLogEntries, initialOrganisation, initialTeams, initialTeammates } from './data';
 import { recomputeBlockedStates } from './lib/dependencies';
+import {
+  createEvidenceFile as apiCreateEvidenceFile,
+  createLinkedBoard as apiCreateLinkedBoard,
+  deleteEvidenceFile as apiDeleteEvidenceFile,
+  deleteLinkedBoard as apiDeleteLinkedBoard,
+  listProjectEvidence as apiListProjectEvidence,
+  requestUploadUrl as apiRequestUploadUrl,
+} from '@workspace/api-client-react';
 
 const TASKS_STORAGE_KEY = 'canvasops:tasks:v1';
 const ORG_STORAGE_KEY = 'canvasops:organisation:v1';
@@ -44,8 +52,6 @@ function loadPersistedTasks(): Task[] {
         title: t.title as string,
         status: t.status as string,
         discipline: t.discipline as Task['discipline'],
-        // Drop any references to ids that no longer exist so stale data
-        // can't render a "Blocked by" chip pointing nowhere.
         dependencies: normalizeDependencies(t.dependencies).filter(
           depId => depId !== t.id && ids.has(depId)
         ),
@@ -55,8 +61,6 @@ function loadPersistedTasks(): Task[] {
       }
       return task;
     });
-    // Re-derive blocked state on load so the persisted snapshot stays in sync
-    // even if dependency graphs were edited in another tab.
     return recomputeBlockedStates(loaded);
   } catch {
     return recomputeBlockedStates(initialTasks);
@@ -126,14 +130,12 @@ function reconcileTeamMembership(teams: Team[], teammates: Teammate[]): { teams:
     ...m,
     teamIds: m.teamIds.filter(id => teamIdSet.has(id)),
   }));
-  // Sync from team -> teammate so both sides agree
   const mateById = new Map(cleanMates.map(m => [m.id, { ...m, teamIds: new Set(m.teamIds) }]));
   for (const team of cleanTeams) {
     for (const mateId of team.teammateIds) {
       mateById.get(mateId)?.teamIds.add(team.id);
     }
   }
-  // Sync from teammate -> team
   const teamById = new Map(cleanTeams.map(t => [t.id, { ...t, teammateIds: new Set(t.teammateIds) }]));
   for (const mate of mateById.values()) {
     for (const teamId of mate.teamIds) {
@@ -158,6 +160,70 @@ function formatDateTime(date: Date): string {
 function uid(prefix: string): string {
   return `${prefix}${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
+
+function toIso(date: Date | string): string {
+  return date instanceof Date ? date.toISOString() : String(date);
+}
+
+function normalizeFile(raw: {
+  id: string;
+  projectId: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  addedBy: string;
+  addedAt: Date | string;
+  objectPath: string;
+  previewUrl?: string;
+}): EvidenceFile {
+  return {
+    id: raw.id,
+    projectId: raw.projectId,
+    name: raw.name,
+    mimeType: raw.mimeType,
+    size: raw.size,
+    addedBy: raw.addedBy,
+    addedAt: toIso(raw.addedAt),
+    objectPath: raw.objectPath,
+    previewUrl: raw.previewUrl,
+  };
+}
+
+function normalizeBoard(raw: {
+  id: string;
+  projectId: string;
+  provider: string;
+  url: string;
+  embedUrl: string;
+  title: string;
+  linkedBy: string;
+  linkedAt: Date | string;
+}): LinkedBoard {
+  return {
+    id: raw.id,
+    projectId: raw.projectId,
+    provider: raw.provider as BoardProvider,
+    url: raw.url,
+    embedUrl: raw.embedUrl,
+    title: raw.title,
+    linkedBy: raw.linkedBy,
+    linkedAt: toIso(raw.linkedAt),
+  };
+}
+
+export type EvidenceState = {
+  files: EvidenceFile[];
+  boards: LinkedBoard[];
+  loading: boolean;
+  error: string | null;
+};
+
+const EMPTY_EVIDENCE_STATE: EvidenceState = {
+  files: [],
+  boards: [],
+  loading: false,
+  error: null,
+};
 
 interface AppContextType {
   currentView: View;
@@ -194,11 +260,20 @@ interface AppContextType {
   addStakeholder: (stakeholder: Omit<Stakeholder, 'id'>) => void;
   addLogEntry: (entry: Omit<LogEntry, 'id'>) => void;
 
-  getProjectEvidence: (projectId: string) => ProjectEvidence;
-  addEvidenceFile: (projectId: string, file: Omit<EvidenceFile, 'id' | 'addedAt'>) => void;
-  removeEvidenceFile: (projectId: string, fileId: string) => void;
-  addLinkedBoard: (projectId: string, board: Omit<LinkedBoard, 'id' | 'linkedAt'>) => void;
-  removeLinkedBoard: (projectId: string, boardId: string) => void;
+  // Evidence (now async, server-backed) -----------------------------------
+  getProjectEvidence: (projectId: string) => EvidenceState;
+  loadProjectEvidence: (projectId: string) => Promise<void>;
+  uploadEvidenceFile: (
+    projectId: string,
+    file: File,
+    addedBy: string,
+  ) => Promise<EvidenceFile>;
+  removeEvidenceFile: (projectId: string, fileId: string) => Promise<void>;
+  addLinkedBoard: (
+    projectId: string,
+    board: { provider: BoardProvider; url: string; embedUrl: string; title: string; linkedBy: string },
+  ) => Promise<LinkedBoard>;
+  removeLinkedBoard: (projectId: string, boardId: string) => Promise<void>;
 
   // Organisation
   renameOrganisation: (name: string) => void;
@@ -226,7 +301,10 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const EMPTY_EVIDENCE: ProjectEvidence = { files: [], boards: [] };
+function describeError(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message;
+  return 'Unexpected error';
+}
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentView, setCurrentView] = useState<View>('home');
@@ -250,13 +328,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>(initialStakeholders);
   const [logEntries, setLogEntries] = useState<LogEntry[]>(initialLogEntries);
 
+  const [evidenceByProject, setEvidenceByProject] = useState<
+    Record<string, EvidenceState>
+  >({});
+  const evidenceLoadingRef = useRef<Record<string, Promise<void>>>({});
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    try {
-      window.localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks));
-    } catch {
-      // Quota exceeded or storage disabled — fail silently; in-memory state still works.
-    }
+    try { window.localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks)); } catch { /* noop */ }
   }, [tasks]);
 
   useEffect(() => {
@@ -386,98 +465,206 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setStakeholders(prev => [...prev, { ...stakeholder, id: `s${Date.now()}` }]);
   };
 
-  const addLogEntry = (entry: Omit<LogEntry, 'id'>) => {
+  const addLogEntry = useCallback((entry: Omit<LogEntry, 'id'>) => {
     setLogEntries(prev => [{ ...entry, id: uid('l') }, ...prev]);
-  };
+  }, []);
 
-  const getProjectEvidence = (projectId: string): ProjectEvidence => {
-    const project = projects.find(p => p.id === projectId);
-    return project?.evidence ?? EMPTY_EVIDENCE;
-  };
+  // Evidence -----------------------------------------------------------------
 
-  const addEvidenceFile = (projectId: string, file: Omit<EvidenceFile, 'id' | 'addedAt'>) => {
-    const newFile: EvidenceFile = {
-      ...file,
-      id: uid('ef'),
-      addedAt: new Date().toISOString(),
-    };
-    setProjects(prev => prev.map(p =>
-      p.id === projectId
-        ? { ...p, evidence: { ...p.evidence, files: [newFile, ...p.evidence.files] } }
-        : p
-    ));
-    addLogEntry({
-      date: formatDateTime(new Date()),
-      actor: file.addedBy,
-      type: 'File',
-      typeClass: 'beta',
-      detail: `Added file "${file.name}" to Evidence.`,
-    });
-  };
+  const getProjectEvidence = useCallback(
+    (projectId: string): EvidenceState =>
+      evidenceByProject[projectId] ?? EMPTY_EVIDENCE_STATE,
+    [evidenceByProject],
+  );
 
-  const removeEvidenceFile = (projectId: string, fileId: string) => {
-    const project = projects.find(p => p.id === projectId);
-    if (!project) return;
-    const removed = project.evidence.files.find(f => f.id === fileId);
-    if (!removed) return;
+  const setEvidenceFor = useCallback(
+    (projectId: string, updater: (prev: EvidenceState) => EvidenceState) => {
+      setEvidenceByProject(prev => ({
+        ...prev,
+        [projectId]: updater(prev[projectId] ?? EMPTY_EVIDENCE_STATE),
+      }));
+    },
+    [],
+  );
 
-    if (removed.previewUrl) {
-      try { URL.revokeObjectURL(removed.previewUrl); } catch { /* noop */ }
-    }
+  const loadProjectEvidence = useCallback(
+    async (projectId: string): Promise<void> => {
+      const inFlight = evidenceLoadingRef.current[projectId];
+      if (inFlight) return inFlight;
 
-    setProjects(prev => prev.map(p =>
-      p.id === projectId
-        ? { ...p, evidence: { ...p.evidence, files: p.evidence.files.filter(f => f.id !== fileId) } }
-        : p
-    ));
-    addLogEntry({
-      date: formatDateTime(new Date()),
-      actor: removed.addedBy,
-      type: 'File',
-      typeClass: 'beta',
-      detail: `Removed file "${removed.name}" from Evidence.`,
-    });
-  };
+      const promise = (async () => {
+        setEvidenceFor(projectId, prev => ({ ...prev, loading: true, error: null }));
+        try {
+          const data = await apiListProjectEvidence(projectId);
+          const files = data.files.map(normalizeFile);
+          const boards = data.boards.map(normalizeBoard);
+          setEvidenceFor(projectId, () => ({
+            files,
+            boards,
+            loading: false,
+            error: null,
+          }));
+        } catch (err) {
+          setEvidenceFor(projectId, prev => ({
+            ...prev,
+            loading: false,
+            error: describeError(err),
+          }));
+        } finally {
+          delete evidenceLoadingRef.current[projectId];
+        }
+      })();
 
-  const addLinkedBoard = (projectId: string, board: Omit<LinkedBoard, 'id' | 'linkedAt'>) => {
-    const newBoard: LinkedBoard = {
-      ...board,
-      id: uid('lb'),
-      linkedAt: new Date().toISOString(),
-    };
-    setProjects(prev => prev.map(p =>
-      p.id === projectId
-        ? { ...p, evidence: { ...p.evidence, boards: [newBoard, ...p.evidence.boards] } }
-        : p
-    ));
-    addLogEntry({
-      date: formatDateTime(new Date()),
-      actor: board.linkedBy,
-      type: 'Board',
-      typeClass: 'disc',
-      detail: `Linked ${board.provider === 'miro' ? 'Miro' : 'FigJam'} board "${board.title}" to Evidence.`,
-    });
-  };
+      evidenceLoadingRef.current[projectId] = promise;
+      return promise;
+    },
+    [setEvidenceFor],
+  );
 
-  const removeLinkedBoard = (projectId: string, boardId: string) => {
-    const project = projects.find(p => p.id === projectId);
-    if (!project) return;
-    const removed = project.evidence.boards.find(b => b.id === boardId);
-    if (!removed) return;
+  const uploadEvidenceFile = useCallback(
+    async (projectId: string, file: File, addedBy: string): Promise<EvidenceFile> => {
+      const contentType = file.type || 'application/octet-stream';
 
-    setProjects(prev => prev.map(p =>
-      p.id === projectId
-        ? { ...p, evidence: { ...p.evidence, boards: p.evidence.boards.filter(b => b.id !== boardId) } }
-        : p
-    ));
-    addLogEntry({
-      date: formatDateTime(new Date()),
-      actor: removed.linkedBy,
-      type: 'Board',
-      typeClass: 'disc',
-      detail: `Unlinked ${removed.provider === 'miro' ? 'Miro' : 'FigJam'} board "${removed.title}" from Evidence.`,
-    });
-  };
+      const presigned = await apiRequestUploadUrl({
+        name: file.name,
+        size: file.size,
+        contentType,
+      });
+
+      const putResp = await fetch(presigned.uploadURL, {
+        method: 'PUT',
+        headers: { 'Content-Type': contentType },
+        body: file,
+      });
+      if (!putResp.ok) {
+        throw new Error(
+          `Upload failed (${putResp.status} ${putResp.statusText || 'error'})`,
+        );
+      }
+
+      const created = await apiCreateEvidenceFile(projectId, {
+        name: file.name,
+        mimeType: contentType,
+        size: file.size,
+        addedBy,
+        objectPath: presigned.objectPath,
+      });
+      const persisted = normalizeFile(created);
+
+      setEvidenceFor(projectId, prev => ({
+        ...prev,
+        files: [persisted, ...prev.files.filter(f => f.id !== persisted.id)],
+      }));
+
+      addLogEntry({
+        date: formatDateTime(new Date()),
+        actor: addedBy,
+        type: 'File',
+        typeClass: 'beta',
+        detail: `Added file "${persisted.name}" to Evidence.`,
+      });
+
+      return persisted;
+    },
+    [addLogEntry, setEvidenceFor],
+  );
+
+  const removeEvidenceFile = useCallback(
+    async (projectId: string, fileId: string): Promise<void> => {
+      const current = evidenceByProject[projectId];
+      const existing = current?.files.find(f => f.id === fileId);
+
+      // Optimistically remove so the UI feels snappy; restore on failure.
+      setEvidenceFor(projectId, prev => ({
+        ...prev,
+        files: prev.files.filter(f => f.id !== fileId),
+      }));
+
+      try {
+        await apiDeleteEvidenceFile(projectId, fileId);
+      } catch (err) {
+        if (existing) {
+          setEvidenceFor(projectId, prev => ({
+            ...prev,
+            files: [existing, ...prev.files.filter(f => f.id !== existing.id)],
+          }));
+        }
+        throw err;
+      }
+
+      if (existing) {
+        addLogEntry({
+          date: formatDateTime(new Date()),
+          actor: existing.addedBy,
+          type: 'File',
+          typeClass: 'beta',
+          detail: `Removed file "${existing.name}" from Evidence.`,
+        });
+      }
+    },
+    [addLogEntry, evidenceByProject, setEvidenceFor],
+  );
+
+  const addLinkedBoard = useCallback(
+    async (
+      projectId: string,
+      board: { provider: BoardProvider; url: string; embedUrl: string; title: string; linkedBy: string },
+    ): Promise<LinkedBoard> => {
+      const created = await apiCreateLinkedBoard(projectId, board);
+      const persisted = normalizeBoard(created);
+
+      setEvidenceFor(projectId, prev => ({
+        ...prev,
+        boards: [persisted, ...prev.boards.filter(b => b.id !== persisted.id)],
+      }));
+
+      addLogEntry({
+        date: formatDateTime(new Date()),
+        actor: board.linkedBy,
+        type: 'Board',
+        typeClass: 'disc',
+        detail: `Linked ${board.provider === 'miro' ? 'Miro' : 'FigJam'} board "${persisted.title}" to Evidence.`,
+      });
+
+      return persisted;
+    },
+    [addLogEntry, setEvidenceFor],
+  );
+
+  const removeLinkedBoard = useCallback(
+    async (projectId: string, boardId: string): Promise<void> => {
+      const current = evidenceByProject[projectId];
+      const existing = current?.boards.find(b => b.id === boardId);
+
+      setEvidenceFor(projectId, prev => ({
+        ...prev,
+        boards: prev.boards.filter(b => b.id !== boardId),
+      }));
+
+      try {
+        await apiDeleteLinkedBoard(projectId, boardId);
+      } catch (err) {
+        if (existing) {
+          setEvidenceFor(projectId, prev => ({
+            ...prev,
+            boards: [existing, ...prev.boards.filter(b => b.id !== existing.id)],
+          }));
+        }
+        throw err;
+      }
+
+      if (existing) {
+        addLogEntry({
+          date: formatDateTime(new Date()),
+          actor: existing.linkedBy,
+          type: 'Board',
+          typeClass: 'disc',
+          detail: `Unlinked ${existing.provider === 'miro' ? 'Miro' : 'FigJam'} board "${existing.title}" from Evidence.`,
+        });
+      }
+    },
+    [addLogEntry, evidenceByProject, setEvidenceFor],
+  );
 
   // Organisation -----------------------------------------------------------
   const renameOrganisation = (name: string) => {
@@ -602,7 +789,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       statusClass: 'good',
       progress: stageProgress[stage],
       totalProgress: 5,
-      evidence: { files: [], boards: [] },
       teamId,
     };
     setProjects(prev => [...prev, newProject]);
@@ -621,7 +807,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isProjectModalOpen, setProjectModalOpen,
       editingTaskId, setEditingTaskId,
       addTask, moveTask, updateTask, updateTaskDependencies, deleteTask, addStakeholder, addLogEntry,
-      getProjectEvidence, addEvidenceFile, removeEvidenceFile, addLinkedBoard, removeLinkedBoard,
+      getProjectEvidence, loadProjectEvidence,
+      uploadEvidenceFile, removeEvidenceFile,
+      addLinkedBoard, removeLinkedBoard,
       renameOrganisation,
       addTeam, renameTeam, deleteTeam,
       addTeammate, updateTeammate, deleteTeammate,
@@ -638,3 +826,7 @@ export function useAppContext() {
   if (!context) throw new Error('useAppContext must be used within AppProvider');
   return context;
 }
+
+// Re-export the public ProjectEvidence shape for callers that consume the
+// in-memory snapshot (cards, badges, etc).
+export type { ProjectEvidence };
