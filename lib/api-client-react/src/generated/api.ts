@@ -26,6 +26,7 @@ import type {
   CreateLinkedBoardRequest,
   CreateLogEntryRequest,
   CreateProjectRequest,
+  CreateProjectSessionRequest,
   CreateStakeholderRequest,
   CreateTaskRequest,
   CreateTeamRequest,
@@ -42,14 +43,17 @@ import type {
   Organisation,
   Project,
   ProjectEvidence,
+  ProjectSession,
   RegisterRequest,
   Stakeholder,
   Task,
   Team,
   Teammate,
+  UpcomingSession,
   UpdateActionRequest,
   UpdateOrganisationRequest,
   UpdateProjectRequest,
+  UpdateProjectSessionRequest,
   UpdateStakeholderRequest,
   UpdateTaskRequest,
   UpdateTeamRequest,
@@ -3262,6 +3266,465 @@ export const useDeleteLogEntry = <
 > => {
   return useMutation(getDeleteLogEntryMutationOptions(options));
 };
+
+/**
+ * @summary List upcoming sessions for a project
+ */
+export const getListProjectSessionsUrl = (projectId: string) => {
+  return `/api/projects/${projectId}/sessions`;
+};
+
+export const listProjectSessions = async (
+  projectId: string,
+  options?: RequestInit,
+): Promise<ProjectSession[]> => {
+  return customFetch<ProjectSession[]>(getListProjectSessionsUrl(projectId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListProjectSessionsQueryKey = (projectId: string) => {
+  return [`/api/projects/${projectId}/sessions`] as const;
+};
+
+export const getListProjectSessionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listProjectSessions>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  projectId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listProjectSessions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListProjectSessionsQueryKey(projectId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listProjectSessions>>
+  > = ({ signal }) =>
+    listProjectSessions(projectId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!projectId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listProjectSessions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListProjectSessionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listProjectSessions>>
+>;
+export type ListProjectSessionsQueryError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary List upcoming sessions for a project
+ */
+
+export function useListProjectSessions<
+  TData = Awaited<ReturnType<typeof listProjectSessions>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  projectId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listProjectSessions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListProjectSessionsQueryOptions(projectId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add an upcoming session to a project
+ */
+export const getCreateProjectSessionUrl = (projectId: string) => {
+  return `/api/projects/${projectId}/sessions`;
+};
+
+export const createProjectSession = async (
+  projectId: string,
+  createProjectSessionRequest: CreateProjectSessionRequest,
+  options?: RequestInit,
+): Promise<ProjectSession> => {
+  return customFetch<ProjectSession>(getCreateProjectSessionUrl(projectId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createProjectSessionRequest),
+  });
+};
+
+export const getCreateProjectSessionMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createProjectSession>>,
+    TError,
+    { projectId: string; data: BodyType<CreateProjectSessionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createProjectSession>>,
+  TError,
+  { projectId: string; data: BodyType<CreateProjectSessionRequest> },
+  TContext
+> => {
+  const mutationKey = ["createProjectSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createProjectSession>>,
+    { projectId: string; data: BodyType<CreateProjectSessionRequest> }
+  > = (props) => {
+    const { projectId, data } = props ?? {};
+
+    return createProjectSession(projectId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateProjectSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createProjectSession>>
+>;
+export type CreateProjectSessionMutationBody =
+  BodyType<CreateProjectSessionRequest>;
+export type CreateProjectSessionMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Add an upcoming session to a project
+ */
+export const useCreateProjectSession = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createProjectSession>>,
+    TError,
+    { projectId: string; data: BodyType<CreateProjectSessionRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createProjectSession>>,
+  TError,
+  { projectId: string; data: BodyType<CreateProjectSessionRequest> },
+  TContext
+> => {
+  return useMutation(getCreateProjectSessionMutationOptions(options));
+};
+
+/**
+ * @summary Update a project session
+ */
+export const getUpdateProjectSessionUrl = (
+  projectId: string,
+  sessionId: string,
+) => {
+  return `/api/projects/${projectId}/sessions/${sessionId}`;
+};
+
+export const updateProjectSession = async (
+  projectId: string,
+  sessionId: string,
+  updateProjectSessionRequest: UpdateProjectSessionRequest,
+  options?: RequestInit,
+): Promise<ProjectSession> => {
+  return customFetch<ProjectSession>(
+    getUpdateProjectSessionUrl(projectId, sessionId),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateProjectSessionRequest),
+    },
+  );
+};
+
+export const getUpdateProjectSessionMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProjectSession>>,
+    TError,
+    {
+      projectId: string;
+      sessionId: string;
+      data: BodyType<UpdateProjectSessionRequest>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateProjectSession>>,
+  TError,
+  {
+    projectId: string;
+    sessionId: string;
+    data: BodyType<UpdateProjectSessionRequest>;
+  },
+  TContext
+> => {
+  const mutationKey = ["updateProjectSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateProjectSession>>,
+    {
+      projectId: string;
+      sessionId: string;
+      data: BodyType<UpdateProjectSessionRequest>;
+    }
+  > = (props) => {
+    const { projectId, sessionId, data } = props ?? {};
+
+    return updateProjectSession(projectId, sessionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateProjectSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateProjectSession>>
+>;
+export type UpdateProjectSessionMutationBody =
+  BodyType<UpdateProjectSessionRequest>;
+export type UpdateProjectSessionMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Update a project session
+ */
+export const useUpdateProjectSession = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProjectSession>>,
+    TError,
+    {
+      projectId: string;
+      sessionId: string;
+      data: BodyType<UpdateProjectSessionRequest>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateProjectSession>>,
+  TError,
+  {
+    projectId: string;
+    sessionId: string;
+    data: BodyType<UpdateProjectSessionRequest>;
+  },
+  TContext
+> => {
+  return useMutation(getUpdateProjectSessionMutationOptions(options));
+};
+
+/**
+ * @summary Delete a project session
+ */
+export const getDeleteProjectSessionUrl = (
+  projectId: string,
+  sessionId: string,
+) => {
+  return `/api/projects/${projectId}/sessions/${sessionId}`;
+};
+
+export const deleteProjectSession = async (
+  projectId: string,
+  sessionId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteProjectSessionUrl(projectId, sessionId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteProjectSessionMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProjectSession>>,
+    TError,
+    { projectId: string; sessionId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteProjectSession>>,
+  TError,
+  { projectId: string; sessionId: string },
+  TContext
+> => {
+  const mutationKey = ["deleteProjectSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteProjectSession>>,
+    { projectId: string; sessionId: string }
+  > = (props) => {
+    const { projectId, sessionId } = props ?? {};
+
+    return deleteProjectSession(projectId, sessionId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteProjectSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteProjectSession>>
+>;
+
+export type DeleteProjectSessionMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Delete a project session
+ */
+export const useDeleteProjectSession = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProjectSession>>,
+    TError,
+    { projectId: string; sessionId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteProjectSession>>,
+  TError,
+  { projectId: string; sessionId: string },
+  TContext
+> => {
+  return useMutation(getDeleteProjectSessionMutationOptions(options));
+};
+
+/**
+ * Aggregated feed of upcoming sessions across every project in the
+organisation, sorted by scheduled time (soonest first). Past sessions
+are excluded.
+
+ * @summary List upcoming sessions across all projects
+ */
+export const getListUpcomingSessionsUrl = () => {
+  return `/api/upcoming-sessions`;
+};
+
+export const listUpcomingSessions = async (
+  options?: RequestInit,
+): Promise<UpcomingSession[]> => {
+  return customFetch<UpcomingSession[]>(getListUpcomingSessionsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListUpcomingSessionsQueryKey = () => {
+  return [`/api/upcoming-sessions`] as const;
+};
+
+export const getListUpcomingSessionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listUpcomingSessions>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listUpcomingSessions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListUpcomingSessionsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listUpcomingSessions>>
+  > = ({ signal }) => listUpcomingSessions({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listUpcomingSessions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListUpcomingSessionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listUpcomingSessions>>
+>;
+export type ListUpcomingSessionsQueryError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary List upcoming sessions across all projects
+ */
+
+export function useListUpcomingSessions<
+  TData = Awaited<ReturnType<typeof listUpcomingSessions>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listUpcomingSessions>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListUpcomingSessionsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * Returns a presigned GCS URL for direct upload. The client sends JSON

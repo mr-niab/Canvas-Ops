@@ -11,6 +11,7 @@ import logEntriesRouter from "./logEntries";
 import storageRouter from "./storage";
 import evidenceRouter from "./evidence";
 import actionsRouter from "./actions";
+import projectSessionsRouter from "./projectSessions";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(logEntriesRouter);
 router.use(storageRouter);
 router.use(evidenceRouter);
 router.use(actionsRouter);
+router.use(projectSessionsRouter);
 
 export default router;

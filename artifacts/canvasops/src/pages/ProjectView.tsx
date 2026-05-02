@@ -1,14 +1,22 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppContext } from '../AppContext';
-import { Discipline, Task } from '../types';
+import { Discipline, ProjectSession, Task } from '../types';
 import { AddTaskModal } from '../components/forms/AddTaskModal';
 import { AddStakeholderModal } from '../components/forms/AddStakeholderModal';
 import { AddLogEntryModal } from '../components/forms/AddLogEntryModal';
 import { TaskDetailModal } from '../components/forms/TaskDetailModal';
+import { SessionModal } from '../components/forms/SessionModal';
 import { StakeholdersTable } from '../components/StakeholdersTable';
 import { LogList } from '../components/LogList';
 import { BlockedByChip } from '../components/BlockedByChip';
 import { EvidencePanel } from '../components/EvidencePanel';
+
+function formatSessionWhen(iso: string): string {
+  const d = new Date(iso);
+  const day = d.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const time = d.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return `${day} · ${time}`;
+}
 
 type Tab = 'overview' | 'workflow' | 'evidence' | 'stakeholders' | 'resources' | 'log';
 
@@ -70,8 +78,20 @@ export function ProjectView() {
     setStakeholderModalOpen,
     setLogModalOpen,
     getProjectEvidence,
+    sessionsByProject,
+    loadProjectSessions,
+    deleteProjectSession,
   } = useAppContext();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [sessionModalOpen, setSessionModalOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<ProjectSession | null>(null);
+
+  const projectId = selectedProjectId ?? projects[0]?.id ?? null;
+  useEffect(() => {
+    if (projectId) {
+      void loadProjectSessions(projectId);
+    }
+  }, [projectId, loadProjectSessions]);
 
   const project = projects.find(p => p.id === selectedProjectId) ?? projects[0] ?? null;
 
@@ -97,6 +117,7 @@ export function ProjectView() {
   const evidence = getProjectEvidence(project.id);
   const evidenceCount = evidence.files.length + evidence.boards.length;
   const projectTeam = project.teamId ? teams.find(t => t.id === project.teamId) : undefined;
+  const sessions = sessionsByProject[project.id] ?? [];
 
   return (
     <section>
@@ -165,21 +186,64 @@ export function ProjectView() {
             </div>
 
             <div className="card">
-              <div className="list-item">
+              <div className="list-item list-item-row">
                 <div className="section-title flush">Upcoming sessions</div>
+                <button
+                  className="btn small"
+                  onClick={() => {
+                    setEditingSession(null);
+                    setSessionModalOpen(true);
+                  }}
+                >
+                  + Add session
+                </button>
               </div>
-              <div className="list-item">
-                <div className="item-title">Design crit</div>
-                <div className="item-sub">Mon 2:00pm · Booking confirmation + error flows</div>
-              </div>
-              <div className="list-item">
-                <div className="item-title">Stakeholder playback</div>
-                <div className="item-sub">Wed 3:00pm · Service findings with project stakeholders</div>
-              </div>
-              <div className="list-item">
-                <div className="item-title">Stage gate review — {project.stage}</div>
-                <div className="item-sub">Thu 2:00pm · All disciplines · Stage readiness</div>
-              </div>
+              {sessions.length === 0 ? (
+                <div className="list-item">
+                  <div className="item-sub">
+                    No upcoming sessions. Schedule a crit, playback, or review to keep the team aligned.
+                  </div>
+                </div>
+              ) : (
+                sessions.map((s) => {
+                  const sub = [formatSessionWhen(s.scheduledAt), s.attendees, s.notes]
+                    .filter(Boolean)
+                    .join(' · ');
+                  return (
+                    <div key={s.id} className="list-item list-item-row">
+                      <div className="list-item-main">
+                        <div className="item-title">{s.title}</div>
+                        <div className="item-sub">{sub}</div>
+                      </div>
+                      <div className="cluster">
+                        <button
+                          className="btn small"
+                          onClick={() => {
+                            setEditingSession(s);
+                            setSessionModalOpen(true);
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn small danger"
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `Delete session "${s.title}"? This cannot be undone.`,
+                              )
+                            ) {
+                              void deleteProjectSession(project.id, s.id);
+                            }
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -277,6 +341,15 @@ export function ProjectView() {
       <AddStakeholderModal />
       <AddLogEntryModal />
       <TaskDetailModal />
+      <SessionModal
+        isOpen={sessionModalOpen}
+        onClose={() => {
+          setSessionModalOpen(false);
+          setEditingSession(null);
+        }}
+        projectId={project.id}
+        session={editingSession}
+      />
     </section>
   );
 }

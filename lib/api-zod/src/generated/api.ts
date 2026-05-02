@@ -607,6 +607,118 @@ export const DeleteLogEntryParams = zod.object({
 });
 
 /**
+ * @summary List upcoming sessions for a project
+ */
+export const ListProjectSessionsParams = zod.object({
+  projectId: zod.coerce.string(),
+});
+
+export const ListProjectSessionsResponseItem = zod.object({
+  id: zod.string(),
+  projectId: zod.string(),
+  title: zod.string(),
+  scheduledAt: zod.coerce
+    .date()
+    .describe("When the session is scheduled to take place (ISO timestamp)."),
+  attendees: zod
+    .string()
+    .describe("Free-text list of attendees and\/or disciplines."),
+  notes: zod
+    .string()
+    .describe("Short note describing the focus of the session."),
+});
+export const ListProjectSessionsResponse = zod.array(
+  ListProjectSessionsResponseItem,
+);
+
+/**
+ * @summary Add an upcoming session to a project
+ */
+export const CreateProjectSessionParams = zod.object({
+  projectId: zod.coerce.string(),
+});
+
+export const CreateProjectSessionBody = zod.object({
+  title: zod.string().min(1),
+  scheduledAt: zod.coerce.date(),
+  attendees: zod.string().optional(),
+  notes: zod.string().optional(),
+});
+
+export const CreateProjectSessionResponse = zod.object({
+  id: zod.string(),
+  projectId: zod.string(),
+  title: zod.string(),
+  scheduledAt: zod.coerce
+    .date()
+    .describe("When the session is scheduled to take place (ISO timestamp)."),
+  attendees: zod
+    .string()
+    .describe("Free-text list of attendees and\/or disciplines."),
+  notes: zod
+    .string()
+    .describe("Short note describing the focus of the session."),
+});
+
+/**
+ * @summary Update a project session
+ */
+export const UpdateProjectSessionParams = zod.object({
+  projectId: zod.coerce.string(),
+  sessionId: zod.coerce.string(),
+});
+
+export const UpdateProjectSessionBody = zod.object({
+  title: zod.string().min(1).optional(),
+  scheduledAt: zod.coerce.date().optional(),
+  attendees: zod.string().optional(),
+  notes: zod.string().optional(),
+});
+
+export const UpdateProjectSessionResponse = zod.object({
+  id: zod.string(),
+  projectId: zod.string(),
+  title: zod.string(),
+  scheduledAt: zod.coerce
+    .date()
+    .describe("When the session is scheduled to take place (ISO timestamp)."),
+  attendees: zod
+    .string()
+    .describe("Free-text list of attendees and\/or disciplines."),
+  notes: zod
+    .string()
+    .describe("Short note describing the focus of the session."),
+});
+
+/**
+ * @summary Delete a project session
+ */
+export const DeleteProjectSessionParams = zod.object({
+  projectId: zod.coerce.string(),
+  sessionId: zod.coerce.string(),
+});
+
+/**
+ * Aggregated feed of upcoming sessions across every project in the
+organisation, sorted by scheduled time (soonest first). Past sessions
+are excluded.
+
+ * @summary List upcoming sessions across all projects
+ */
+export const ListUpcomingSessionsResponseItem = zod.object({
+  id: zod.string(),
+  projectId: zod.string(),
+  projectName: zod.string(),
+  title: zod.string(),
+  scheduledAt: zod.coerce.date(),
+  attendees: zod.string(),
+  notes: zod.string(),
+});
+export const ListUpcomingSessionsResponse = zod.array(
+  ListUpcomingSessionsResponseItem,
+);
+
+/**
  * Returns a presigned GCS URL for direct upload. The client sends JSON
 metadata here, then uploads the file directly to the returned URL.
 

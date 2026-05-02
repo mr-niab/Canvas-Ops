@@ -78,6 +78,19 @@ export type LogEntry = {
   detail: string;
 };
 
+export type ProjectSession = {
+  id: string;
+  projectId: string;
+  title: string;
+  scheduledAt: string;
+  attendees: string;
+  notes: string;
+};
+
+export type UpcomingSession = ProjectSession & {
+  projectName: string;
+};
+
 export type Organisation = {
   id: string;
   name: string;

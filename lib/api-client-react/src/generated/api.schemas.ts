@@ -431,3 +431,41 @@ export interface UpdateActionRequest {
   title?: string;
   note?: string | null;
 }
+
+export interface ProjectSession {
+  id: string;
+  projectId: string;
+  title: string;
+  /** When the session is scheduled to take place (ISO timestamp). */
+  scheduledAt: string;
+  /** Free-text list of attendees and/or disciplines. */
+  attendees: string;
+  /** Short note describing the focus of the session. */
+  notes: string;
+}
+
+export interface UpcomingSession {
+  id: string;
+  projectId: string;
+  projectName: string;
+  title: string;
+  scheduledAt: string;
+  attendees: string;
+  notes: string;
+}
+
+export interface CreateProjectSessionRequest {
+  /** @minLength 1 */
+  title: string;
+  scheduledAt: string;
+  attendees?: string;
+  notes?: string;
+}
+
+export interface UpdateProjectSessionRequest {
+  /** @minLength 1 */
+  title?: string;
+  scheduledAt?: string;
+  attendees?: string;
+  notes?: string;
+}

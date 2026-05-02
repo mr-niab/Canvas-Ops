@@ -15,6 +15,8 @@ import {
   EvidenceFile,
   LinkedBoard,
   ProjectEvidence,
+  ProjectSession,
+  UpcomingSession,
   Organisation,
   Team,
   Teammate,
@@ -33,6 +35,7 @@ import {
   createLinkedBoard as apiCreateLinkedBoard,
   createLogEntry as apiCreateLogEntry,
   createProject as apiCreateProject,
+  createProjectSession as apiCreateProjectSession,
   createStakeholder as apiCreateStakeholder,
   createTask as apiCreateTask,
   createTeam as apiCreateTeam,
@@ -41,6 +44,7 @@ import {
   deleteEvidenceFile as apiDeleteEvidenceFile,
   deleteLinkedBoard as apiDeleteLinkedBoard,
   deleteProject as apiDeleteProject,
+  deleteProjectSession as apiDeleteProjectSession,
   deleteTask as apiDeleteTask,
   deleteTeam as apiDeleteTeam,
   deleteTeammate as apiDeleteTeammate,
@@ -51,11 +55,13 @@ import {
   listLogEntries,
   listMembers,
   listProjectEvidence as apiListProjectEvidence,
+  listProjectSessions as apiListProjectSessions,
   listProjects,
   listStakeholders,
   listTasks,
   listTeammates,
   listTeams,
+  listUpcomingSessions as apiListUpcomingSessions,
   updateAction as apiUpdateAction,
   moveTask as apiMoveTask,
   removeMember as apiRemoveMember,
@@ -67,6 +73,7 @@ import {
   type UpdateTaskRequestDiscipline,
   updateOrganisation as apiUpdateOrganisation,
   updateProject as apiUpdateProject,
+  updateProjectSession as apiUpdateProjectSession,
   updateTask as apiUpdateTask,
   updateTeam as apiUpdateTeam,
   updateTeammate as apiUpdateTeammate,
@@ -188,6 +195,44 @@ function normalizeAction(raw: {
     note: raw.note ?? null,
     createdAt: toIso(raw.createdAt),
     updatedAt: toIso(raw.updatedAt),
+  };
+}
+
+function normalizeSession(raw: {
+  id: string;
+  projectId: string;
+  title: string;
+  scheduledAt: Date | string;
+  attendees: string;
+  notes: string;
+}): ProjectSession {
+  return {
+    id: raw.id,
+    projectId: raw.projectId,
+    title: raw.title,
+    scheduledAt: toIso(raw.scheduledAt),
+    attendees: raw.attendees,
+    notes: raw.notes,
+  };
+}
+
+function normalizeUpcomingSession(raw: {
+  id: string;
+  projectId: string;
+  projectName: string;
+  title: string;
+  scheduledAt: Date | string;
+  attendees: string;
+  notes: string;
+}): UpcomingSession {
+  return {
+    id: raw.id,
+    projectId: raw.projectId,
+    projectName: raw.projectName,
+    title: raw.title,
+    scheduledAt: toIso(raw.scheduledAt),
+    attendees: raw.attendees,
+    notes: raw.notes,
   };
 }
 
@@ -318,6 +363,27 @@ interface AppContextType {
   ) => Promise<LinkedBoard>;
   removeLinkedBoard: (projectId: string, boardId: string) => Promise<void>;
 
+  // Project sessions ------------------------------------------------------
+  sessionsByProject: Record<string, ProjectSession[]>;
+  upcomingSessions: UpcomingSession[];
+  loadProjectSessions: (projectId: string) => Promise<void>;
+  loadUpcomingSessions: () => Promise<void>;
+  addProjectSession: (
+    projectId: string,
+    input: {
+      title: string;
+      scheduledAt: string;
+      attendees?: string;
+      notes?: string;
+    },
+  ) => Promise<void>;
+  updateProjectSession: (
+    projectId: string,
+    sessionId: string,
+    updates: Partial<Pick<ProjectSession, 'title' | 'scheduledAt' | 'attendees' | 'notes'>>,
+  ) => Promise<void>;
+  deleteProjectSession: (projectId: string, sessionId: string) => Promise<void>;
+
   // Organisation ----------------------------------------------------------
   renameOrganisation: (name: string) => Promise<void>;
 
@@ -388,6 +454,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     Record<string, EvidenceState>
   >({});
   const evidenceLoadingRef = useRef<Record<string, Promise<void>>>({});
+
+  const [sessionsByProject, setSessionsByProject] = useState<
+    Record<string, ProjectSession[]>
+  >({});
+  const [upcomingSessions, setUpcomingSessions] = useState<UpcomingSession[]>(
+    [],
+  );
+  const sessionsLoadingRef = useRef<Record<string, Promise<void>>>({});
+  const upcomingSessionsLoadingRef = useRef<Promise<void> | null>(null);
 
   // -- Initial bootstrap --------------------------------------------------
   // Auth is intentionally disabled for testing: load workspace data on mount.
@@ -803,6 +878,130 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [addLogEntry, evidenceByProject, setEvidenceFor],
   );
 
+  // -- Project sessions ---------------------------------------------------
+  const loadProjectSessions = useCallback(
+    async (projectId: string): Promise<void> => {
+      const inFlight = sessionsLoadingRef.current[projectId];
+      if (inFlight) return inFlight;
+      const promise = (async () => {
+        try {
+          const rows = await apiListProjectSessions(projectId);
+          setSessionsByProject((prev) => ({
+            ...prev,
+            [projectId]: rows.map(normalizeSession),
+          }));
+        } finally {
+          delete sessionsLoadingRef.current[projectId];
+        }
+      })();
+      sessionsLoadingRef.current[projectId] = promise;
+      return promise;
+    },
+    [],
+  );
+
+  const loadUpcomingSessions = useCallback(async (): Promise<void> => {
+    if (upcomingSessionsLoadingRef.current) {
+      return upcomingSessionsLoadingRef.current;
+    }
+    const promise = (async () => {
+      try {
+        const rows = await apiListUpcomingSessions();
+        setUpcomingSessions(rows.map(normalizeUpcomingSession));
+      } finally {
+        upcomingSessionsLoadingRef.current = null;
+      }
+    })();
+    upcomingSessionsLoadingRef.current = promise;
+    return promise;
+  }, []);
+
+  const isUpcomingSession = (s: ProjectSession): boolean =>
+    new Date(s.scheduledAt).getTime() >= Date.now();
+
+  const sortSessions = (rows: ProjectSession[]) =>
+    [...rows].sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
+
+  const addProjectSession = useCallback(
+    async (
+      projectId: string,
+      input: {
+        title: string;
+        scheduledAt: string;
+        attendees?: string;
+        notes?: string;
+      },
+    ): Promise<void> => {
+      const created = await apiCreateProjectSession(projectId, {
+        title: input.title,
+        scheduledAt: input.scheduledAt,
+        attendees: input.attendees ?? '',
+        notes: input.notes ?? '',
+      });
+      const session = normalizeSession(created);
+      setSessionsByProject((prev) => ({
+        ...prev,
+        [projectId]: sortSessions(
+          [...(prev[projectId] ?? []), session].filter(isUpcomingSession),
+        ),
+      }));
+      void loadUpcomingSessions();
+    },
+    [loadUpcomingSessions],
+  );
+
+  const updateProjectSession = useCallback(
+    async (
+      projectId: string,
+      sessionId: string,
+      updates: Partial<
+        Pick<ProjectSession, 'title' | 'scheduledAt' | 'attendees' | 'notes'>
+      >,
+    ): Promise<void> => {
+      const payload: {
+        title?: string;
+        scheduledAt?: string;
+        attendees?: string;
+        notes?: string;
+      } = {};
+      if (updates.title !== undefined) payload.title = updates.title;
+      if (updates.scheduledAt !== undefined)
+        payload.scheduledAt = updates.scheduledAt;
+      if (updates.attendees !== undefined) payload.attendees = updates.attendees;
+      if (updates.notes !== undefined) payload.notes = updates.notes;
+      const updated = await apiUpdateProjectSession(
+        projectId,
+        sessionId,
+        payload,
+      );
+      const session = normalizeSession(updated);
+      setSessionsByProject((prev) => {
+        const next = (prev[projectId] ?? [])
+          .filter((s) => s.id !== sessionId)
+          .concat(isUpcomingSession(session) ? [session] : []);
+        return { ...prev, [projectId]: sortSessions(next) };
+      });
+      if (!isUpcomingSession(session)) {
+        setUpcomingSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      } else {
+        void loadUpcomingSessions();
+      }
+    },
+    [loadUpcomingSessions],
+  );
+
+  const deleteProjectSession = useCallback(
+    async (projectId: string, sessionId: string): Promise<void> => {
+      await apiDeleteProjectSession(projectId, sessionId);
+      setSessionsByProject((prev) => ({
+        ...prev,
+        [projectId]: (prev[projectId] ?? []).filter((s) => s.id !== sessionId),
+      }));
+      setUpcomingSessions((prev) => prev.filter((s) => s.id !== sessionId));
+    },
+    [],
+  );
+
   // -- Organisation -------------------------------------------------------
   const renameOrganisation = useCallback(async (name: string) => {
     const trimmed = name.trim();
@@ -1125,6 +1324,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         removeEvidenceFile,
         addLinkedBoard,
         removeLinkedBoard,
+        sessionsByProject,
+        upcomingSessions,
+        loadProjectSessions,
+        loadUpcomingSessions,
+        addProjectSession,
+        updateProjectSession,
+        deleteProjectSession,
         renameOrganisation,
         addTeam,
         renameTeam,

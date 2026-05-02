@@ -1,8 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppContext } from '../AppContext';
 import { Project, Action } from '../types';
 import { AddProjectModal } from '../components/forms/AddProjectModal';
 import { AddActionModal } from '../components/forms/AddActionModal';
+
+function formatSessionWhen(iso: string): string {
+  const d = new Date(iso);
+  const day = d.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const time = d.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return `${day} · ${time}`;
+}
 
 function ProjectCard({ project, teamName, onOpen }: { project: Project; teamName?: string; onOpen: () => void }) {
   return (
@@ -108,6 +115,8 @@ export function HomeView() {
     setProjectModalOpen,
     actions,
     deleteAction,
+    upcomingSessions,
+    loadUpcomingSessions,
   } = useAppContext();
   const teamById = new Map(teams.map(t => [t.id, t]));
 
@@ -128,6 +137,10 @@ export function HomeView() {
     setActionModalOpen(false);
     setEditingAction(null);
   };
+
+  useEffect(() => {
+    void loadUpcomingSessions();
+  }, [loadUpcomingSessions]);
 
   return (
     <section>
@@ -223,22 +236,43 @@ export function HomeView() {
         <div className="list-item">
           <div className="section-title flush">Upcoming sessions</div>
         </div>
-        <div className="list-item">
-          <div className="item-title">Design crit — Appointment Booking</div>
-          <div className="item-sub">Mon 2:00pm · UX/UI team · Booking confirmation + error flows</div>
-        </div>
-        <div className="list-item">
-          <div className="item-title">Research debrief — Staff Portal v2</div>
-          <div className="item-sub">Tue 10:00am · Research + UX/UI · Round 2 synthesis</div>
-        </div>
-        <div className="list-item">
-          <div className="item-title">Stakeholder playback — Appointment Booking</div>
-          <div className="item-sub">Wed 3:00pm · Project team + stakeholders · Service findings</div>
-        </div>
-        <div className="list-item">
-          <div className="item-title">Stage gate review — Appointment Booking</div>
-          <div className="item-sub">Thu 2:00pm · All disciplines · Beta → Live readiness</div>
-        </div>
+        {upcomingSessions.length === 0 ? (
+          <div className="list-item">
+            <div className="item-sub">
+              No upcoming sessions yet. Open a project to schedule one.
+            </div>
+          </div>
+        ) : (
+          upcomingSessions.map((s) => {
+            const sub = [
+              formatSessionWhen(s.scheduledAt),
+              s.attendees,
+              s.notes,
+            ]
+              .filter(Boolean)
+              .join(' · ');
+            return (
+              <div
+                key={s.id}
+                className="list-item list-item-clickable"
+                role="button"
+                tabIndex={0}
+                onClick={() => openProject(s.projectId)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openProject(s.projectId);
+                  }
+                }}
+              >
+                <div className="item-title">
+                  {s.title} — {s.projectName}
+                </div>
+                <div className="item-sub">{sub}</div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       <AddProjectModal />

@@ -34,6 +34,8 @@ tags:
     description: Project evidence (files and linked boards) persistence.
   - name: Actions
     description: Personal "My actions today" items, scoped per user.
+  - name: ProjectSessions
+    description: Upcoming working sessions scheduled per project.
 paths:
   /healthz:
     get:
@@ -952,6 +954,157 @@ paths:
           description: Deleted.
         '404':
           description: Not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+
+  /projects/{projectId}/sessions:
+    get:
+      tags: [ProjectSessions]
+      operationId: listProjectSessions
+      summary: List upcoming sessions for a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sessions for the project, soonest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectSession'
+        '401':
+          description: Not signed in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Project not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    post:
+      tags: [ProjectSessions]
+      operationId: createProjectSession
+      summary: Add an upcoming session to a project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectSessionRequest'
+      responses:
+        '200':
+          description: The created session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectSession'
+        '400':
+          description: Invalid request body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Project not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /projects/{projectId}/sessions/{sessionId}:
+    patch:
+      tags: [ProjectSessions]
+      operationId: updateProjectSession
+      summary: Update a project session
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectSessionRequest'
+      responses:
+        '200':
+          description: The updated session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectSession'
+        '404':
+          description: Session not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    delete:
+      tags: [ProjectSessions]
+      operationId: deleteProjectSession
+      summary: Delete a project session
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Session deleted.
+        '404':
+          description: Session not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /upcoming-sessions:
+    get:
+      tags: [ProjectSessions]
+      operationId: listUpcomingSessions
+      summary: List upcoming sessions across all projects
+      description: |
+        Aggregated feed of upcoming sessions across every project in the
+        organisation, sorted by scheduled time (soonest first). Past sessions
+        are excluded.
+      responses:
+        '200':
+          description: Upcoming sessions across the workspace.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UpcomingSession'
+        '401':
+          description: Not signed in.
           content:
             application/json:
               schema:
@@ -1878,3 +2031,69 @@ components:
         note:
           type: string
           nullable: true
+    ProjectSession:
+      type: object
+      required: [id, projectId, title, scheduledAt, attendees, notes]
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        title:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+          description: When the session is scheduled to take place (ISO timestamp).
+        attendees:
+          type: string
+          description: Free-text list of attendees and/or disciplines.
+        notes:
+          type: string
+          description: Short note describing the focus of the session.
+    UpcomingSession:
+      type: object
+      required: [id, projectId, projectName, title, scheduledAt, attendees, notes]
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        projectName:
+          type: string
+        title:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        attendees:
+          type: string
+        notes:
+          type: string
+    CreateProjectSessionRequest:
+      type: object
+      required: [title, scheduledAt]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        scheduledAt:
+          type: string
+          format: date-time
+        attendees:
+          type: string
+        notes:
+          type: string
+    UpdateProjectSessionRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        scheduledAt:
+          type: string
+          format: date-time
+        attendees:
+          type: string
+        notes:
+          type: string
