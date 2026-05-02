@@ -2,22 +2,7 @@ import { useAppContext } from '../AppContext';
 import { Project } from '../types';
 import { AddProjectModal } from '../components/forms/AddProjectModal';
 
-function MiniProgress({ done, total, activeAt }: { done: number; total: number; activeAt?: number }) {
-  return (
-    <div className="mini">
-      {Array.from({ length: total }).map((_, i) => {
-        let cls = '';
-        if (i < done) cls = 'done';
-        else if (i === activeAt) cls = 'active';
-        return <span key={i} className={cls}></span>;
-      })}
-    </div>
-  );
-}
-
 function ProjectCard({ project, teamName, onOpen }: { project: Project; teamName?: string; onOpen: () => void }) {
-  const done = project.status === 'Shipped' ? project.totalProgress : Math.max(0, project.progress - 1);
-  const activeAt = project.status === 'Shipped' ? -1 : project.progress - 1;
   return (
     <div
       className="project-card"
@@ -40,7 +25,6 @@ function ProjectCard({ project, teamName, onOpen }: { project: Project; teamName
         <span className={`badge ${project.statusClass}`}>{project.status}</span>
         {teamName && <span className="badge team-badge">{teamName}</span>}
       </div>
-      <MiniProgress done={done} total={project.totalProgress} activeAt={activeAt} />
       <div className="project-card-open">Open →</div>
     </div>
   );

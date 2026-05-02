@@ -185,26 +185,6 @@ export function ProjectView() {
 
           <div className="stack">
             <div className="card pad">
-              <div className="section-title">Project health</div>
-              <div className="health-block">
-                <div className="health-label">Research evidence</div>
-                <div className="mini"><span className="done"></span><span className="done"></span><span className="done"></span><span className="done"></span><span></span></div>
-              </div>
-              <div className="health-block">
-                <div className="health-label">UI validated</div>
-                <div className="mini"><span className="done"></span><span className="done"></span><span className="done"></span><span className="active"></span><span></span></div>
-              </div>
-              <div className="health-block">
-                <div className="health-label">Stakeholders aligned</div>
-                <div className="mini"><span className="done"></span><span className="done"></span><span className="active"></span><span></span><span></span></div>
-              </div>
-              <div className="health-block">
-                <div className="health-label">Decisions logged</div>
-                <div className="mini"><span className="done"></span><span className="done"></span><span className="active"></span><span></span><span></span></div>
-              </div>
-            </div>
-
-            <div className="card pad">
               <div className="section-title">Stakeholders</div>
               <div className="stack-tight">
                 <div>
