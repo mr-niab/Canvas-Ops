@@ -1,0 +1,743 @@
+<!--
+=============================================================
+CANVASOPS — DESIGN TEAM OPERATING SYSTEM
+Replit build brief
+=============================================================
+
+PRODUCT SUMMARY
+CanvasOps is a web app built specifically for design teams
+that include UX/UI designers, user researchers, and service
+designers. It is not a generic project management tool — it
+is purpose-built around how design teams think, collaborate,
+and track work across disciplines.
+
+The core problem it solves: design teams lose track of what
+stage a project is at, what resources exist, who the
+stakeholders are, and what decisions have been made. Current
+tools like Jira, Notion, and DevOps are built for developers
+or generalist teams. CanvasOps is built for designers.
+
+CORE PRINCIPLES
+1. Projects are the primary unit of work. Every user starts
+   from the project list and navigates within a project.
+2. Three disciplines connect inside every project:
+   UX/UI Design, User Research, and Service Design.
+   Each has its own workflow lane but shares one project.
+3. Stakeholders are recorded per project with name, role,
+   email, and last contact status.
+4. A project log captures conversations, decisions, files,
+   and emails in a chronological, per-project audit trail.
+5. Upcoming sessions replace calendar views — a lightweight
+   list of what is coming up, shown below main content.
+
+SCREENS IN THIS PROTOTYPE
+- Home: Projects at a glance (primary), My actions today,
+  Upcoming sessions (lower section)
+- Project detail: Stage tracker, cross-discipline workflow
+  lanes, project health, stakeholder summary, log preview
+- Stakeholders: Table of project contacts with role, email,
+  last contacted, alignment status
+- Project log: Chronological log entries with type badges
+- Workflow: Kanban-style discipline lanes
+
+DESIGN SYSTEM
+- Fonts: Cabinet Grotesk (display/headings), Satoshi (body)
+  both via Fontshare CDN — no install needed
+- Palette: Warm neutral light theme
+  Background #f7f6f2, Surface #f9f8f5, Text #28251d
+  Primary teal #01696f, Research purple #7a39bb,
+  Service blue #006494
+- Single light mode only — no dark mode toggle
+- Radius: 14px cards, 12px buttons and tags
+- Shadow: warm, low-contrast elevation
+
+TECHNICAL NOTES
+- Single HTML file, no framework, no build step
+- Navigation uses vanilla JS view switching
+- All state is client-side and in-memory
+- Fonts loaded from Fontshare CDN (internet required)
+- Responsive: sidebar hidden on mobile, grids stack to 1 col
+- Expand to multi-page React/Next.js or SvelteKit when ready
+
+NEXT STEPS FOR REPLIT BUILD
+1. Convert each view section into a component
+2. Add a real data model for projects, tasks, stakeholders,
+   log entries using a simple JSON structure or Supabase
+3. Add form interactions: create project, add stakeholder,
+   add log entry, add task to workflow lane
+4. Add filtering on the project list by stage and status
+5. Add search across projects, tasks, and stakeholders
+=============================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CanvasOps</title>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=cabinet-grotesk@500,700,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f6f2; --surface:#f9f8f5; --surface-2:#fbfbf9; --surface-3:#e6e4df;
+  --border:#d4d1ca; --text:#28251d; --muted:#7a7974; --faint:#bab9b4;
+  --primary:#01696f; --primary-bg:#cedcd8; --research:#7a39bb; --research-bg:#dacfde;
+  --service:#006494; --service-bg:#c6d8e4; --success:#437a22; --success-bg:#d4dfcc;
+  --warn:#da7101; --warn-bg:#e7d7c4; --danger:#a12c7b; --danger-bg:#e0ced7;
+  --radius:14px; --radius-sm:10px; --shadow:0 10px 30px rgba(40,37,29,.08);
+}
+*{box-sizing:border-box} html,body{margin:0;padding:0}
+body{font-family:'Satoshi',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.45}
+button{font:inherit}
+.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:20px 14px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{font-family:'Cabinet Grotesk',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.03em;display:flex;align-items:center;gap:10px;margin-bottom:20px}
+.logo{width:28px;height:28px;display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.logo span{display:block;border-radius:7px;background:var(--primary)}
+.logo span:nth-child(2){opacity:.45}
+.logo span:nth-child(3){opacity:.35}
+.logo span:nth-child(4){opacity:.7}
+.nav-label{color:var(--faint);text-transform:uppercase;font-size:11px;letter-spacing:.08em;margin:18px 10px 8px}
+.nav-btn{width:100%;text-align:left;background:transparent;border:0;color:var(--muted);padding:11px 12px;border-radius:12px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px}
+.nav-btn:hover{background:var(--surface-3);color:var(--text)}
+.nav-btn.active{background:var(--primary-bg);color:var(--primary);font-weight:700}
+.dot{width:8px;height:8px;border-radius:999px;background:currentColor;opacity:.8;flex-shrink:0}
+.main{padding:28px 28px 60px;max-width:1200px;width:100%}
+.topbar{display:flex;gap:14px;align-items:center;margin-bottom:24px}
+.search{flex:1;background:var(--surface);border:1px solid var(--border);padding:12px 14px;border-radius:12px;color:var(--text);font-family:inherit;font-size:14px;outline:none}
+.search:focus{border-color:var(--primary)}
+.avatar{width:36px;height:36px;border-radius:999px;background:var(--primary-bg);display:grid;place-items:center;color:var(--primary);font-weight:700;font-size:13px;flex-shrink:0}
+.view{display:none}
+.view.active{display:block}
+h1{font-family:'Cabinet Grotesk',sans-serif;font-size:34px;line-height:1.05;letter-spacing:-.04em;margin:0 0 6px;color:var(--text)}
+.sub{color:var(--muted);margin-bottom:22px;font-size:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card.pad{padding:20px}
+.section-title{font-family:'Cabinet Grotesk',sans-serif;font-size:20px;letter-spacing:-.03em;margin:0 0 14px;color:var(--text)}
+.hero-list{display:grid;gap:12px}
+.project-row{display:grid;grid-template-columns:minmax(260px,1.4fr) 110px 120px 1fr auto;gap:14px;align-items:center;padding:16px 18px;border:1px solid var(--border);border-radius:14px;background:var(--surface-2);cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.project-row:hover{border-color:var(--primary);box-shadow:0 4px 16px rgba(1,105,111,.1)}
+.project-name{font-weight:700;font-size:15px;color:var(--text)}
+.project-meta{color:var(--muted);font-size:13px;margin-top:3px}
+.badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.beta{background:var(--service-bg);color:var(--service)}
+.alpha{background:var(--warn-bg);color:var(--warn)}
+.disc{background:var(--primary-bg);color:var(--primary)}
+.good{background:var(--success-bg);color:var(--success)}
+.risk{background:var(--warn-bg);color:var(--warn)}
+.blocked{background:var(--danger-bg);color:var(--danger)}
+.mini{display:flex;gap:4px}
+.mini span{height:6px;flex:1;border-radius:99px;background:var(--surface-3)}
+.mini .done{background:var(--success)}
+.mini .active{background:var(--primary)}
+.btn{border:1px solid var(--border);background:transparent;color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer;font-size:13px;font-weight:600;transition:background .15s,border-color .15s}
+.btn:hover{background:var(--surface-3)}
+.btn.primary{background:var(--primary);color:white;border-color:transparent}
+.btn.primary:hover{background:#0c4e54}
+.grid-2{display:grid;grid-template-columns:1.6fr 1fr;gap:18px;margin-top:18px}
+.stack{display:grid;gap:18px;align-content:start}
+.list-item{padding:14px 16px;border-top:1px solid var(--border)}
+.list-item:first-child{border-top:0}
+.item-title{font-weight:700;color:var(--text)}
+.item-sub{color:var(--muted);margin-top:4px;font-size:13px}
+.page-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px;flex-wrap:wrap}
+.stage-track{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:14px 0 8px}
+.stage{background:var(--surface-2);border:1px solid var(--border);padding:12px;border-radius:12px;text-align:center;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.stage.done{color:var(--success);background:var(--success-bg);border-color:transparent}
+.stage.active{color:#fff;background:var(--primary);border-color:transparent}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0}
+.tab{padding:10px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:13px;font-weight:600;transition:background .15s,color .15s}
+.tab.active{background:var(--primary-bg);color:var(--primary);border-color:transparent}
+.project-layout{display:grid;grid-template-columns:1.4fr .8fr;gap:18px}
+.lane-wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.lane{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.lane-head{padding:12px 14px;border-bottom:1px solid var(--border);font-weight:700;display:flex;align-items:center;gap:8px;font-size:13px}
+.lane-body{padding:12px;display:grid;gap:10px}
+.task{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:12px;font-size:13px;cursor:pointer;transition:border-color .15s}
+.task:hover{border-color:var(--primary)}
+.task small{display:block;color:var(--muted);margin-top:5px;font-size:12px}
+.kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.kpi .card{padding:14px}
+.kpi strong{display:block;font-size:28px;font-family:'Cabinet Grotesk',sans-serif;letter-spacing:-.04em;color:var(--text)}
+.kpi .muted{font-size:12px;color:var(--muted)}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:13px 10px;border-top:1px solid var(--border);text-align:left;vertical-align:middle;font-size:13px}
+.table th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.table tr:first-child th,.table tr:first-child td{border-top:0}
+.table tr:hover td{background:var(--surface-3)}
+.log-row{display:grid;grid-template-columns:140px 130px 120px 1fr;gap:12px;padding:16px 0;border-top:1px solid var(--border);align-items:start;font-size:13px}
+.log-row:first-child{border-top:0}
+.log-date{color:var(--muted);font-size:12px;line-height:1.6}
+.log-actor{font-weight:700}
+.log-detail{color:var(--text);line-height:1.6}
+.divider{height:1px;background:var(--border);margin:16px 0}
+.low-section{margin-top:28px}
+.health-block{margin-bottom:14px}
+.health-label{font-size:12px;color:var(--muted);margin-bottom:5px}
+.tag{background:var(--surface-3);color:var(--muted);padding:3px 8px;border-radius:999px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+@media(max-width:1100px){
+  .app{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .grid-2,.project-layout,.lane-wrap,.kpi{grid-template-columns:1fr}
+  .project-row{grid-template-columns:1fr;gap:8px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      CanvasOps
+    </div>
+
+    <div class="nav-label">Workspace</div>
+    <button class="nav-btn active" data-view="home">
+      <span class="dot"></span>Home
+    </button>
+    <button class="nav-btn" data-view="project">
+      <span class="dot"></span>Project detail
+    </button>
+    <button class="nav-btn" data-view="work">
+      <span class="dot"></span>Workflow
+    </button>
+    <button class="nav-btn" data-view="stakeholders">
+      <span class="dot"></span>Stakeholders
+    </button>
+    <button class="nav-btn" data-view="log">
+      <span class="dot"></span>Project log
+    </button>
+
+    <div class="nav-label">Recent projects</div>
+    <button class="nav-btn" data-view="project">
+      <span style="width:8px;height:8px;border-radius:999px;background:var(--service);flex-shrink:0"></span>
+      Appointment Booking
+    </button>
+    <button class="nav-btn" data-view="project">
+      <span style="width:8px;height:8px;border-radius:999px;background:var(--warn);flex-shrink:0"></span>
+      Staff Portal v2
+    </button>
+    <button class="nav-btn" data-view="project">
+      <span style="width:8px;height:8px;border-radius:999px;background:var(--primary);flex-shrink:0"></span>
+      Payment Journey
+    </button>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <input class="search" placeholder="Search projects, tasks, stakeholders, evidence…" />
+      <button class="btn">Filter</button>
+      <div class="avatar">JD</div>
+    </div>
+
+    <!-- ==================== HOME ==================== -->
+    <section class="view active" id="view-home">
+      <h1>Projects at a glance</h1>
+      <p class="sub">Open a project to navigate across its workflow, evidence, stakeholders, resources, and activity log.</p>
+
+      <div class="card pad">
+        <div class="hero-list">
+
+          <div class="project-row" data-open-project>
+            <div>
+              <div class="project-name">Appointment Booking Redesign</div>
+              <div class="project-meta">NHS · UX/UI + Research + Service Design · Next session Tue 2pm</div>
+            </div>
+            <span class="badge beta">Beta</span>
+            <span class="badge good">On track</span>
+            <div class="mini">
+              <span class="done"></span><span class="done"></span>
+              <span class="done"></span><span class="active"></span><span></span>
+            </div>
+            <button class="btn">Open →</button>
+          </div>
+
+          <div class="project-row" data-open-project>
+            <div>
+              <div class="project-name">Staff Portal v2</div>
+              <div class="project-meta">Internal tools · UX/UI + Research · Prototype review due</div>
+            </div>
+            <span class="badge alpha">Alpha</span>
+            <span class="badge risk">Needs review</span>
+            <div class="mini">
+              <span class="done"></span><span class="done"></span>
+              <span class="active"></span><span></span><span></span>
+            </div>
+            <button class="btn">Open →</button>
+          </div>
+
+          <div class="project-row" data-open-project>
+            <div>
+              <div class="project-name">Payment Journey Simplification</div>
+              <div class="project-meta">Finance service · Service Design led · Dependency unresolved</div>
+            </div>
+            <span class="badge disc">Discovery</span>
+            <span class="badge blocked">Blocked</span>
+            <div class="mini">
+              <span class="active"></span><span></span><span></span><span></span><span></span>
+            </div>
+            <button class="btn">Open →</button>
+          </div>
+
+          <div class="project-row" data-open-project>
+            <div>
+              <div class="project-name">Digital Forms Overhaul</div>
+              <div class="project-meta">Government · UX/UI + Service Design · All gates passed</div>
+            </div>
+            <span class="badge good">Live</span>
+            <span class="badge good">Shipped</span>
+            <div class="mini">
+              <span class="done"></span><span class="done"></span>
+              <span class="done"></span><span class="done"></span><span class="done"></span>
+            </div>
+            <button class="btn">Open →</button>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="list-item">
+            <div class="section-title" style="margin:0">My actions today</div>
+          </div>
+          <div class="list-item">
+            <div class="item-title">Review synthesis report</div>
+            <div class="item-sub">Staff Portal v2 · Research · Awaiting your comments</div>
+          </div>
+          <div class="list-item">
+            <div class="item-title">Update service blueprint</div>
+            <div class="item-sub">Appointment Booking · Service Design · Overdue</div>
+          </div>
+          <div class="list-item">
+            <div class="item-title">Approve stakeholder playback deck</div>
+            <div class="item-sub">Appointment Booking · UX/UI · Session Wed 3pm</div>
+          </div>
+          <div class="list-item">
+            <div class="item-title" style="color:var(--muted);font-weight:400">+ Add action</div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="card pad">
+            <div class="section-title" style="margin-bottom:10px">Quick stats</div>
+            <div class="kpi">
+              <div class="card">
+                <div class="kpi muted">Active projects</div>
+                <strong>12</strong>
+              </div>
+              <div class="card">
+                <div class="kpi muted">Awaiting review</div>
+                <strong>4</strong>
+              </div>
+              <div class="card">
+                <div class="kpi muted">Stakeholders</div>
+                <strong>26</strong>
+              </div>
+              <div class="card">
+                <div class="kpi muted">Open log items</div>
+                <strong>18</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPCOMING SESSIONS — lower secondary section -->
+      <div class="low-section card">
+        <div class="list-item">
+          <div class="section-title" style="margin:0">Upcoming sessions</div>
+        </div>
+        <div class="list-item">
+          <div class="item-title">Design crit — Appointment Booking</div>
+          <div class="item-sub">Mon 2:00pm · UX/UI team · Booking confirmation + error flows</div>
+        </div>
+        <div class="list-item">
+          <div class="item-title">Research debrief — Staff Portal v2</div>
+          <div class="item-sub">Tue 10:00am · Research + UX/UI · Round 2 synthesis</div>
+        </div>
+        <div class="list-item">
+          <div class="item-title">Stakeholder playback — Appointment Booking</div>
+          <div class="item-sub">Wed 3:00pm · Project team + stakeholders · Service findings</div>
+        </div>
+        <div class="list-item">
+          <div class="item-title">Stage gate review — Appointment Booking</div>
+          <div class="item-sub">Thu 2:00pm · All disciplines · Beta → Live readiness</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== PROJECT DETAIL ==================== -->
+    <section class="view" id="view-project">
+      <div class="page-head">
+        <div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:6px;cursor:pointer" onclick="openView('home')">← All projects</div>
+          <h1>Appointment Booking Redesign</h1>
+          <p class="sub" style="margin-bottom:0">NHS · Lead Jamie D. · Next session Tue 2pm</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <span class="badge beta">Beta</span>
+          <span class="badge good">On track</span>
+          <button class="btn primary">+ Add task</button>
+        </div>
+      </div>
+
+      <!-- STAGE TRACKER -->
+      <div class="card pad" style="margin-bottom:20px">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Project stage</div>
+        <div class="stage-track">
+          <div class="stage done">Intake</div>
+          <div class="stage done">Discovery</div>
+          <div class="stage done">Alpha</div>
+          <div class="stage active">Beta</div>
+          <div class="stage">Live</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">Stage gates require: research evidence linked · service blueprint updated · UI validated · decisions logged</div>
+      </div>
+
+      <!-- PROJECT TABS -->
+      <div class="tabs">
+        <button class="tab active">Overview</button>
+        <button class="tab">Workflow</button>
+        <button class="tab">Evidence</button>
+        <button class="tab" onclick="openView('stakeholders')">Stakeholders</button>
+        <button class="tab">Resources</button>
+        <button class="tab" onclick="openView('log')">Log</button>
+      </div>
+
+      <!-- OVERVIEW CONTENT -->
+      <div class="project-layout">
+        <div class="stack">
+
+          <!-- DISCIPLINE LANES -->
+          <div class="card pad">
+            <div class="section-title">Cross-discipline workflow</div>
+            <div class="lane-wrap">
+              <div class="lane">
+                <div class="lane-head" style="color:var(--primary)">
+                  <span style="width:8px;height:8px;border-radius:999px;background:var(--primary)"></span>
+                  UX / UI Design
+                </div>
+                <div class="lane-body">
+                  <div class="task">
+                    Booking confirmation screen
+                    <small>In review · 2 comments open</small>
+                  </div>
+                  <div class="task">
+                    Error state flows
+                    <small>Designing</small>
+                  </div>
+                  <div class="task">
+                    Prototype handoff prep
+                    <small>Backlog</small>
+                  </div>
+                </div>
+              </div>
+              <div class="lane">
+                <div class="lane-head" style="color:var(--research)">
+                  <span style="width:8px;height:8px;border-radius:999px;background:var(--research)"></span>
+                  User Research
+                </div>
+                <div class="lane-body">
+                  <div class="task">
+                    Usability round 2 synthesis
+                    <small>In progress</small>
+                  </div>
+                  <div class="task">
+                    Stakeholder playback notes
+                    <small>Ready for session</small>
+                  </div>
+                  <div class="task">
+                    Participant recruitment
+                    <small>Complete</small>
+                  </div>
+                </div>
+              </div>
+              <div class="lane">
+                <div class="lane-head" style="color:var(--service)">
+                  <span style="width:8px;height:8px;border-radius:999px;background:var(--service)"></span>
+                  Service Design
+                </div>
+                <div class="lane-body">
+                  <div class="task">
+                    Service blueprint v3
+                    <small>In progress</small>
+                  </div>
+                  <div class="task">
+                    Operational dependency map
+                    <small>Needs review</small>
+                  </div>
+                  <div class="task">
+                    Backstage actions
+                    <small>Done</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- UPCOMING SESSIONS -->
+          <div class="card">
+            <div class="list-item">
+              <div class="section-title" style="margin:0">Upcoming sessions</div>
+            </div>
+            <div class="list-item">
+              <div class="item-title">Design crit</div>
+              <div class="item-sub">Mon 2:00pm · Booking confirmation + error flows</div>
+            </div>
+            <div class="list-item">
+              <div class="item-title">Stakeholder playback</div>
+              <div class="item-sub">Wed 3:00pm · Service findings with project stakeholders</div>
+            </div>
+            <div class="list-item">
+              <div class="item-title">Stage gate review — Beta</div>
+              <div class="item-sub">Thu 2:00pm · All disciplines · Beta → Live readiness</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="stack">
+
+          <!-- PROJECT HEALTH -->
+          <div class="card pad">
+            <div class="section-title">Project health</div>
+            <div class="health-block">
+              <div class="health-label">Research evidence</div>
+              <div class="mini"><span class="done"></span><span class="done"></span><span class="done"></span><span class="done"></span><span></span></div>
+            </div>
+            <div class="health-block">
+              <div class="health-label">UI validated</div>
+              <div class="mini"><span class="done"></span><span class="done"></span><span class="done"></span><span class="active"></span><span></span></div>
+            </div>
+            <div class="health-block">
+              <div class="health-label">Stakeholders aligned</div>
+              <div class="mini"><span class="done"></span><span class="done"></span><span class="active"></span><span></span><span></span></div>
+            </div>
+            <div class="health-block" style="margin-bottom:0">
+              <div class="health-label">Decisions logged</div>
+              <div class="mini"><span class="done"></span><span class="done"></span><span class="active"></span><span></span><span></span></div>
+            </div>
+          </div>
+
+          <!-- STAKEHOLDER SUMMARY -->
+          <div class="card pad">
+            <div class="section-title">Stakeholders</div>
+            <div style="margin-bottom:10px">
+              <div class="item-title">5 recorded</div>
+              <div class="item-sub">Project sponsor, service owner, operations lead, IT lead, research representative</div>
+            </div>
+            <button class="btn" onclick="openView('stakeholders')">Open stakeholders →</button>
+          </div>
+
+          <!-- LOG PREVIEW -->
+          <div class="card pad">
+            <div class="section-title">Recent log</div>
+            <div style="margin-bottom:12px">
+              <div class="item-title">Stakeholder call notes added</div>
+              <div class="item-sub">Today · Jamie D. · Conversation</div>
+            </div>
+            <div style="margin-bottom:12px">
+              <div class="item-title">Service blueprint v3 uploaded</div>
+              <div class="item-sub">Yesterday · Tom K. · File</div>
+            </div>
+            <div>
+              <div class="item-title">Stage note updated</div>
+              <div class="item-sub">30 Apr · Anika P. · Decision</div>
+            </div>
+            <div class="divider"></div>
+            <button class="btn" onclick="openView('log')">Open full log →</button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== STAKEHOLDERS ==================== -->
+    <section class="view" id="view-stakeholders">
+      <div class="page-head">
+        <div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:6px;cursor:pointer" onclick="openView('project')">← Appointment Booking Redesign</div>
+          <h1>Stakeholders</h1>
+          <p class="sub" style="margin-bottom:0">People connected to this project — recorded with role, email, last contact, and alignment status.</p>
+        </div>
+        <button class="btn primary">+ Add stakeholder</button>
+      </div>
+
+      <div class="card pad">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Email</th>
+              <th>Last contacted</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Claire Hendricks</strong></td>
+              <td>Project sponsor</td>
+              <td>claire.h@firm.com</td>
+              <td>30 Apr 2026</td>
+              <td><span class="badge good">Aligned</span></td>
+            </tr>
+            <tr>
+              <td><strong>Marcus Bell</strong></td>
+              <td>Operations lead</td>
+              <td>marcus.b@firm.com</td>
+              <td>02 May 2026</td>
+              <td><span class="badge risk">Needs update</span></td>
+            </tr>
+            <tr>
+              <td><strong>Priya Nair</strong></td>
+              <td>Service owner</td>
+              <td>priya.n@firm.com</td>
+              <td>01 May 2026</td>
+              <td><span class="badge good">Aligned</span></td>
+            </tr>
+            <tr>
+              <td><strong>Tom Whitfield</strong></td>
+              <td>IT lead</td>
+              <td>tom.w@firm.com</td>
+              <td>28 Apr 2026</td>
+              <td><span class="badge disc">Watching</span></td>
+            </tr>
+            <tr>
+              <td><strong>Aoife Murray</strong></td>
+              <td>Research representative</td>
+              <td>aoife.m@firm.com</td>
+              <td>—</td>
+              <td><span class="badge blocked">Not contacted</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ==================== PROJECT LOG ==================== -->
+    <section class="view" id="view-log">
+      <div class="page-head">
+        <div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:6px;cursor:pointer" onclick="openView('project')">← Appointment Booking Redesign</div>
+          <h1>Project log</h1>
+          <p class="sub" style="margin-bottom:0">Chronological record of conversations, decisions, files, and key activity for this project.</p>
+        </div>
+        <button class="btn primary">+ Add log entry</button>
+      </div>
+
+      <div class="card pad">
+        <div class="log-row">
+          <div class="log-date">02 May 2026<br>09:14</div>
+          <div class="log-actor">Jamie D.</div>
+          <div><span class="badge disc">Conversation</span></div>
+          <div class="log-detail">Call with Marcus Bell to confirm service constraints for appointment routing. Follow-up actions created for service blueprint update.</div>
+        </div>
+        <div class="log-row">
+          <div class="log-date">01 May 2026<br>16:42</div>
+          <div class="log-actor">Anika P.</div>
+          <div><span class="badge good">Decision</span></div>
+          <div class="log-detail">Stakeholder playback session confirmed for Wednesday. Research summary linked to project evidence and shared with Claire Hendricks.</div>
+        </div>
+        <div class="log-row">
+          <div class="log-date">30 Apr 2026<br>11:05</div>
+          <div class="log-actor">Tom K.</div>
+          <div><span class="badge beta">File</span></div>
+          <div class="log-detail">Service blueprint v2 uploaded to project resources and referenced in the service design workflow lane.</div>
+        </div>
+        <div class="log-row">
+          <div class="log-date">29 Apr 2026<br>14:30</div>
+          <div class="log-actor">Jamie D.</div>
+          <div><span class="badge risk">Email</span></div>
+          <div class="log-detail">Sent design review pack to Claire Hendricks and Priya Nair ahead of the Wed session.</div>
+        </div>
+        <div class="log-row">
+          <div class="log-date">28 Apr 2026<br>09:00</div>
+          <div class="log-actor">System</div>
+          <div><span class="badge good">Stage</span></div>
+          <div class="log-detail">Project moved from Alpha to Beta. All Alpha stage gate criteria confirmed as met.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== WORKFLOW ==================== -->
+    <section class="view" id="view-work">
+      <div class="page-head">
+        <div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:6px;cursor:pointer" onclick="openView('project')">← Appointment Booking Redesign</div>
+          <h1>Workflow</h1>
+          <p class="sub" style="margin-bottom:0">Cross-discipline kanban — all three disciplines visible in one board.</p>
+        </div>
+        <button class="btn primary">+ Add task</button>
+      </div>
+      <div class="card pad">
+        <div class="lane-wrap">
+          <div class="lane">
+            <div class="lane-head" style="color:var(--primary)">
+              <span style="width:8px;height:8px;border-radius:999px;background:var(--primary)"></span>
+              UX / UI Design
+            </div>
+            <div class="lane-body">
+              <div class="task">Booking confirmation screen<small>In review · 2 open comments</small></div>
+              <div class="task">Error state flows<small>Designing</small></div>
+              <div class="task">Prototype handoff prep<small>Backlog</small></div>
+              <div class="task">Accessibility audit<small>Backlog</small></div>
+            </div>
+          </div>
+          <div class="lane">
+            <div class="lane-head" style="color:var(--research)">
+              <span style="width:8px;height:8px;border-radius:999px;background:var(--research)"></span>
+              User Research
+            </div>
+            <div class="lane-body">
+              <div class="task">Round 2 synthesis<small>In progress</small></div>
+              <div class="task">Playback deck<small>Ready for session</small></div>
+              <div class="task">Participant recruitment<small>Complete</small></div>
+              <div class="task">Round 3 planning<small>Backlog</small></div>
+            </div>
+          </div>
+          <div class="lane">
+            <div class="lane-head" style="color:var(--service)">
+              <span style="width:8px;height:8px;border-radius:999px;background:var(--service)"></span>
+              Service Design
+            </div>
+            <div class="lane-body">
+              <div class="task">Service blueprint v3<small>In progress</small></div>
+              <div class="task">Operational dependency map<small>Needs review</small></div>
+              <div class="task">Backstage actions<small>Done</small></div>
+              <div class="task">Transition planning<small>Backlog</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+<script>
+const navBtns = document.querySelectorAll('.nav-btn');
+
+function openView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const el = document.getElementById('view-' + name);
+  if (el) el.classList.add('active');
+  navBtns.forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+navBtns.forEach(b => {
+  if (b.dataset.view) b.addEventListener('click', () => openView(b.dataset.view));
+});
+
+document.querySelectorAll('[data-open-project]').forEach(el => {
+  el.addEventListener('click', () => openView('project'));
+});
+</script>
+</body>
+</html>
