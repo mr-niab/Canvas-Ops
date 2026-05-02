@@ -14,12 +14,12 @@ function MiniProgress({ done, total, activeAt }: { done: number; total: number; 
   );
 }
 
-function ProjectRow({ project, onOpen }: { project: Project; onOpen: () => void }) {
+function ProjectCard({ project, onOpen }: { project: Project; onOpen: () => void }) {
   const done = project.status === 'Shipped' ? project.totalProgress : Math.max(0, project.progress - 1);
   const activeAt = project.status === 'Shipped' ? -1 : project.progress - 1;
   return (
     <div
-      className="project-row"
+      className="project-card"
       onClick={onOpen}
       role="button"
       tabIndex={0}
@@ -30,14 +30,16 @@ function ProjectRow({ project, onOpen }: { project: Project; onOpen: () => void 
         }
       }}
     >
-      <div>
+      <div className="project-card-head">
         <div className="project-name">{project.name}</div>
         <div className="project-meta">{project.meta}</div>
       </div>
-      <span className={`badge ${project.stageClass}`}>{project.stage}</span>
-      <span className={`badge ${project.statusClass}`}>{project.status}</span>
+      <div className="project-card-badges">
+        <span className={`badge ${project.stageClass}`}>{project.stage}</span>
+        <span className={`badge ${project.statusClass}`}>{project.status}</span>
+      </div>
       <MiniProgress done={done} total={project.totalProgress} activeAt={activeAt} />
-      <button className="btn" onClick={(e) => { e.stopPropagation(); onOpen(); }}>Open →</button>
+      <div className="project-card-open">Open →</div>
     </div>
   );
 }
@@ -52,9 +54,9 @@ export function HomeView() {
       <p className="sub">Open a project to navigate across its workflow, evidence, stakeholders, resources, and activity log.</p>
 
       <div className="card pad">
-        <div className="hero-list">
+        <div className="project-strip">
           {projects.map((p) => (
-            <ProjectRow key={p.id} project={p} onOpen={openProject} />
+            <ProjectCard key={p.id} project={p} onOpen={openProject} />
           ))}
         </div>
       </div>

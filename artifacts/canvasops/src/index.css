@@ -292,48 +292,96 @@ h1 {
   margin-bottom: var(--space-2);
 }
 
-.hero-list {
-  display: grid;
+.project-strip {
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-3);
 }
 
-.project-row {
-  display: grid;
-  grid-template-columns: minmax(260px, 1.4fr) 110px 120px 1fr auto;
-  gap: var(--space-4);
-  align-items: center;
-  padding: var(--space-4) var(--space-5);
+.project-card {
+  flex: 1 1 220px;
+  min-width: 200px;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--surface-2);
   cursor: pointer;
   transition:
     background var(--transition),
     border-color var(--transition),
-    box-shadow var(--transition);
+    box-shadow var(--transition),
+    transform var(--transition);
 }
 
-.project-row:hover {
+.project-card:hover {
   background: var(--hover-tint);
   border-color: var(--hover-border);
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
 }
 
-.project-row:focus-visible {
+.project-card:focus-visible {
   outline: none;
   border-color: var(--primary);
   box-shadow: var(--focus-ring);
 }
 
+.project-card-head {
+  min-height: 0;
+}
+
+.project-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.project-card .badge {
+  padding: 3px 8px;
+  font-size: 10px;
+}
+
+.project-card .mini span {
+  height: 4px;
+}
+
+.project-card-open {
+  margin-top: auto;
+  padding-top: var(--space-1);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  transition: color var(--transition);
+}
+
+.project-card:hover .project-card-open,
+.project-card:focus-visible .project-card-open {
+  color: var(--primary);
+}
+
 .project-name {
   font-weight: 700;
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 1.3;
   color: var(--text);
+}
+
+.project-card .project-meta {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .project-meta {
   color: var(--muted);
-  font-size: 13px;
-  margin-top: var(--space-1);
+  font-size: 12px;
+  margin-top: 2px;
+  line-height: 1.4;
 }
 
 .badge {
@@ -1002,9 +1050,5 @@ h1 {
   .lane-wrap,
   .kpi {
     grid-template-columns: 1fr;
-  }
-  .project-row {
-    grid-template-columns: 1fr;
-    gap: var(--space-2);
   }
 }
