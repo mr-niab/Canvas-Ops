@@ -24,17 +24,28 @@ export function AddProjectModal() {
     setProjectModalOpen(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    const id = addProject({
-      name,
-      meta,
-      stage,
-      teamId: teamId || undefined,
-    });
-    if (id) openProject(id);
-    close();
+    if (!name.trim() || submitting) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      const id = await addProject({
+        name,
+        meta,
+        stage,
+        teamId: teamId || undefined,
+      });
+      if (id) openProject(id);
+      close();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not create the project.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -81,9 +92,12 @@ export function AddProjectModal() {
             </div>
           )}
         </div>
+        {error && <div className="form-error">{error}</div>}
         <div className="form-actions">
-          <button type="button" className="btn" onClick={close}>Cancel</button>
-          <button type="submit" className="btn primary" disabled={!name.trim()}>Add project</button>
+          <button type="button" className="btn" onClick={close} disabled={submitting}>Cancel</button>
+          <button type="submit" className="btn primary" disabled={!name.trim() || submitting}>
+            {submitting ? 'Adding…' : 'Add project'}
+          </button>
         </div>
       </form>
     </Modal>

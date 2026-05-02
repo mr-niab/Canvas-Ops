@@ -13,6 +13,261 @@ export interface ErrorEnvelope {
   error: string;
 }
 
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+}
+
+export interface RegisterRequest {
+  /** @minLength 3 */
+  email: string;
+  /** @minLength 8 */
+  password: string;
+  /** @minLength 1 */
+  name: string;
+}
+
+export interface LoginRequest {
+  /** @minLength 3 */
+  email: string;
+  /** @minLength 1 */
+  password: string;
+}
+
+export interface Organisation {
+  id: string;
+  name: string;
+}
+
+export interface UpdateOrganisationRequest {
+  /** @minLength 1 */
+  name: string;
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  description: string;
+  teammateIds: string[];
+}
+
+export interface CreateTeamRequest {
+  /** @minLength 1 */
+  name: string;
+  description?: string;
+}
+
+export interface UpdateTeamRequest {
+  /** @minLength 1 */
+  name?: string;
+  description?: string;
+}
+
+export interface Teammate {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  teamIds: string[];
+}
+
+export interface CreateTeammateRequest {
+  /** @minLength 1 */
+  name: string;
+  email?: string;
+  role?: string;
+  teamIds?: string[];
+}
+
+export interface UpdateTeammateRequest {
+  /** @minLength 1 */
+  name?: string;
+  email?: string;
+  role?: string;
+}
+
+export type ProjectStage = (typeof ProjectStage)[keyof typeof ProjectStage];
+
+export const ProjectStage = {
+  Intake: "Intake",
+  Discovery: "Discovery",
+  Alpha: "Alpha",
+  Beta: "Beta",
+  Live: "Live",
+} as const;
+
+export interface Project {
+  id: string;
+  name: string;
+  meta: string;
+  stage: ProjectStage;
+  stageClass: string;
+  status: string;
+  statusClass: string;
+  progress: number;
+  totalProgress: number;
+  teamId?: string | null;
+}
+
+export type CreateProjectRequestStage =
+  (typeof CreateProjectRequestStage)[keyof typeof CreateProjectRequestStage];
+
+export const CreateProjectRequestStage = {
+  Intake: "Intake",
+  Discovery: "Discovery",
+  Alpha: "Alpha",
+  Beta: "Beta",
+  Live: "Live",
+} as const;
+
+export interface CreateProjectRequest {
+  /** @minLength 1 */
+  name: string;
+  meta?: string;
+  stage?: CreateProjectRequestStage;
+  teamId?: string | null;
+}
+
+export type UpdateProjectRequestStage =
+  (typeof UpdateProjectRequestStage)[keyof typeof UpdateProjectRequestStage];
+
+export const UpdateProjectRequestStage = {
+  Intake: "Intake",
+  Discovery: "Discovery",
+  Alpha: "Alpha",
+  Beta: "Beta",
+  Live: "Live",
+} as const;
+
+export interface UpdateProjectRequest {
+  /** @minLength 1 */
+  name?: string;
+  meta?: string;
+  stage?: UpdateProjectRequestStage;
+  teamId?: string | null;
+}
+
+export type TaskDiscipline =
+  (typeof TaskDiscipline)[keyof typeof TaskDiscipline];
+
+export const TaskDiscipline = {
+  "UX/UI_Design": "UX/UI Design",
+  User_Research: "User Research",
+  Service_Design: "Service Design",
+} as const;
+
+export interface Task {
+  id: string;
+  discipline: TaskDiscipline;
+  title: string;
+  status: string;
+  previousStatus?: string | null;
+  dependencies: string[];
+}
+
+export type CreateTaskRequestDiscipline =
+  (typeof CreateTaskRequestDiscipline)[keyof typeof CreateTaskRequestDiscipline];
+
+export const CreateTaskRequestDiscipline = {
+  "UX/UI_Design": "UX/UI Design",
+  User_Research: "User Research",
+  Service_Design: "Service Design",
+} as const;
+
+export interface CreateTaskRequest {
+  discipline: CreateTaskRequestDiscipline;
+  /** @minLength 1 */
+  title: string;
+  status?: string;
+  dependencies?: string[];
+}
+
+export type UpdateTaskRequestDiscipline =
+  (typeof UpdateTaskRequestDiscipline)[keyof typeof UpdateTaskRequestDiscipline];
+
+export const UpdateTaskRequestDiscipline = {
+  "UX/UI_Design": "UX/UI Design",
+  User_Research: "User Research",
+  Service_Design: "Service Design",
+} as const;
+
+export interface UpdateTaskRequest {
+  /** @minLength 1 */
+  title?: string;
+  /** @minLength 1 */
+  status?: string;
+  discipline?: UpdateTaskRequestDiscipline;
+  dependencies?: string[];
+}
+
+export type MoveTaskRequestDiscipline =
+  (typeof MoveTaskRequestDiscipline)[keyof typeof MoveTaskRequestDiscipline];
+
+export const MoveTaskRequestDiscipline = {
+  "UX/UI_Design": "UX/UI Design",
+  User_Research: "User Research",
+  Service_Design: "Service Design",
+} as const;
+
+export interface MoveTaskRequest {
+  discipline: MoveTaskRequestDiscipline;
+  /** @minimum 0 */
+  targetIndex: number;
+}
+
+export interface Stakeholder {
+  id: string;
+  name: string;
+  role: string;
+  email: string;
+  lastContacted: string;
+  status: string;
+  statusClass: string;
+}
+
+export interface CreateStakeholderRequest {
+  /** @minLength 1 */
+  name: string;
+  role?: string;
+  email?: string;
+  lastContacted?: string;
+  status?: string;
+  statusClass?: string;
+}
+
+export interface UpdateStakeholderRequest {
+  /** @minLength 1 */
+  name?: string;
+  role?: string;
+  email?: string;
+  lastContacted?: string;
+  status?: string;
+  statusClass?: string;
+}
+
+export interface LogEntry {
+  id: string;
+  date: string;
+  actor: string;
+  type: string;
+  typeClass: string;
+  detail: string;
+}
+
+export interface CreateLogEntryRequest {
+  /** @minLength 1 */
+  date: string;
+  /** @minLength 1 */
+  actor: string;
+  /** @minLength 1 */
+  type: string;
+  /** @minLength 1 */
+  typeClass: string;
+  /** @minLength 1 */
+  detail: string;
+}
+
 export interface UploadUrlRequest {
   /**
    * Original file name.

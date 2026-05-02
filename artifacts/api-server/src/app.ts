@@ -3,8 +3,14 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { sessionMiddleware } from "./lib/session";
 
 const app: Express = express();
+
+// Replit's preview proxy terminates TLS in front of us. Trusting the first
+// proxy hop is required for `secure` cookies (production) and accurate
+// req.ip / X-Forwarded-* handling.
+app.set("trust proxy", 1);
 
 app.use(
   pinoHttp({
@@ -25,9 +31,10 @@ app.use(
     },
   }),
 );
-app.use(cors());
+app.use(cors({ credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(sessionMiddleware);
 
 app.use("/api", router);
 

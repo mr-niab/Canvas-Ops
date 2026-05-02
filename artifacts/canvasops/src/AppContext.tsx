@@ -1,151 +1,75 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { View, Project, Task, Stakeholder, LogEntry, EvidenceFile, LinkedBoard, ProjectEvidence, Organisation, Team, Teammate, BoardProvider } from './types';
-import { initialProjects, initialTasks, initialStakeholders, initialLogEntries, initialOrganisation, initialTeams, initialTeammates } from './data';
-import { recomputeBlockedStates } from './lib/dependencies';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
+  View,
+  Project,
+  Task,
+  Stakeholder,
+  LogEntry,
+  EvidenceFile,
+  LinkedBoard,
+  ProjectEvidence,
+  Organisation,
+  Team,
+  Teammate,
+  BoardProvider,
+} from './types';
+import {
+  addTeamMember as apiAddTeamMember,
   createEvidenceFile as apiCreateEvidenceFile,
   createLinkedBoard as apiCreateLinkedBoard,
+  createLogEntry as apiCreateLogEntry,
+  createProject as apiCreateProject,
+  createStakeholder as apiCreateStakeholder,
+  createTask as apiCreateTask,
+  createTeam as apiCreateTeam,
+  createTeammate as apiCreateTeammate,
   deleteEvidenceFile as apiDeleteEvidenceFile,
   deleteLinkedBoard as apiDeleteLinkedBoard,
+  deleteProject as apiDeleteProject,
+  deleteTask as apiDeleteTask,
+  deleteTeam as apiDeleteTeam,
+  deleteTeammate as apiDeleteTeammate,
+  getCurrentUser,
+  getOrganisation,
+  listLogEntries,
   listProjectEvidence as apiListProjectEvidence,
+  listProjects,
+  listStakeholders,
+  listTasks,
+  listTeammates,
+  listTeams,
+  loginUser,
+  logoutUser,
+  moveTask as apiMoveTask,
+  registerUser,
+  removeTeamMember as apiRemoveTeamMember,
   requestUploadUrl as apiRequestUploadUrl,
+  type CreateProjectRequestStage,
+  type CreateTaskRequestDiscipline,
+  type MoveTaskRequestDiscipline,
+  type UpdateTaskRequestDiscipline,
+  updateOrganisation as apiUpdateOrganisation,
+  updateProject as apiUpdateProject,
+  updateTask as apiUpdateTask,
+  updateTeam as apiUpdateTeam,
+  updateTeammate as apiUpdateTeammate,
+  type AuthUser,
 } from '@workspace/api-client-react';
 
-const TASKS_STORAGE_KEY = 'canvasops:tasks:v1';
-const ORG_STORAGE_KEY = 'canvasops:organisation:v1';
-const TEAMS_STORAGE_KEY = 'canvasops:teams:v1';
-const TEAMMATES_STORAGE_KEY = 'canvasops:teammates:v1';
-const PROJECTS_STORAGE_KEY = 'canvasops:projects:v1';
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-const VALID_DISCIPLINES: ReadonlyArray<Task['discipline']> = [
-  'UX/UI Design',
-  'User Research',
-  'Service Design',
-];
-
-function normalizeDependencies(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter((x): x is string => typeof x === 'string');
-}
-
-function loadPersistedTasks(): Task[] {
-  if (typeof window === 'undefined') return recomputeBlockedStates(initialTasks);
-  try {
-    const raw = window.localStorage.getItem(TASKS_STORAGE_KEY);
-    if (!raw) return recomputeBlockedStates(initialTasks);
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return recomputeBlockedStates(initialTasks);
-    const valid = parsed.every(
-      (t: unknown) =>
-        t !== null &&
-        typeof t === 'object' &&
-        typeof (t as Task).id === 'string' &&
-        typeof (t as Task).title === 'string' &&
-        typeof (t as Task).status === 'string' &&
-        VALID_DISCIPLINES.includes((t as Task).discipline)
-    );
-    if (!valid) return recomputeBlockedStates(initialTasks);
-    const ids = new Set((parsed as Array<{ id: string }>).map(t => t.id));
-    const loaded: Task[] = (parsed as Array<Record<string, unknown>>).map(t => {
-      const task: Task = {
-        id: t.id as string,
-        title: t.title as string,
-        status: t.status as string,
-        discipline: t.discipline as Task['discipline'],
-        dependencies: normalizeDependencies(t.dependencies).filter(
-          depId => depId !== t.id && ids.has(depId)
-        ),
-      };
-      if (typeof t.previousStatus === 'string') {
-        task.previousStatus = t.previousStatus;
-      }
-      return task;
-    });
-    return recomputeBlockedStates(loaded);
-  } catch {
-    return recomputeBlockedStates(initialTasks);
-  }
-}
-
-function loadFromStorage<T>(key: string, fallback: T, validate: (v: unknown) => v is T): T {
-  if (typeof window === 'undefined') return fallback;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw);
-    if (!validate(parsed)) return fallback;
-    return parsed;
-  } catch {
-    return fallback;
-  }
-}
-
-function isStringArray(v: unknown): v is string[] {
-  return Array.isArray(v) && v.every(x => typeof x === 'string');
-}
-
-function isOrganisation(v: unknown): v is Organisation {
-  return !!v && typeof v === 'object'
-    && typeof (v as Organisation).id === 'string'
-    && typeof (v as Organisation).name === 'string';
-}
-
-function isTeamArray(v: unknown): v is Team[] {
-  return Array.isArray(v) && v.every(t =>
-    !!t && typeof t === 'object'
-    && typeof (t as Team).id === 'string'
-    && typeof (t as Team).name === 'string'
-    && typeof (t as Team).description === 'string'
-    && isStringArray((t as Team).teammateIds)
-  );
-}
-
-function isTeammateArray(v: unknown): v is Teammate[] {
-  return Array.isArray(v) && v.every(t =>
-    !!t && typeof t === 'object'
-    && typeof (t as Teammate).id === 'string'
-    && typeof (t as Teammate).name === 'string'
-    && typeof (t as Teammate).email === 'string'
-    && typeof (t as Teammate).role === 'string'
-    && isStringArray((t as Teammate).teamIds)
-  );
-}
-
-function isProjectArray(v: unknown): v is Project[] {
-  return Array.isArray(v) && v.every(p =>
-    !!p && typeof p === 'object'
-    && typeof (p as Project).id === 'string'
-    && typeof (p as Project).name === 'string'
-  );
-}
-
-function reconcileTeamMembership(teams: Team[], teammates: Teammate[]): { teams: Team[]; teammates: Teammate[] } {
-  const teamIdSet = new Set(teams.map(t => t.id));
-  const mateIdSet = new Set(teammates.map(t => t.id));
-  const cleanTeams = teams.map(t => ({
-    ...t,
-    teammateIds: t.teammateIds.filter(id => mateIdSet.has(id)),
-  }));
-  const cleanMates = teammates.map(m => ({
-    ...m,
-    teamIds: m.teamIds.filter(id => teamIdSet.has(id)),
-  }));
-  const mateById = new Map(cleanMates.map(m => [m.id, { ...m, teamIds: new Set(m.teamIds) }]));
-  for (const team of cleanTeams) {
-    for (const mateId of team.teammateIds) {
-      mateById.get(mateId)?.teamIds.add(team.id);
-    }
-  }
-  const teamById = new Map(cleanTeams.map(t => [t.id, { ...t, teammateIds: new Set(t.teammateIds) }]));
-  for (const mate of mateById.values()) {
-    for (const teamId of mate.teamIds) {
-      teamById.get(teamId)?.teammateIds.add(mate.id);
-    }
-  }
-  return {
-    teams: Array.from(teamById.values()).map(t => ({ ...t, teammateIds: Array.from(t.teammateIds) })),
-    teammates: Array.from(mateById.values()).map(m => ({ ...m, teamIds: Array.from(m.teamIds) })),
-  };
+function describeError(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message;
+  return 'Unexpected error';
 }
 
 function formatDateTime(date: Date): string {
@@ -155,10 +79,6 @@ function formatDateTime(date: Date): string {
   const hh = String(date.getHours()).padStart(2, '0');
   const mm = String(date.getMinutes()).padStart(2, '0');
   return `${day} ${month} ${year} · ${hh}:${mm}`;
-}
-
-function uid(prefix: string): string {
-  return `${prefix}${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function toIso(date: Date | string): string {
@@ -211,6 +131,55 @@ function normalizeBoard(raw: {
   };
 }
 
+function normalizeTask(raw: {
+  id: string;
+  discipline: string;
+  title: string;
+  status: string;
+  dependencies: string[];
+  previousStatus?: string | null;
+}): Task {
+  const t: Task = {
+    id: raw.id,
+    discipline: raw.discipline as Task['discipline'],
+    title: raw.title,
+    status: raw.status,
+    dependencies: Array.isArray(raw.dependencies) ? [...raw.dependencies] : [],
+  };
+  if (raw.previousStatus) t.previousStatus = raw.previousStatus;
+  return t;
+}
+
+function normalizeProject(raw: {
+  id: string;
+  name: string;
+  meta: string;
+  stage: string;
+  stageClass: string;
+  status: string;
+  statusClass: string;
+  progress: number;
+  totalProgress: number;
+  teamId?: string | null;
+}): Project {
+  return {
+    id: raw.id,
+    name: raw.name,
+    meta: raw.meta,
+    stage: raw.stage as Project['stage'],
+    stageClass: raw.stageClass,
+    status: raw.status,
+    statusClass: raw.statusClass,
+    progress: raw.progress,
+    totalProgress: raw.totalProgress,
+    teamId: raw.teamId ?? undefined,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Context types
+// ---------------------------------------------------------------------------
+
 export type EvidenceState = {
   files: EvidenceFile[];
   boards: LinkedBoard[];
@@ -225,9 +194,22 @@ const EMPTY_EVIDENCE_STATE: EvidenceState = {
   error: null,
 };
 
+export type AuthStatus = 'loading' | 'unauthenticated' | 'authenticated';
+
 interface AppContextType {
+  // Auth ------------------------------------------------------------------
+  authStatus: AuthStatus;
+  authUser: AuthUser | null;
+  authError: string | null;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (name: string, email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+
+  // Routing ---------------------------------------------------------------
   currentView: View;
   setCurrentView: (view: View) => void;
+
+  // Domain data -----------------------------------------------------------
   organisation: Organisation;
   teams: Team[];
   teammates: Teammate[];
@@ -252,15 +234,22 @@ interface AppContextType {
   editingTaskId: string | null;
   setEditingTaskId: (id: string | null) => void;
 
-  addTask: (task: Omit<Task, 'id'>) => void;
-  moveTask: (taskId: string, targetDiscipline: Task['discipline'], targetIndex: number) => void;
-  updateTask: (taskId: string, updates: Partial<Pick<Task, 'title' | 'status' | 'discipline'>>) => void;
-  updateTaskDependencies: (taskId: string, dependencies: string[]) => void;
-  deleteTask: (taskId: string) => void;
-  addStakeholder: (stakeholder: Omit<Stakeholder, 'id'>) => void;
-  addLogEntry: (entry: Omit<LogEntry, 'id'>) => void;
+  addTask: (task: Omit<Task, 'id'>) => Promise<void>;
+  moveTask: (
+    taskId: string,
+    targetDiscipline: Task['discipline'],
+    targetIndex: number,
+  ) => Promise<void>;
+  updateTask: (
+    taskId: string,
+    updates: Partial<Pick<Task, 'title' | 'status' | 'discipline'>>,
+  ) => Promise<void>;
+  updateTaskDependencies: (taskId: string, dependencies: string[]) => Promise<void>;
+  deleteTask: (taskId: string) => Promise<void>;
+  addStakeholder: (stakeholder: Omit<Stakeholder, 'id'>) => Promise<void>;
+  addLogEntry: (entry: Omit<LogEntry, 'id'>) => Promise<void>;
 
-  // Evidence (now async, server-backed) -----------------------------------
+  // Evidence (server-backed) ----------------------------------------------
   getProjectEvidence: (projectId: string) => EvidenceState;
   loadProjectEvidence: (projectId: string) => Promise<void>;
   uploadEvidenceFile: (
@@ -271,206 +260,287 @@ interface AppContextType {
   removeEvidenceFile: (projectId: string, fileId: string) => Promise<void>;
   addLinkedBoard: (
     projectId: string,
-    board: { provider: BoardProvider; url: string; embedUrl: string; title: string; linkedBy: string },
+    board: {
+      provider: BoardProvider;
+      url: string;
+      embedUrl: string;
+      title: string;
+      linkedBy: string;
+    },
   ) => Promise<LinkedBoard>;
   removeLinkedBoard: (projectId: string, boardId: string) => Promise<void>;
 
-  // Organisation
-  renameOrganisation: (name: string) => void;
+  // Organisation ----------------------------------------------------------
+  renameOrganisation: (name: string) => Promise<void>;
 
-  // Teams
-  addTeam: (team: { name: string; description?: string }) => void;
-  renameTeam: (teamId: string, name: string, description?: string) => void;
-  deleteTeam: (teamId: string) => void;
+  // Teams -----------------------------------------------------------------
+  addTeam: (team: { name: string; description?: string }) => Promise<void>;
+  renameTeam: (teamId: string, name: string, description?: string) => Promise<void>;
+  deleteTeam: (teamId: string) => Promise<void>;
 
-  // Teammates
-  addTeammate: (mate: { name: string; email?: string; role?: string; teamIds?: string[] }) => void;
-  updateTeammate: (teammateId: string, updates: Partial<Pick<Teammate, 'name' | 'email' | 'role'>>) => void;
-  deleteTeammate: (teammateId: string) => void;
+  // Teammates -------------------------------------------------------------
+  addTeammate: (mate: {
+    name: string;
+    email?: string;
+    role?: string;
+    teamIds?: string[];
+  }) => Promise<void>;
+  updateTeammate: (
+    teammateId: string,
+    updates: Partial<Pick<Teammate, 'name' | 'email' | 'role'>>,
+  ) => Promise<void>;
+  deleteTeammate: (teammateId: string) => Promise<void>;
 
-  // Membership
-  addTeammateToTeam: (teamId: string, teammateId: string) => void;
-  removeTeammateFromTeam: (teamId: string, teammateId: string) => void;
+  // Membership ------------------------------------------------------------
+  addTeammateToTeam: (teamId: string, teammateId: string) => Promise<void>;
+  removeTeammateFromTeam: (teamId: string, teammateId: string) => Promise<void>;
 
-  // Projects
-  addProject: (project: { name: string; meta?: string; stage?: Project['stage']; teamId?: string }) => string;
-
-  // Project ↔ Team
-  setProjectTeam: (projectId: string, teamId: string | undefined) => void;
+  // Projects --------------------------------------------------------------
+  addProject: (project: {
+    name: string;
+    meta?: string;
+    stage?: Project['stage'];
+    teamId?: string;
+  }) => Promise<string>;
+  setProjectTeam: (projectId: string, teamId: string | undefined) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-function describeError(err: unknown): string {
-  if (err instanceof Error && err.message) return err.message;
-  return 'Unexpected error';
-}
+const EMPTY_ORG: Organisation = { id: '', name: '' };
+
+// ---------------------------------------------------------------------------
+// Provider
+// ---------------------------------------------------------------------------
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  // -- Auth state ---------------------------------------------------------
+  const [authStatus, setAuthStatus] = useState<AuthStatus>('loading');
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // -- Routing & UI state -------------------------------------------------
   const [currentView, setCurrentView] = useState<View>('home');
+  const [isTaskModalOpen, setTaskModalOpen] = useState(false);
+  const [isStakeholderModalOpen, setStakeholderModalOpen] = useState(false);
+  const [isLogModalOpen, setLogModalOpen] = useState(false);
+  const [isProjectModalOpen, setProjectModalOpen] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
-  const [organisation, setOrganisation] = useState<Organisation>(() =>
-    loadFromStorage(ORG_STORAGE_KEY, initialOrganisation, isOrganisation)
-  );
-
-  const initialReconciled = (() => {
-    const loadedTeams = loadFromStorage(TEAMS_STORAGE_KEY, initialTeams, isTeamArray);
-    const loadedMates = loadFromStorage(TEAMMATES_STORAGE_KEY, initialTeammates, isTeammateArray);
-    return reconcileTeamMembership(loadedTeams, loadedMates);
-  })();
-  const [teams, setTeams] = useState<Team[]>(initialReconciled.teams);
-  const [teammates, setTeammates] = useState<Teammate[]>(initialReconciled.teammates);
-
-  const [projects, setProjects] = useState<Project[]>(() =>
-    loadFromStorage(PROJECTS_STORAGE_KEY, initialProjects, isProjectArray)
-  );
-  const [tasks, setTasks] = useState<Task[]>(loadPersistedTasks);
-  const [stakeholders, setStakeholders] = useState<Stakeholder[]>(initialStakeholders);
-  const [logEntries, setLogEntries] = useState<LogEntry[]>(initialLogEntries);
+  // -- Domain data --------------------------------------------------------
+  const [organisation, setOrganisation] = useState<Organisation>(EMPTY_ORG);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [teammates, setTeammates] = useState<Teammate[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
+  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
 
   const [evidenceByProject, setEvidenceByProject] = useState<
     Record<string, EvidenceState>
   >({});
   const evidenceLoadingRef = useRef<Record<string, Promise<void>>>({});
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try { window.localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks)); } catch { /* noop */ }
-  }, [tasks]);
+  // -- Initial bootstrap --------------------------------------------------
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try { window.localStorage.setItem(ORG_STORAGE_KEY, JSON.stringify(organisation)); } catch { /* noop */ }
-  }, [organisation]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try { window.localStorage.setItem(TEAMS_STORAGE_KEY, JSON.stringify(teams)); } catch { /* noop */ }
-  }, [teams]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try { window.localStorage.setItem(TEAMMATES_STORAGE_KEY, JSON.stringify(teammates)); } catch { /* noop */ }
-  }, [teammates]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try { window.localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects)); } catch { /* noop */ }
-  }, [projects]);
-
-  const [isTaskModalOpen, setTaskModalOpen] = useState(false);
-  const [isStakeholderModalOpen, setStakeholderModalOpen] = useState(false);
-  const [isLogModalOpen, setLogModalOpen] = useState(false);
-  const [isProjectModalOpen, setProjectModalOpen] = useState(false);
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    () => projects[0]?.id ?? null
-  );
-
-  const openProject = (id: string) => {
-    setSelectedProjectId(id);
-    setCurrentView('project');
-  };
-
-  const addTask = (task: Omit<Task, 'id'>) => {
-    setTasks(prev =>
-      recomputeBlockedStates([
-        ...prev,
-        { ...task, id: `t${Date.now()}`, dependencies: task.dependencies ?? [] },
-      ])
-    );
-  };
-
-  const moveTask = (taskId: string, targetDiscipline: Task['discipline'], targetIndex: number) => {
-    setTasks(prev => {
-      const moving = prev.find(t => t.id === taskId);
-      if (!moving) return prev;
-
-      const without = prev.filter(t => t.id !== taskId);
-      const updatedMoving: Task =
-        moving.discipline === targetDiscipline ? moving : { ...moving, discipline: targetDiscipline };
-
-      const targetLane = without.filter(t => t.discipline === targetDiscipline);
-      const clampedIndex = Math.max(0, Math.min(targetIndex, targetLane.length));
-      const newTargetLane = [...targetLane];
-      newTargetLane.splice(clampedIndex, 0, updatedMoving);
-
-      const result: Task[] = [];
-      let inserted = false;
-      for (const t of without) {
-        if (t.discipline === targetDiscipline) {
-          if (!inserted) {
-            result.push(...newTargetLane);
-            inserted = true;
-          }
-          continue;
-        }
-        result.push(t);
-      }
-      if (!inserted) result.push(...newTargetLane);
-      return result;
-    });
-  };
-
-  const updateTask = (
-    taskId: string,
-    updates: Partial<Pick<Task, 'title' | 'status' | 'discipline'>>
-  ) => {
-    setTasks(prev =>
-      recomputeBlockedStates(
-        prev.map(t => {
-          if (t.id !== taskId) return t;
-          const next = { ...t };
-          if (updates.title !== undefined) {
-            const trimmed = updates.title.trim();
-            if (trimmed) next.title = trimmed;
-          }
-          if (updates.status !== undefined) {
-            const trimmed = updates.status.trim();
-            if (trimmed) next.status = trimmed;
-          }
-          if (updates.discipline !== undefined && VALID_DISCIPLINES.includes(updates.discipline)) {
-            next.discipline = updates.discipline;
-          }
-          return next;
-        })
-      )
-    );
-  };
-
-  const updateTaskDependencies = (taskId: string, dependencies: string[]) => {
-    setTasks(prev =>
-      recomputeBlockedStates(
-        prev.map(t => (t.id === taskId ? { ...t, dependencies: [...dependencies] } : t))
-      )
-    );
-  };
-
-  const deleteTask = (taskId: string) => {
-    setTasks(prev =>
-      recomputeBlockedStates(
-        prev
-          .filter(t => t.id !== taskId)
-          .map(t =>
-            t.dependencies && t.dependencies.includes(taskId)
-              ? { ...t, dependencies: t.dependencies.filter(id => id !== taskId) }
-              : t
-          )
-      )
-    );
-    setEditingTaskId(null);
-  };
-
-  const addStakeholder = (stakeholder: Omit<Stakeholder, 'id'>) => {
-    setStakeholders(prev => [...prev, { ...stakeholder, id: `s${Date.now()}` }]);
-  };
-
-  const addLogEntry = useCallback((entry: Omit<LogEntry, 'id'>) => {
-    setLogEntries(prev => [{ ...entry, id: uid('l') }, ...prev]);
+  const resetClientState = useCallback(() => {
+    setOrganisation(EMPTY_ORG);
+    setTeams([]);
+    setTeammates([]);
+    setProjects([]);
+    setTasks([]);
+    setStakeholders([]);
+    setLogEntries([]);
+    setEvidenceByProject({});
+    evidenceLoadingRef.current = {};
+    setSelectedProjectId(null);
+    setCurrentView('home');
   }, []);
 
-  // Evidence -----------------------------------------------------------------
+  const loadAllForUser = useCallback(async () => {
+    const [org, teamRows, mateRows, projectRows, taskRows, stakeRows, logRows] =
+      await Promise.all([
+        getOrganisation(),
+        listTeams(),
+        listTeammates(),
+        listProjects(),
+        listTasks(),
+        listStakeholders(),
+        listLogEntries(),
+      ]);
+    setOrganisation({ id: org.id, name: org.name });
+    setTeams(
+      teamRows.map((t) => ({
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        teammateIds: [...t.teammateIds],
+      })),
+    );
+    setTeammates(
+      mateRows.map((m) => ({
+        id: m.id,
+        name: m.name,
+        email: m.email,
+        role: m.role,
+        teamIds: [...m.teamIds],
+      })),
+    );
+    const normalizedProjects = projectRows.map(normalizeProject);
+    setProjects(normalizedProjects);
+    setTasks(taskRows.map(normalizeTask));
+    setStakeholders(stakeRows.map((s) => ({ ...s })));
+    setLogEntries(logRows.map((l) => ({ ...l })));
+    setSelectedProjectId(normalizedProjects[0]?.id ?? null);
+  }, []);
 
+  // On mount: ask the server who we are. 401 means show the login screen.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const user = await getCurrentUser();
+        if (cancelled) return;
+        setAuthUser(user);
+        setAuthStatus('authenticated');
+        await loadAllForUser();
+      } catch {
+        if (cancelled) return;
+        setAuthUser(null);
+        setAuthStatus('unauthenticated');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loadAllForUser]);
+
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      setAuthError(null);
+      try {
+        const user = await loginUser({ email, password });
+        setAuthUser(user);
+        setAuthStatus('authenticated');
+        await loadAllForUser();
+      } catch (err) {
+        setAuthError('Invalid email or password.');
+        throw err;
+      }
+    },
+    [loadAllForUser],
+  );
+
+  const signUp = useCallback(
+    async (name: string, email: string, password: string) => {
+      setAuthError(null);
+      try {
+        const user = await registerUser({ name, email, password });
+        setAuthUser(user);
+        setAuthStatus('authenticated');
+        await loadAllForUser();
+      } catch (err) {
+        setAuthError(
+          'Could not create your account. Try a different email or a stronger password.',
+        );
+        throw err;
+      }
+    },
+    [loadAllForUser],
+  );
+
+  const signOut = useCallback(async () => {
+    try {
+      await logoutUser();
+    } catch {
+      // Best-effort: even if the server call fails, drop client state so the
+      // user isn't stuck looking at someone else's data.
+    }
+    setAuthUser(null);
+    setAuthStatus('unauthenticated');
+    resetClientState();
+  }, [resetClientState]);
+
+  // -- Project navigation -------------------------------------------------
+  const openProject = useCallback((id: string) => {
+    setSelectedProjectId(id);
+    setCurrentView('project');
+  }, []);
+
+  // -- Tasks (server returns the full recomputed list) --------------------
+  const addTask = useCallback(async (task: Omit<Task, 'id'>) => {
+    const rows = await apiCreateTask({
+      discipline: task.discipline as CreateTaskRequestDiscipline,
+      title: task.title,
+      status: task.status,
+      dependencies: task.dependencies ?? [],
+    });
+    setTasks(rows.map(normalizeTask));
+  }, []);
+
+  const moveTask = useCallback(
+    async (
+      taskId: string,
+      targetDiscipline: Task['discipline'],
+      targetIndex: number,
+    ) => {
+      const rows = await apiMoveTask(taskId, {
+        discipline: targetDiscipline as MoveTaskRequestDiscipline,
+        targetIndex,
+      });
+      setTasks(rows.map(normalizeTask));
+    },
+    [],
+  );
+
+  const updateTask = useCallback(
+    async (
+      taskId: string,
+      updates: Partial<Pick<Task, 'title' | 'status' | 'discipline'>>,
+    ) => {
+      const rows = await apiUpdateTask(taskId, {
+        ...(updates.title !== undefined ? { title: updates.title } : {}),
+        ...(updates.status !== undefined ? { status: updates.status } : {}),
+        ...(updates.discipline !== undefined
+          ? { discipline: updates.discipline as UpdateTaskRequestDiscipline }
+          : {}),
+      });
+      setTasks(rows.map(normalizeTask));
+    },
+    [],
+  );
+
+  const updateTaskDependencies = useCallback(
+    async (taskId: string, dependencies: string[]) => {
+      const rows = await apiUpdateTask(taskId, { dependencies });
+      setTasks(rows.map(normalizeTask));
+    },
+    [],
+  );
+
+  const deleteTask = useCallback(async (taskId: string) => {
+    const rows = await apiDeleteTask(taskId);
+    setTasks(rows.map(normalizeTask));
+    setEditingTaskId(null);
+  }, []);
+
+  // -- Stakeholders -------------------------------------------------------
+  const addStakeholder = useCallback(
+    async (stakeholder: Omit<Stakeholder, 'id'>) => {
+      const created = await apiCreateStakeholder(stakeholder);
+      setStakeholders((prev) => [...prev, { ...created }]);
+    },
+    [],
+  );
+
+  // -- Log entries --------------------------------------------------------
+  const addLogEntry = useCallback(async (entry: Omit<LogEntry, 'id'>) => {
+    const created = await apiCreateLogEntry(entry);
+    setLogEntries((prev) => [{ ...created }, ...prev]);
+  }, []);
+
+  // -- Evidence -----------------------------------------------------------
   const getProjectEvidence = useCallback(
     (projectId: string): EvidenceState =>
       evidenceByProject[projectId] ?? EMPTY_EVIDENCE_STATE,
@@ -479,7 +549,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const setEvidenceFor = useCallback(
     (projectId: string, updater: (prev: EvidenceState) => EvidenceState) => {
-      setEvidenceByProject(prev => ({
+      setEvidenceByProject((prev) => ({
         ...prev,
         [projectId]: updater(prev[projectId] ?? EMPTY_EVIDENCE_STATE),
       }));
@@ -493,7 +563,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (inFlight) return inFlight;
 
       const promise = (async () => {
-        setEvidenceFor(projectId, prev => ({ ...prev, loading: true, error: null }));
+        setEvidenceFor(projectId, (prev) => ({
+          ...prev,
+          loading: true,
+          error: null,
+        }));
         try {
           const data = await apiListProjectEvidence(projectId);
           const files = data.files.map(normalizeFile);
@@ -505,7 +579,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             error: null,
           }));
         } catch (err) {
-          setEvidenceFor(projectId, prev => ({
+          setEvidenceFor(projectId, (prev) => ({
             ...prev,
             loading: false,
             error: describeError(err),
@@ -551,12 +625,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       const persisted = normalizeFile(created);
 
-      setEvidenceFor(projectId, prev => ({
+      setEvidenceFor(projectId, (prev) => ({
         ...prev,
-        files: [persisted, ...prev.files.filter(f => f.id !== persisted.id)],
+        files: [persisted, ...prev.files.filter((f) => f.id !== persisted.id)],
       }));
 
-      addLogEntry({
+      void addLogEntry({
         date: formatDateTime(new Date()),
         actor: addedBy,
         type: 'File',
@@ -572,28 +646,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const removeEvidenceFile = useCallback(
     async (projectId: string, fileId: string): Promise<void> => {
       const current = evidenceByProject[projectId];
-      const existing = current?.files.find(f => f.id === fileId);
+      const existing = current?.files.find((f) => f.id === fileId);
 
       // Optimistically remove so the UI feels snappy; restore on failure.
-      setEvidenceFor(projectId, prev => ({
+      setEvidenceFor(projectId, (prev) => ({
         ...prev,
-        files: prev.files.filter(f => f.id !== fileId),
+        files: prev.files.filter((f) => f.id !== fileId),
       }));
 
       try {
         await apiDeleteEvidenceFile(projectId, fileId);
       } catch (err) {
         if (existing) {
-          setEvidenceFor(projectId, prev => ({
+          setEvidenceFor(projectId, (prev) => ({
             ...prev,
-            files: [existing, ...prev.files.filter(f => f.id !== existing.id)],
+            files: [existing, ...prev.files.filter((f) => f.id !== existing.id)],
           }));
         }
         throw err;
       }
 
       if (existing) {
-        addLogEntry({
+        void addLogEntry({
           date: formatDateTime(new Date()),
           actor: existing.addedBy,
           type: 'File',
@@ -608,17 +682,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addLinkedBoard = useCallback(
     async (
       projectId: string,
-      board: { provider: BoardProvider; url: string; embedUrl: string; title: string; linkedBy: string },
+      board: {
+        provider: BoardProvider;
+        url: string;
+        embedUrl: string;
+        title: string;
+        linkedBy: string;
+      },
     ): Promise<LinkedBoard> => {
       const created = await apiCreateLinkedBoard(projectId, board);
       const persisted = normalizeBoard(created);
 
-      setEvidenceFor(projectId, prev => ({
+      setEvidenceFor(projectId, (prev) => ({
         ...prev,
-        boards: [persisted, ...prev.boards.filter(b => b.id !== persisted.id)],
+        boards: [persisted, ...prev.boards.filter((b) => b.id !== persisted.id)],
       }));
 
-      addLogEntry({
+      void addLogEntry({
         date: formatDateTime(new Date()),
         actor: board.linkedBy,
         type: 'Board',
@@ -634,27 +714,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const removeLinkedBoard = useCallback(
     async (projectId: string, boardId: string): Promise<void> => {
       const current = evidenceByProject[projectId];
-      const existing = current?.boards.find(b => b.id === boardId);
+      const existing = current?.boards.find((b) => b.id === boardId);
 
-      setEvidenceFor(projectId, prev => ({
+      setEvidenceFor(projectId, (prev) => ({
         ...prev,
-        boards: prev.boards.filter(b => b.id !== boardId),
+        boards: prev.boards.filter((b) => b.id !== boardId),
       }));
 
       try {
         await apiDeleteLinkedBoard(projectId, boardId);
       } catch (err) {
         if (existing) {
-          setEvidenceFor(projectId, prev => ({
+          setEvidenceFor(projectId, (prev) => ({
             ...prev,
-            boards: [existing, ...prev.boards.filter(b => b.id !== existing.id)],
+            boards: [existing, ...prev.boards.filter((b) => b.id !== existing.id)],
           }));
         }
         throw err;
       }
 
       if (existing) {
-        addLogEntry({
+        void addLogEntry({
           date: formatDateTime(new Date()),
           actor: existing.linkedBy,
           type: 'Board',
@@ -666,156 +746,297 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [addLogEntry, evidenceByProject, setEvidenceFor],
   );
 
-  // Organisation -----------------------------------------------------------
-  const renameOrganisation = (name: string) => {
+  // -- Organisation -------------------------------------------------------
+  const renameOrganisation = useCallback(async (name: string) => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    setOrganisation(prev => ({ ...prev, name: trimmed }));
-  };
+    const updated = await apiUpdateOrganisation({ name: trimmed });
+    setOrganisation({ id: updated.id, name: updated.name });
+  }, []);
 
-  // Teams ------------------------------------------------------------------
-  const addTeam = ({ name, description = '' }: { name: string; description?: string }) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    setTeams(prev => [...prev, { id: uid('team'), name: trimmed, description: description.trim(), teammateIds: [] }]);
-  };
+  // -- Teams --------------------------------------------------------------
+  const addTeam = useCallback(
+    async ({ name, description = '' }: { name: string; description?: string }) => {
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      const created = await apiCreateTeam({ name: trimmed, description });
+      setTeams((prev) => [
+        ...prev,
+        {
+          id: created.id,
+          name: created.name,
+          description: created.description,
+          teammateIds: [...created.teammateIds],
+        },
+      ]);
+    },
+    [],
+  );
 
-  const renameTeam = (teamId: string, name: string, description?: string) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    setTeams(prev => prev.map(t => t.id === teamId
-      ? { ...t, name: trimmed, description: description !== undefined ? description.trim() : t.description }
-      : t
-    ));
-  };
+  const renameTeam = useCallback(
+    async (teamId: string, name: string, description?: string) => {
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      const body: { name?: string; description?: string } = { name: trimmed };
+      if (description !== undefined) body.description = description;
+      const updated = await apiUpdateTeam(teamId, body);
+      setTeams((prev) =>
+        prev.map((t) =>
+          t.id === teamId
+            ? {
+                id: updated.id,
+                name: updated.name,
+                description: updated.description,
+                teammateIds: [...updated.teammateIds],
+              }
+            : t,
+        ),
+      );
+    },
+    [],
+  );
 
-  const deleteTeam = (teamId: string) => {
-    setTeams(prev => prev.filter(t => t.id !== teamId));
-    setTeammates(prev => prev.map(m => ({ ...m, teamIds: m.teamIds.filter(id => id !== teamId) })));
-    setProjects(prev => prev.map(p => p.teamId === teamId ? { ...p, teamId: undefined } : p));
-  };
+  const deleteTeam = useCallback(async (teamId: string) => {
+    await apiDeleteTeam(teamId);
+    setTeams((prev) => prev.filter((t) => t.id !== teamId));
+    setTeammates((prev) =>
+      prev.map((m) => ({ ...m, teamIds: m.teamIds.filter((id) => id !== teamId) })),
+    );
+    setProjects((prev) =>
+      prev.map((p) => (p.teamId === teamId ? { ...p, teamId: undefined } : p)),
+    );
+  }, []);
 
-  // Teammates --------------------------------------------------------------
-  const addTeammate = ({ name, email = '', role = '', teamIds = [] }: { name: string; email?: string; role?: string; teamIds?: string[] }) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    const newId = uid('tm');
-    const cleanTeamIds = Array.from(new Set(teamIds));
-    setTeammates(prev => [...prev, {
-      id: newId,
-      name: trimmed,
-      email: email.trim(),
-      role: role.trim(),
-      teamIds: cleanTeamIds,
-    }]);
-    if (cleanTeamIds.length > 0) {
-      setTeams(prev => prev.map(t => cleanTeamIds.includes(t.id) && !t.teammateIds.includes(newId)
-        ? { ...t, teammateIds: [...t.teammateIds, newId] }
-        : t
-      ));
-    }
-  };
-
-  const updateTeammate = (teammateId: string, updates: Partial<Pick<Teammate, 'name' | 'email' | 'role'>>) => {
-    setTeammates(prev => prev.map(m => {
-      if (m.id !== teammateId) return m;
-      const next = { ...m };
-      if (updates.name !== undefined) {
-        const trimmed = updates.name.trim();
-        if (trimmed) next.name = trimmed;
+  // -- Teammates ----------------------------------------------------------
+  const addTeammate = useCallback(
+    async ({
+      name,
+      email = '',
+      role = '',
+      teamIds = [],
+    }: {
+      name: string;
+      email?: string;
+      role?: string;
+      teamIds?: string[];
+    }) => {
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      const cleanTeamIds = Array.from(new Set(teamIds));
+      const created = await apiCreateTeammate({
+        name: trimmed,
+        email,
+        role,
+        teamIds: cleanTeamIds,
+      });
+      setTeammates((prev) => [
+        ...prev,
+        {
+          id: created.id,
+          name: created.name,
+          email: created.email,
+          role: created.role,
+          teamIds: [...created.teamIds],
+        },
+      ]);
+      // Mirror the new membership into the local teams list so consumers don't
+      // have to refetch /teams to see it.
+      if (created.teamIds.length > 0) {
+        setTeams((prev) =>
+          prev.map((t) =>
+            created.teamIds.includes(t.id) && !t.teammateIds.includes(created.id)
+              ? { ...t, teammateIds: [...t.teammateIds, created.id] }
+              : t,
+          ),
+        );
       }
-      if (updates.email !== undefined) next.email = updates.email.trim();
-      if (updates.role !== undefined) next.role = updates.role.trim();
-      return next;
-    }));
-  };
+    },
+    [],
+  );
 
-  const deleteTeammate = (teammateId: string) => {
-    setTeammates(prev => prev.filter(m => m.id !== teammateId));
-    setTeams(prev => prev.map(t => ({ ...t, teammateIds: t.teammateIds.filter(id => id !== teammateId) })));
-  };
+  const updateTeammate = useCallback(
+    async (
+      teammateId: string,
+      updates: Partial<Pick<Teammate, 'name' | 'email' | 'role'>>,
+    ) => {
+      const updated = await apiUpdateTeammate(teammateId, updates);
+      setTeammates((prev) =>
+        prev.map((m) =>
+          m.id === teammateId
+            ? {
+                id: updated.id,
+                name: updated.name,
+                email: updated.email,
+                role: updated.role,
+                teamIds: [...updated.teamIds],
+              }
+            : m,
+        ),
+      );
+    },
+    [],
+  );
 
-  const addTeammateToTeam = (teamId: string, teammateId: string) => {
-    setTeams(prev => prev.map(t => t.id === teamId && !t.teammateIds.includes(teammateId)
-      ? { ...t, teammateIds: [...t.teammateIds, teammateId] }
-      : t
-    ));
-    setTeammates(prev => prev.map(m => m.id === teammateId && !m.teamIds.includes(teamId)
-      ? { ...m, teamIds: [...m.teamIds, teamId] }
-      : m
-    ));
-  };
+  const deleteTeammate = useCallback(async (teammateId: string) => {
+    await apiDeleteTeammate(teammateId);
+    setTeammates((prev) => prev.filter((m) => m.id !== teammateId));
+    setTeams((prev) =>
+      prev.map((t) => ({
+        ...t,
+        teammateIds: t.teammateIds.filter((id) => id !== teammateId),
+      })),
+    );
+  }, []);
 
-  const removeTeammateFromTeam = (teamId: string, teammateId: string) => {
-    setTeams(prev => prev.map(t => t.id === teamId
-      ? { ...t, teammateIds: t.teammateIds.filter(id => id !== teammateId) }
-      : t
-    ));
-    setTeammates(prev => prev.map(m => m.id === teammateId
-      ? { ...m, teamIds: m.teamIds.filter(id => id !== teamId) }
-      : m
-    ));
-  };
+  const addTeammateToTeam = useCallback(
+    async (teamId: string, teammateId: string) => {
+      const updatedTeam = await apiAddTeamMember(teamId, teammateId);
+      setTeams((prev) =>
+        prev.map((t) =>
+          t.id === teamId
+            ? {
+                id: updatedTeam.id,
+                name: updatedTeam.name,
+                description: updatedTeam.description,
+                teammateIds: [...updatedTeam.teammateIds],
+              }
+            : t,
+        ),
+      );
+      setTeammates((prev) =>
+        prev.map((m) =>
+          m.id === teammateId && !m.teamIds.includes(teamId)
+            ? { ...m, teamIds: [...m.teamIds, teamId] }
+            : m,
+        ),
+      );
+    },
+    [],
+  );
 
-  const setProjectTeam = (projectId: string, teamId: string | undefined) => {
-    setProjects(prev => prev.map(p => p.id === projectId ? { ...p, teamId } : p));
-  };
+  const removeTeammateFromTeam = useCallback(
+    async (teamId: string, teammateId: string) => {
+      const updatedTeam = await apiRemoveTeamMember(teamId, teammateId);
+      setTeams((prev) =>
+        prev.map((t) =>
+          t.id === teamId
+            ? {
+                id: updatedTeam.id,
+                name: updatedTeam.name,
+                description: updatedTeam.description,
+                teammateIds: [...updatedTeam.teammateIds],
+              }
+            : t,
+        ),
+      );
+      setTeammates((prev) =>
+        prev.map((m) =>
+          m.id === teammateId
+            ? { ...m, teamIds: m.teamIds.filter((id) => id !== teamId) }
+            : m,
+        ),
+      );
+    },
+    [],
+  );
 
-  const addProject = ({ name, meta = '', stage = 'Intake', teamId }: { name: string; meta?: string; stage?: Project['stage']; teamId?: string }): string => {
-    const trimmed = name.trim();
-    if (!trimmed) return '';
-    const id = uid('p');
-    const stageClassMap: Record<Project['stage'], string> = {
-      Intake: 'disc',
-      Discovery: 'disc',
-      Alpha: 'alpha',
-      Beta: 'beta',
-      Live: 'good',
-    };
-    const stageProgress: Record<Project['stage'], number> = {
-      Intake: 1,
-      Discovery: 2,
-      Alpha: 3,
-      Beta: 4,
-      Live: 5,
-    };
-    const newProject: Project = {
-      id,
-      name: trimmed,
-      meta: meta.trim() || 'New project',
-      stage,
-      stageClass: stageClassMap[stage],
-      status: stage === 'Live' ? 'Shipped' : 'On track',
-      statusClass: 'good',
-      progress: stageProgress[stage],
-      totalProgress: 5,
+  // -- Projects -----------------------------------------------------------
+  const addProject = useCallback(
+    async ({
+      name,
+      meta = '',
+      stage = 'Intake',
       teamId,
-    };
-    setProjects(prev => [...prev, newProject]);
-    return id;
-  };
+    }: {
+      name: string;
+      meta?: string;
+      stage?: Project['stage'];
+      teamId?: string;
+    }): Promise<string> => {
+      const trimmed = name.trim();
+      if (!trimmed) return '';
+      const created = await apiCreateProject({
+        name: trimmed,
+        meta,
+        stage: stage as CreateProjectRequestStage,
+        ...(teamId ? { teamId } : {}),
+      });
+      const project = normalizeProject(created);
+      setProjects((prev) => [...prev, project]);
+      return project.id;
+    },
+    [],
+  );
 
+  const setProjectTeam = useCallback(
+    async (projectId: string, teamId: string | undefined) => {
+      const updated = await apiUpdateProject(projectId, { teamId: teamId ?? null });
+      const project = normalizeProject(updated);
+      setProjects((prev) => prev.map((p) => (p.id === projectId ? project : p)));
+    },
+    [],
+  );
+
+  // ---------------------------------------------------------------------
+  // Provider value
+  // ---------------------------------------------------------------------
   return (
-    <AppContext.Provider value={{
-      currentView, setCurrentView,
-      organisation, teams, teammates,
-      projects, tasks, stakeholders, logEntries,
-      selectedProjectId, setSelectedProjectId, openProject,
-      isTaskModalOpen, setTaskModalOpen,
-      isStakeholderModalOpen, setStakeholderModalOpen,
-      isLogModalOpen, setLogModalOpen,
-      isProjectModalOpen, setProjectModalOpen,
-      editingTaskId, setEditingTaskId,
-      addTask, moveTask, updateTask, updateTaskDependencies, deleteTask, addStakeholder, addLogEntry,
-      getProjectEvidence, loadProjectEvidence,
-      uploadEvidenceFile, removeEvidenceFile,
-      addLinkedBoard, removeLinkedBoard,
-      renameOrganisation,
-      addTeam, renameTeam, deleteTeam,
-      addTeammate, updateTeammate, deleteTeammate,
-      addTeammateToTeam, removeTeammateFromTeam,
-      addProject, setProjectTeam,
-    }}>
+    <AppContext.Provider
+      value={{
+        authStatus,
+        authUser,
+        authError,
+        signIn,
+        signUp,
+        signOut,
+        currentView,
+        setCurrentView,
+        organisation,
+        teams,
+        teammates,
+        projects,
+        tasks,
+        stakeholders,
+        logEntries,
+        selectedProjectId,
+        setSelectedProjectId,
+        openProject,
+        isTaskModalOpen,
+        setTaskModalOpen,
+        isStakeholderModalOpen,
+        setStakeholderModalOpen,
+        isLogModalOpen,
+        setLogModalOpen,
+        isProjectModalOpen,
+        setProjectModalOpen,
+        editingTaskId,
+        setEditingTaskId,
+        addTask,
+        moveTask,
+        updateTask,
+        updateTaskDependencies,
+        deleteTask,
+        addStakeholder,
+        addLogEntry,
+        getProjectEvidence,
+        loadProjectEvidence,
+        uploadEvidenceFile,
+        removeEvidenceFile,
+        addLinkedBoard,
+        removeLinkedBoard,
+        renameOrganisation,
+        addTeam,
+        renameTeam,
+        deleteTeam,
+        addTeammate,
+        updateTeammate,
+        deleteTeammate,
+        addTeammateToTeam,
+        removeTeammateFromTeam,
+        addProject,
+        setProjectTeam,
+      }}
+    >
       {children}
     </AppContext.Provider>
   );

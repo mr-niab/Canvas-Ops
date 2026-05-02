@@ -139,7 +139,10 @@ function Lane({
 }
 
 export function WorkflowView() {
-  const { tasks, setCurrentView, setTaskModalOpen, moveTask } = useAppContext();
+  const { tasks, setCurrentView, setTaskModalOpen, moveTask, projects, selectedProjectId } = useAppContext();
+  const project = projects.find(p => p.id === selectedProjectId) ?? projects[0] ?? null;
+  const crumbLabel = project ? `← ${project.name}` : '← Projects';
+  const crumbTarget: 'project' | 'home' = project ? 'project' : 'home';
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -247,7 +250,7 @@ export function WorkflowView() {
     <section>
       <div className="page-head">
         <div>
-          <div className="crumb" onClick={() => setCurrentView('project')}>← Appointment Booking Redesign</div>
+          <div className="crumb" onClick={() => setCurrentView(crumbTarget)}>{crumbLabel}</div>
           <h1>Workflow</h1>
           <p className="sub flush">Cross-discipline kanban — all three disciplines visible in one board.</p>
         </div>

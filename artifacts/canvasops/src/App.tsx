@@ -1,6 +1,7 @@
 import { AppProvider, useAppContext } from './AppContext';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
+import { AuthScreen } from './components/AuthScreen';
 import { HomeView } from './pages/HomeView';
 import { ProjectView } from './pages/ProjectView';
 import { WorkflowView } from './pages/WorkflowView';
@@ -40,10 +41,25 @@ function Shell() {
   );
 }
 
+function AuthGate() {
+  const { authStatus } = useAppContext();
+  if (authStatus === 'loading') {
+    return (
+      <div className="auth-screen">
+        <div className="auth-card auth-card-loading">Loading your workspace…</div>
+      </div>
+    );
+  }
+  if (authStatus === 'unauthenticated') {
+    return <AuthScreen />;
+  }
+  return <Shell />;
+}
+
 export default function App() {
   return (
     <AppProvider>
-      <Shell />
+      <AuthGate />
     </AppProvider>
   );
 }

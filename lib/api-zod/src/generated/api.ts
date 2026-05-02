@@ -16,6 +16,500 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
+ * @summary Register a new user account
+ */
+export const registerUserBodyEmailMin = 3;
+
+export const registerUserBodyPasswordMin = 8;
+
+export const RegisterUserBody = zod.object({
+  email: zod.string().min(registerUserBodyEmailMin),
+  password: zod.string().min(registerUserBodyPasswordMin),
+  name: zod.string().min(1),
+});
+
+export const RegisterUserResponse = zod.object({
+  id: zod.string(),
+  email: zod.string(),
+  name: zod.string(),
+});
+
+/**
+ * @summary Sign in with email and password
+ */
+export const loginUserBodyEmailMin = 3;
+
+export const LoginUserBody = zod.object({
+  email: zod.string().min(loginUserBodyEmailMin),
+  password: zod.string().min(1),
+});
+
+export const LoginUserResponse = zod.object({
+  id: zod.string(),
+  email: zod.string(),
+  name: zod.string(),
+});
+
+/**
+ * @summary Get the currently signed-in user
+ */
+export const GetCurrentUserResponse = zod.object({
+  id: zod.string(),
+  email: zod.string(),
+  name: zod.string(),
+});
+
+/**
+ * @summary Get the current user's organisation
+ */
+export const GetOrganisationResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+});
+
+/**
+ * @summary Rename the organisation
+ */
+
+export const UpdateOrganisationBody = zod.object({
+  name: zod.string().min(1),
+});
+
+export const UpdateOrganisationResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+});
+
+/**
+ * @summary List teams
+ */
+export const ListTeamsResponseItem = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  description: zod.string(),
+  teammateIds: zod.array(zod.string()),
+});
+export const ListTeamsResponse = zod.array(ListTeamsResponseItem);
+
+/**
+ * @summary Create a team
+ */
+
+export const CreateTeamBody = zod.object({
+  name: zod.string().min(1),
+  description: zod.string().optional(),
+});
+
+export const CreateTeamResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  description: zod.string(),
+  teammateIds: zod.array(zod.string()),
+});
+
+/**
+ * @summary Rename or update a team
+ */
+export const UpdateTeamParams = zod.object({
+  teamId: zod.coerce.string(),
+});
+
+export const UpdateTeamBody = zod.object({
+  name: zod.string().min(1).optional(),
+  description: zod.string().optional(),
+});
+
+export const UpdateTeamResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  description: zod.string(),
+  teammateIds: zod.array(zod.string()),
+});
+
+/**
+ * @summary Delete a team
+ */
+export const DeleteTeamParams = zod.object({
+  teamId: zod.coerce.string(),
+});
+
+/**
+ * @summary Add a teammate to a team
+ */
+export const AddTeamMemberParams = zod.object({
+  teamId: zod.coerce.string(),
+  teammateId: zod.coerce.string(),
+});
+
+export const AddTeamMemberResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  description: zod.string(),
+  teammateIds: zod.array(zod.string()),
+});
+
+/**
+ * @summary Remove a teammate from a team
+ */
+export const RemoveTeamMemberParams = zod.object({
+  teamId: zod.coerce.string(),
+  teammateId: zod.coerce.string(),
+});
+
+export const RemoveTeamMemberResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  description: zod.string(),
+  teammateIds: zod.array(zod.string()),
+});
+
+/**
+ * @summary List teammates
+ */
+export const ListTeammatesResponseItem = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  email: zod.string(),
+  role: zod.string(),
+  teamIds: zod.array(zod.string()),
+});
+export const ListTeammatesResponse = zod.array(ListTeammatesResponseItem);
+
+/**
+ * @summary Add a teammate
+ */
+
+export const CreateTeammateBody = zod.object({
+  name: zod.string().min(1),
+  email: zod.string().optional(),
+  role: zod.string().optional(),
+  teamIds: zod.array(zod.string()).optional(),
+});
+
+export const CreateTeammateResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  email: zod.string(),
+  role: zod.string(),
+  teamIds: zod.array(zod.string()),
+});
+
+/**
+ * @summary Update a teammate
+ */
+export const UpdateTeammateParams = zod.object({
+  teammateId: zod.coerce.string(),
+});
+
+export const UpdateTeammateBody = zod.object({
+  name: zod.string().min(1).optional(),
+  email: zod.string().optional(),
+  role: zod.string().optional(),
+});
+
+export const UpdateTeammateResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  email: zod.string(),
+  role: zod.string(),
+  teamIds: zod.array(zod.string()),
+});
+
+/**
+ * @summary Delete a teammate
+ */
+export const DeleteTeammateParams = zod.object({
+  teammateId: zod.coerce.string(),
+});
+
+/**
+ * @summary List projects
+ */
+export const ListProjectsResponseItem = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  meta: zod.string(),
+  stage: zod.enum(["Intake", "Discovery", "Alpha", "Beta", "Live"]),
+  stageClass: zod.string(),
+  status: zod.string(),
+  statusClass: zod.string(),
+  progress: zod.number(),
+  totalProgress: zod.number(),
+  teamId: zod.string().nullish(),
+});
+export const ListProjectsResponse = zod.array(ListProjectsResponseItem);
+
+/**
+ * @summary Create a project
+ */
+
+export const CreateProjectBody = zod.object({
+  name: zod.string().min(1),
+  meta: zod.string().optional(),
+  stage: zod.enum(["Intake", "Discovery", "Alpha", "Beta", "Live"]).optional(),
+  teamId: zod.string().nullish(),
+});
+
+export const CreateProjectResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  meta: zod.string(),
+  stage: zod.enum(["Intake", "Discovery", "Alpha", "Beta", "Live"]),
+  stageClass: zod.string(),
+  status: zod.string(),
+  statusClass: zod.string(),
+  progress: zod.number(),
+  totalProgress: zod.number(),
+  teamId: zod.string().nullish(),
+});
+
+/**
+ * @summary Update a project
+ */
+export const UpdateProjectParams = zod.object({
+  projectId: zod.coerce.string(),
+});
+
+export const UpdateProjectBody = zod.object({
+  name: zod.string().min(1).optional(),
+  meta: zod.string().optional(),
+  stage: zod.enum(["Intake", "Discovery", "Alpha", "Beta", "Live"]).optional(),
+  teamId: zod.string().nullish(),
+});
+
+export const UpdateProjectResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  meta: zod.string(),
+  stage: zod.enum(["Intake", "Discovery", "Alpha", "Beta", "Live"]),
+  stageClass: zod.string(),
+  status: zod.string(),
+  statusClass: zod.string(),
+  progress: zod.number(),
+  totalProgress: zod.number(),
+  teamId: zod.string().nullish(),
+});
+
+/**
+ * @summary Delete a project
+ */
+export const DeleteProjectParams = zod.object({
+  projectId: zod.coerce.string(),
+});
+
+/**
+ * @summary List tasks
+ */
+export const ListTasksResponseItem = zod.object({
+  id: zod.string(),
+  discipline: zod.enum(["UX/UI Design", "User Research", "Service Design"]),
+  title: zod.string(),
+  status: zod.string(),
+  previousStatus: zod.string().nullish(),
+  dependencies: zod.array(zod.string()),
+});
+export const ListTasksResponse = zod.array(ListTasksResponseItem);
+
+/**
+ * @summary Create a task
+ */
+
+export const CreateTaskBody = zod.object({
+  discipline: zod.enum(["UX/UI Design", "User Research", "Service Design"]),
+  title: zod.string().min(1),
+  status: zod.string().optional(),
+  dependencies: zod.array(zod.string()).optional(),
+});
+
+export const CreateTaskResponseItem = zod.object({
+  id: zod.string(),
+  discipline: zod.enum(["UX/UI Design", "User Research", "Service Design"]),
+  title: zod.string(),
+  status: zod.string(),
+  previousStatus: zod.string().nullish(),
+  dependencies: zod.array(zod.string()),
+});
+export const CreateTaskResponse = zod.array(CreateTaskResponseItem);
+
+/**
+ * @summary Update a task (title, status, discipline, dependencies)
+ */
+export const UpdateTaskParams = zod.object({
+  taskId: zod.coerce.string(),
+});
+
+export const UpdateTaskBody = zod.object({
+  title: zod.string().min(1).optional(),
+  status: zod.string().min(1).optional(),
+  discipline: zod
+    .enum(["UX/UI Design", "User Research", "Service Design"])
+    .optional(),
+  dependencies: zod.array(zod.string()).optional(),
+});
+
+export const UpdateTaskResponseItem = zod.object({
+  id: zod.string(),
+  discipline: zod.enum(["UX/UI Design", "User Research", "Service Design"]),
+  title: zod.string(),
+  status: zod.string(),
+  previousStatus: zod.string().nullish(),
+  dependencies: zod.array(zod.string()),
+});
+export const UpdateTaskResponse = zod.array(UpdateTaskResponseItem);
+
+/**
+ * @summary Delete a task
+ */
+export const DeleteTaskParams = zod.object({
+  taskId: zod.coerce.string(),
+});
+
+export const DeleteTaskResponseItem = zod.object({
+  id: zod.string(),
+  discipline: zod.enum(["UX/UI Design", "User Research", "Service Design"]),
+  title: zod.string(),
+  status: zod.string(),
+  previousStatus: zod.string().nullish(),
+  dependencies: zod.array(zod.string()),
+});
+export const DeleteTaskResponse = zod.array(DeleteTaskResponseItem);
+
+/**
+ * @summary Move a task to a discipline + position
+ */
+export const MoveTaskParams = zod.object({
+  taskId: zod.coerce.string(),
+});
+
+export const moveTaskBodyTargetIndexMin = 0;
+
+export const MoveTaskBody = zod.object({
+  discipline: zod.enum(["UX/UI Design", "User Research", "Service Design"]),
+  targetIndex: zod.number().min(moveTaskBodyTargetIndexMin),
+});
+
+export const MoveTaskResponseItem = zod.object({
+  id: zod.string(),
+  discipline: zod.enum(["UX/UI Design", "User Research", "Service Design"]),
+  title: zod.string(),
+  status: zod.string(),
+  previousStatus: zod.string().nullish(),
+  dependencies: zod.array(zod.string()),
+});
+export const MoveTaskResponse = zod.array(MoveTaskResponseItem);
+
+/**
+ * @summary List stakeholders
+ */
+export const ListStakeholdersResponseItem = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  role: zod.string(),
+  email: zod.string(),
+  lastContacted: zod.string(),
+  status: zod.string(),
+  statusClass: zod.string(),
+});
+export const ListStakeholdersResponse = zod.array(ListStakeholdersResponseItem);
+
+/**
+ * @summary Add a stakeholder
+ */
+
+export const CreateStakeholderBody = zod.object({
+  name: zod.string().min(1),
+  role: zod.string().optional(),
+  email: zod.string().optional(),
+  lastContacted: zod.string().optional(),
+  status: zod.string().optional(),
+  statusClass: zod.string().optional(),
+});
+
+export const CreateStakeholderResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  role: zod.string(),
+  email: zod.string(),
+  lastContacted: zod.string(),
+  status: zod.string(),
+  statusClass: zod.string(),
+});
+
+/**
+ * @summary Update a stakeholder
+ */
+export const UpdateStakeholderParams = zod.object({
+  stakeholderId: zod.coerce.string(),
+});
+
+export const UpdateStakeholderBody = zod.object({
+  name: zod.string().min(1).optional(),
+  role: zod.string().optional(),
+  email: zod.string().optional(),
+  lastContacted: zod.string().optional(),
+  status: zod.string().optional(),
+  statusClass: zod.string().optional(),
+});
+
+export const UpdateStakeholderResponse = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  role: zod.string(),
+  email: zod.string(),
+  lastContacted: zod.string(),
+  status: zod.string(),
+  statusClass: zod.string(),
+});
+
+/**
+ * @summary Delete a stakeholder
+ */
+export const DeleteStakeholderParams = zod.object({
+  stakeholderId: zod.coerce.string(),
+});
+
+/**
+ * @summary List log entries (newest first)
+ */
+export const ListLogEntriesResponseItem = zod.object({
+  id: zod.string(),
+  date: zod.string(),
+  actor: zod.string(),
+  type: zod.string(),
+  typeClass: zod.string(),
+  detail: zod.string(),
+});
+export const ListLogEntriesResponse = zod.array(ListLogEntriesResponseItem);
+
+/**
+ * @summary Add a log entry
+ */
+
+export const CreateLogEntryBody = zod.object({
+  date: zod.string().min(1),
+  actor: zod.string().min(1),
+  type: zod.string().min(1),
+  typeClass: zod.string().min(1),
+  detail: zod.string().min(1),
+});
+
+export const CreateLogEntryResponse = zod.object({
+  id: zod.string(),
+  date: zod.string(),
+  actor: zod.string(),
+  type: zod.string(),
+  typeClass: zod.string(),
+  detail: zod.string(),
+});
+
+/**
+ * @summary Delete a log entry
+ */
+export const DeleteLogEntryParams = zod.object({
+  logEntryId: zod.coerce.string(),
+});
+
+/**
  * Returns a presigned GCS URL for direct upload. The client sends JSON
 metadata here, then uploads the file directly to the returned URL.
 

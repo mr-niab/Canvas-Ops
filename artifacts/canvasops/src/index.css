@@ -1716,3 +1716,87 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------------- auth screen ---------------- */
+
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  padding: var(--space-6);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: var(--space-6);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06);
+}
+
+.auth-card-loading {
+  text-align: center;
+  color: var(--muted);
+  padding: var(--space-7) var(--space-6);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--text);
+  margin-bottom: var(--space-5);
+}
+
+.auth-title {
+  margin: 0 0 var(--space-2) 0;
+  font-size: 22px;
+}
+
+.auth-sub {
+  margin: 0 0 var(--space-5) 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.auth-switch {
+  margin-top: var(--space-5);
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.auth-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--primary);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.form-error {
+  background: #fdecec;
+  border: 1px solid #f3b6b6;
+  color: #8c1d1d;
+  padding: var(--space-3);
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+/* ---------------- topbar additions ---------------- */
+
+.topbar-user {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

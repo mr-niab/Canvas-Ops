@@ -1,4 +1,4 @@
-import { Router, type IRouter, type Request, type Response } from "express";
+import { Router, type IRouter, type Response } from "express";
 import { randomUUID } from "node:crypto";
 import { eq, and, desc } from "drizzle-orm";
 import {
@@ -17,6 +17,7 @@ import {
   db,
   evidenceFilesTable,
   linkedBoardsTable,
+  projectsTable,
   type EvidenceFileRow,
   type LinkedBoardRow,
 } from "@workspace/db";
@@ -25,9 +26,24 @@ import {
   ObjectNotFoundError,
   isUploadObjectPath,
 } from "../lib/objectStorage";
+import { requireAuth, type AuthedRequest } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
+
+router.use(requireAuth);
+
+async function ensureProjectOwned(
+  userId: string,
+  projectId: string,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ id: projectsTable.id })
+    .from(projectsTable)
+    .where(and(eq(projectsTable.id, projectId), eq(projectsTable.userId, userId)))
+    .limit(1);
+  return Boolean(row);
+}
 
 function previewUrlFor(objectPath: string): string {
   // Object paths are normalized to `/objects/uploads/<uuid>`. The storage route
@@ -66,10 +82,15 @@ function serializeBoard(row: LinkedBoardRow) {
   };
 }
 
-router.get("/projects/:projectId/evidence", async (req: Request, res: Response) => {
+router.get("/projects/:projectId/evidence", async (req, res: Response) => {
+  const userId = (req as AuthedRequest).userId;
   const params = ListProjectEvidenceParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid project id" });
+    return;
+  }
+  if (!(await ensureProjectOwned(userId, params.data.projectId))) {
+    res.status(404).json({ error: "Project not found" });
     return;
   }
 
@@ -78,12 +99,22 @@ router.get("/projects/:projectId/evidence", async (req: Request, res: Response) 
       db
         .select()
         .from(evidenceFilesTable)
-        .where(eq(evidenceFilesTable.projectId, params.data.projectId))
+        .where(
+          and(
+            eq(evidenceFilesTable.projectId, params.data.projectId),
+            eq(evidenceFilesTable.userId, userId),
+          ),
+        )
         .orderBy(desc(evidenceFilesTable.addedAt)),
       db
         .select()
         .from(linkedBoardsTable)
-        .where(eq(linkedBoardsTable.projectId, params.data.projectId))
+        .where(
+          and(
+            eq(linkedBoardsTable.projectId, params.data.projectId),
+            eq(linkedBoardsTable.userId, userId),
+          ),
+        )
         .orderBy(desc(linkedBoardsTable.linkedAt)),
     ]);
 
@@ -100,7 +131,8 @@ router.get("/projects/:projectId/evidence", async (req: Request, res: Response) 
 
 router.post(
   "/projects/:projectId/evidence/files",
-  async (req: Request, res: Response) => {
+  async (req, res: Response) => {
+    const userId = (req as AuthedRequest).userId;
     const params = CreateEvidenceFileParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: "Invalid project id" });
@@ -111,14 +143,15 @@ router.post(
       res.status(400).json({ error: "Invalid request body" });
       return;
     }
+    if (!(await ensureProjectOwned(userId, params.data.projectId))) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
 
     const objectPath = objectStorageService.normalizeObjectEntityPath(
       body.data.objectPath,
     );
     if (!isUploadObjectPath(objectPath)) {
-      // Reject anything that isn't a path produced by our presigned upload
-      // flow. This stops a client from registering arbitrary bucket paths
-      // (and therefore making them servable through /storage/objects).
       res.status(400).json({ error: "Invalid objectPath" });
       return;
     }
@@ -129,6 +162,7 @@ router.post(
         .insert(evidenceFilesTable)
         .values({
           id,
+          userId,
           projectId: params.data.projectId,
           name: body.data.name,
           mimeType: body.data.mimeType,
@@ -148,7 +182,8 @@ router.post(
 
 router.delete(
   "/projects/:projectId/evidence/files/:fileId",
-  async (req: Request, res: Response) => {
+  async (req, res: Response) => {
+    const userId = (req as AuthedRequest).userId;
     const params = DeleteEvidenceFileParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: "Invalid request" });
@@ -163,6 +198,7 @@ router.delete(
           and(
             eq(evidenceFilesTable.id, params.data.fileId),
             eq(evidenceFilesTable.projectId, params.data.projectId),
+            eq(evidenceFilesTable.userId, userId),
           ),
         )
         .limit(1);
@@ -176,9 +212,7 @@ router.delete(
         .delete(evidenceFilesTable)
         .where(eq(evidenceFilesTable.id, params.data.fileId));
 
-      // Best-effort cleanup of the underlying object. We treat missing files as
-      // success so the metadata removal is the source of truth even if the
-      // object was already deleted out-of-band.
+      // Best-effort cleanup of the underlying object.
       try {
         const file = await objectStorageService.getObjectEntityFile(
           existing.objectPath,
@@ -203,7 +237,8 @@ router.delete(
 
 router.post(
   "/projects/:projectId/evidence/boards",
-  async (req: Request, res: Response) => {
+  async (req, res: Response) => {
+    const userId = (req as AuthedRequest).userId;
     const params = CreateLinkedBoardParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: "Invalid project id" });
@@ -214,6 +249,10 @@ router.post(
       res.status(400).json({ error: "Invalid request body" });
       return;
     }
+    if (!(await ensureProjectOwned(userId, params.data.projectId))) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
 
     try {
       const id = `lb${randomUUID()}`;
@@ -221,6 +260,7 @@ router.post(
         .insert(linkedBoardsTable)
         .values({
           id,
+          userId,
           projectId: params.data.projectId,
           provider: body.data.provider,
           url: body.data.url,
@@ -240,7 +280,8 @@ router.post(
 
 router.delete(
   "/projects/:projectId/evidence/boards/:boardId",
-  async (req: Request, res: Response) => {
+  async (req, res: Response) => {
+    const userId = (req as AuthedRequest).userId;
     const params = DeleteLinkedBoardParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: "Invalid request" });
@@ -254,6 +295,7 @@ router.delete(
           and(
             eq(linkedBoardsTable.id, params.data.boardId),
             eq(linkedBoardsTable.projectId, params.data.projectId),
+            eq(linkedBoardsTable.userId, userId),
           ),
         )
         .returning({ id: linkedBoardsTable.id });
