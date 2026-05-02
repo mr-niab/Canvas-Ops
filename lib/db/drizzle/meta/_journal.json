@@ -22,6 +22,13 @@
       "when": 1777751475688,
       "tag": "0002_org_ownership",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1777754215235,
+      "tag": "0003_actions_table",
+      "breakpoints": true
     }
   ]
 }
