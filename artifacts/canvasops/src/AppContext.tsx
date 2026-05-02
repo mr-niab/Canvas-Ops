@@ -36,7 +36,6 @@ import {
   deleteTask as apiDeleteTask,
   deleteTeam as apiDeleteTeam,
   deleteTeammate as apiDeleteTeammate,
-  getCurrentUser,
   getOrganisation,
   listLogEntries,
   listProjectEvidence as apiListProjectEvidence,
@@ -45,10 +44,7 @@ import {
   listTasks,
   listTeammates,
   listTeams,
-  loginUser,
-  logoutUser,
   moveTask as apiMoveTask,
-  registerUser,
   removeTeamMember as apiRemoveTeamMember,
   requestUploadUrl as apiRequestUploadUrl,
   type CreateProjectRequestStage,
@@ -60,8 +56,15 @@ import {
   updateTask as apiUpdateTask,
   updateTeam as apiUpdateTeam,
   updateTeammate as apiUpdateTeammate,
-  type AuthUser,
 } from '@workspace/api-client-react';
+
+type PlaceholderUser = { id: string; name: string; email: string };
+
+const PLACEHOLDER_USER: PlaceholderUser = {
+  id: 'placeholder-user',
+  name: 'Test User',
+  email: 'test@canvasops.local',
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -194,16 +197,9 @@ const EMPTY_EVIDENCE_STATE: EvidenceState = {
   error: null,
 };
 
-export type AuthStatus = 'loading' | 'unauthenticated' | 'authenticated';
-
 interface AppContextType {
-  // Auth ------------------------------------------------------------------
-  authStatus: AuthStatus;
-  authUser: AuthUser | null;
-  authError: string | null;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (name: string, email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
+  // Auth (stubbed for testing; no real login flow) ------------------------
+  authUser: PlaceholderUser;
 
   // Routing ---------------------------------------------------------------
   currentView: View;
@@ -314,11 +310,6 @@ const EMPTY_ORG: Organisation = { id: '', name: '' };
 // ---------------------------------------------------------------------------
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  // -- Auth state ---------------------------------------------------------
-  const [authStatus, setAuthStatus] = useState<AuthStatus>('loading');
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
-
   // -- Routing & UI state -------------------------------------------------
   const [currentView, setCurrentView] = useState<View>('home');
   const [isTaskModalOpen, setTaskModalOpen] = useState(false);
@@ -343,20 +334,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const evidenceLoadingRef = useRef<Record<string, Promise<void>>>({});
 
   // -- Initial bootstrap --------------------------------------------------
-
-  const resetClientState = useCallback(() => {
-    setOrganisation(EMPTY_ORG);
-    setTeams([]);
-    setTeammates([]);
-    setProjects([]);
-    setTasks([]);
-    setStakeholders([]);
-    setLogEntries([]);
-    setEvidenceByProject({});
-    evidenceLoadingRef.current = {};
-    setSelectedProjectId(null);
-    setCurrentView('home');
-  }, []);
+  // Auth is intentionally disabled for testing: load workspace data on mount.
 
   const loadAllForUser = useCallback(async () => {
     const [org, teamRows, mateRows, projectRows, taskRows, stakeRows, logRows] =
@@ -395,72 +373,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSelectedProjectId(normalizedProjects[0]?.id ?? null);
   }, []);
 
-  // On mount: ask the server who we are. 401 means show the login screen.
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const user = await getCurrentUser();
-        if (cancelled) return;
-        setAuthUser(user);
-        setAuthStatus('authenticated');
-        await loadAllForUser();
-      } catch {
-        if (cancelled) return;
-        setAuthUser(null);
-        setAuthStatus('unauthenticated');
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    loadAllForUser().catch((err) => {
+      console.error('Failed to load workspace data:', describeError(err));
+    });
   }, [loadAllForUser]);
-
-  const signIn = useCallback(
-    async (email: string, password: string) => {
-      setAuthError(null);
-      try {
-        const user = await loginUser({ email, password });
-        setAuthUser(user);
-        setAuthStatus('authenticated');
-        await loadAllForUser();
-      } catch (err) {
-        setAuthError('Invalid email or password.');
-        throw err;
-      }
-    },
-    [loadAllForUser],
-  );
-
-  const signUp = useCallback(
-    async (name: string, email: string, password: string) => {
-      setAuthError(null);
-      try {
-        const user = await registerUser({ name, email, password });
-        setAuthUser(user);
-        setAuthStatus('authenticated');
-        await loadAllForUser();
-      } catch (err) {
-        setAuthError(
-          'Could not create your account. Try a different email or a stronger password.',
-        );
-        throw err;
-      }
-    },
-    [loadAllForUser],
-  );
-
-  const signOut = useCallback(async () => {
-    try {
-      await logoutUser();
-    } catch {
-      // Best-effort: even if the server call fails, drop client state so the
-      // user isn't stuck looking at someone else's data.
-    }
-    setAuthUser(null);
-    setAuthStatus('unauthenticated');
-    resetClientState();
-  }, [resetClientState]);
 
   // -- Project navigation -------------------------------------------------
   const openProject = useCallback((id: string) => {
@@ -983,12 +900,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider
       value={{
-        authStatus,
-        authUser,
-        authError,
-        signIn,
-        signUp,
-        signOut,
+        authUser: PLACEHOLDER_USER,
         currentView,
         setCurrentView,
         organisation,

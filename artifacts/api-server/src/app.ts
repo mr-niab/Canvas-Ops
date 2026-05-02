@@ -4,6 +4,7 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { sessionMiddleware } from "./lib/session";
+import { attachPlaceholderSession } from "./lib/testingAuth";
 
 const app: Express = express();
 
@@ -35,6 +36,10 @@ app.use(cors({ credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(sessionMiddleware);
+// Opt-in testing bypass: when ENABLE_TESTING_AUTH=true we attach a fixed
+// placeholder user id to every session so the app is usable without a
+// login screen. Disabled by default; never enable this in production.
+app.use(attachPlaceholderSession);
 
 app.use("/api", router);
 
