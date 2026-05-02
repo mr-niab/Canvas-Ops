@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react';
 import {
+  Announcements,
   DndContext,
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
+  KeyboardSensor,
   PointerSensor,
+  ScreenReaderInstructions,
   closestCorners,
   pointerWithin,
   rectIntersection,
@@ -15,6 +18,7 @@ import {
 import {
   SortableContext,
   arrayMove,
+  sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
@@ -98,7 +102,8 @@ export function WorkflowView() {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   const tasksByLane = useMemo(() => {
@@ -158,6 +163,45 @@ export function WorkflowView() {
 
   const handleDragCancel = () => setActiveId(null);
 
+  const describeTask = (id: string): string => {
+    const t = tasks.find(x => x.id === id);
+    return t ? `${t.title} (${t.discipline})` : 'task';
+  };
+
+  const describeContainer = (id: string | undefined): string => {
+    if (!id) return 'no lane';
+    const idStr = String(id);
+    if (idStr.startsWith('lane:')) return idStr.slice('lane:'.length);
+    const t = tasks.find(x => x.id === idStr);
+    return t ? t.discipline : 'no lane';
+  };
+
+  const announcements: Announcements = {
+    onDragStart({ active }) {
+      return `Picked up task ${describeTask(String(active.id))}. Use the arrow keys to move between lanes and reorder. Press space or enter to drop. Press escape to cancel.`;
+    },
+    onDragOver({ active, over }) {
+      if (!over) {
+        return `Task ${describeTask(String(active.id))} is no longer over a lane.`;
+      }
+      return `Task ${describeTask(String(active.id))} is over ${describeContainer(String(over.id))}.`;
+    },
+    onDragEnd({ active, over }) {
+      if (!over) {
+        return `Task ${describeTask(String(active.id))} was dropped outside any lane. The move was cancelled.`;
+      }
+      return `Task ${describeTask(String(active.id))} was dropped into ${describeContainer(String(over.id))}.`;
+    },
+    onDragCancel({ active }) {
+      return `Moving task ${describeTask(String(active.id))} was cancelled.`;
+    },
+  };
+
+  const screenReaderInstructions: ScreenReaderInstructions = {
+    draggable:
+      'To pick up a task card, press space or enter. While dragging, use the arrow keys to move the card between lanes or reorder it within a lane. Press space or enter again to drop the card in its new position, or press escape to cancel.',
+  };
+
   return (
     <section>
       <div className="page-head">
@@ -172,6 +216,7 @@ export function WorkflowView() {
       <div className="card pad">
         <DndContext
           sensors={sensors}
+          accessibility={{ announcements, screenReaderInstructions }}
           collisionDetection={(args) => {
             const pointerCollisions = pointerWithin(args);
             if (pointerCollisions.length > 0) return pointerCollisions;
