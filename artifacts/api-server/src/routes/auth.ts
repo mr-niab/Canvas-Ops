@@ -168,7 +168,7 @@ router.post("/auth/logout", (req: Request, res: Response) => {
       res.status(500).json({ error: "Failed to sign out" });
       return;
     }
-    res.clearCookie("canvasops.sid", { path: "/" });
+    res.clearCookie("projectcanvas.sid", { path: "/" });
     res.status(204).end();
   });
 });

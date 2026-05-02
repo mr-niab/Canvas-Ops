@@ -14,7 +14,7 @@ export function Sidebar() {
           <span></span>
           <span></span>
         </div>
-        CanvasOps
+        Project Canvas
       </div>
       <div className="workspace-label">{organisation.name}</div>
 

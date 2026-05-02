@@ -1,4 +1,4 @@
-// All seed data was removed when CanvasOps moved to a real backend in #22.
+// All seed data was removed when Project Canvas moved to a real backend in #22.
 // Each signed-in user now starts with an empty workspace and populates it via
 // the in-app create flows; the placeholder Northwind studio / sample projects
 // no longer exist.

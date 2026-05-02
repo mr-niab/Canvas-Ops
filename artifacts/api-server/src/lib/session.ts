@@ -19,7 +19,7 @@ export const sessionMiddleware: ReturnType<typeof session> = session({
     tableName: "session",
     createTableIfMissing: true,
   }),
-  name: "canvasops.sid",
+  name: "projectcanvas.sid",
   secret,
   resave: false,
   saveUninitialized: false,

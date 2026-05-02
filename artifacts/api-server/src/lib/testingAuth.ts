@@ -9,7 +9,7 @@ import {
 import { logger } from "./logger";
 
 export const PLACEHOLDER_USER_ID = "placeholder-user";
-const PLACEHOLDER_USER_EMAIL = "test@canvasops.local";
+const PLACEHOLDER_USER_EMAIL = "test@projectcanvas.local";
 const PLACEHOLDER_USER_NAME = "Test User";
 const PLACEHOLDER_ORG_ID = "placeholder-org";
 const PLACEHOLDER_ORG_NAME = "Test Studio";

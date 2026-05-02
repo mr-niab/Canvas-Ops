@@ -78,7 +78,7 @@ type AuthUserState = {
 const PLACEHOLDER_AUTH_USER: AuthUserState = {
   id: 'placeholder-user',
   name: 'Test User',
-  email: 'test@canvasops.local',
+  email: 'test@projectcanvas.local',
   role: 'owner',
   organisationId: 'placeholder-org',
 };

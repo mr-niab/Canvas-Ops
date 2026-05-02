@@ -58,7 +58,7 @@ export function AcceptInvitePage() {
         <section style={{ width: '100%', maxWidth: 480 }}>
           <div className="page-head">
             <div>
-              <div className="eyebrow">CanvasOps</div>
+              <div className="eyebrow">Project Canvas</div>
               <h1>Accept your invite</h1>
               <p className="sub flush">
                 Create your account to join the organisation that invited you.

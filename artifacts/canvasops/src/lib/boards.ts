@@ -41,7 +41,7 @@ export function detectBoardProvider(rawUrl: string): BoardDetection | null {
     const slug = m[3] ? decodeURIComponent(m[3]).replace(/[-_]+/g, ' ').trim() : '';
     return {
       provider: 'figjam',
-      embedUrl: `https://www.figma.com/embed?embed_host=canvasops&url=${encodeURIComponent(trimmed)}`,
+      embedUrl: `https://www.figma.com/embed?embed_host=projectcanvas&url=${encodeURIComponent(trimmed)}`,
       title: slug || trimmed,
     };
   }
