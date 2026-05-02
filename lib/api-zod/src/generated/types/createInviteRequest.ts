@@ -7,11 +7,8 @@
  */
 import type { MembershipRole } from "./membershipRole";
 
-export interface AuthUser {
-  id: string;
+export interface CreateInviteRequest {
+  /** @minLength 3 */
   email: string;
-  name: string;
-  role: MembershipRole;
-  /** The organisation the user is currently acting on behalf of. */
-  organisationId: string;
+  role?: MembershipRole;
 }

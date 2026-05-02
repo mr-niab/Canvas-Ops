@@ -1,11 +1,11 @@
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { usersTable } from "./users";
+import { organisationsTable } from "./organisations";
 
 export const logEntriesTable = pgTable("log_entries", {
   id: text("id").primaryKey(),
-  userId: text("user_id")
+  organisationId: text("organisation_id")
     .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
+    .references(() => organisationsTable.id, { onDelete: "cascade" }),
   date: text("date").notNull(),
   actor: text("actor").notNull(),
   type: text("type").notNull(),

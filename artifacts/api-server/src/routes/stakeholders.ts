@@ -28,12 +28,12 @@ function serialize(row: StakeholderRow) {
 }
 
 router.get("/stakeholders", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   try {
     const rows = await db
       .select()
       .from(stakeholdersTable)
-      .where(eq(stakeholdersTable.userId, userId))
+      .where(eq(stakeholdersTable.organisationId, organisationId))
       .orderBy(asc(stakeholdersTable.createdAt));
     res.json(ListStakeholdersResponse.parse(rows.map(serialize)));
   } catch (error) {
@@ -43,7 +43,7 @@ router.get("/stakeholders", async (req, res: Response) => {
 });
 
 router.post("/stakeholders", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const body = CreateStakeholderBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: "Invalid request body" });
@@ -54,7 +54,7 @@ router.post("/stakeholders", async (req, res: Response) => {
       .insert(stakeholdersTable)
       .values({
         id: `s${randomUUID()}`,
-        userId,
+        organisationId,
         name: body.data.name.trim(),
         role: body.data.role?.trim() ?? "",
         email: body.data.email?.trim() ?? "",
@@ -71,7 +71,7 @@ router.post("/stakeholders", async (req, res: Response) => {
 });
 
 router.patch("/stakeholders/:stakeholderId", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const { stakeholderId } = req.params;
   const body = UpdateStakeholderBody.safeParse(req.body);
   if (!body.success) {
@@ -97,7 +97,7 @@ router.patch("/stakeholders/:stakeholderId", async (req, res: Response) => {
         .where(
           and(
             eq(stakeholdersTable.id, stakeholderId),
-            eq(stakeholdersTable.userId, userId),
+            eq(stakeholdersTable.organisationId, organisationId),
           ),
         );
       if (!existing) {
@@ -114,7 +114,7 @@ router.patch("/stakeholders/:stakeholderId", async (req, res: Response) => {
       .where(
         and(
           eq(stakeholdersTable.id, stakeholderId),
-          eq(stakeholdersTable.userId, userId),
+          eq(stakeholdersTable.organisationId, organisationId),
         ),
       )
       .returning();
@@ -130,7 +130,7 @@ router.patch("/stakeholders/:stakeholderId", async (req, res: Response) => {
 });
 
 router.delete("/stakeholders/:stakeholderId", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const { stakeholderId } = req.params;
   try {
     const [row] = await db
@@ -138,7 +138,7 @@ router.delete("/stakeholders/:stakeholderId", async (req, res: Response) => {
       .where(
         and(
           eq(stakeholdersTable.id, stakeholderId),
-          eq(stakeholdersTable.userId, userId),
+          eq(stakeholdersTable.organisationId, organisationId),
         ),
       )
       .returning({ id: stakeholdersTable.id });

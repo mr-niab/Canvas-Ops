@@ -40,26 +40,26 @@ function serialize(row: ProjectRow) {
   };
 }
 
-async function ensureTeamOwnership(
-  userId: string,
+async function ensureTeamInOrg(
+  organisationId: string,
   teamId: string | null | undefined,
 ): Promise<boolean> {
   if (teamId === null || teamId === undefined) return true;
   const [row] = await db
     .select({ id: teamsTable.id })
     .from(teamsTable)
-    .where(and(eq(teamsTable.id, teamId), eq(teamsTable.userId, userId)))
+    .where(and(eq(teamsTable.id, teamId), eq(teamsTable.organisationId, organisationId)))
     .limit(1);
   return Boolean(row);
 }
 
 router.get("/projects", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   try {
     const rows = await db
       .select()
       .from(projectsTable)
-      .where(eq(projectsTable.userId, userId))
+      .where(eq(projectsTable.organisationId, organisationId))
       .orderBy(asc(projectsTable.createdAt));
     res.json(ListProjectsResponse.parse(rows.map(serialize)));
   } catch (error) {
@@ -69,14 +69,14 @@ router.get("/projects", async (req, res: Response) => {
 });
 
 router.post("/projects", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const body = CreateProjectBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: "Invalid request body" });
     return;
   }
   try {
-    if (!(await ensureTeamOwnership(userId, body.data.teamId))) {
+    if (!(await ensureTeamInOrg(organisationId, body.data.teamId))) {
       res.status(400).json({ error: "Invalid team" });
       return;
     }
@@ -86,7 +86,7 @@ router.post("/projects", async (req, res: Response) => {
       .insert(projectsTable)
       .values({
         id,
-        userId,
+        organisationId,
         name: body.data.name.trim(),
         meta: body.data.meta?.trim() || "New project",
         stage,
@@ -104,7 +104,7 @@ router.post("/projects", async (req, res: Response) => {
 });
 
 router.patch("/projects/:projectId", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const params = UpdateProjectParams.safeParse(req.params);
   const body = UpdateProjectBody.safeParse(req.body);
   if (!params.success || !body.success) {
@@ -114,7 +114,7 @@ router.patch("/projects/:projectId", async (req, res: Response) => {
   try {
     if (
       body.data.teamId !== undefined &&
-      !(await ensureTeamOwnership(userId, body.data.teamId))
+      !(await ensureTeamInOrg(organisationId, body.data.teamId))
     ) {
       res.status(400).json({ error: "Invalid team" });
       return;
@@ -138,7 +138,7 @@ router.patch("/projects/:projectId", async (req, res: Response) => {
             .where(
               and(
                 eq(projectsTable.id, params.data.projectId),
-                eq(projectsTable.userId, userId),
+                eq(projectsTable.organisationId, organisationId),
               ),
             )
             .returning()
@@ -148,7 +148,7 @@ router.patch("/projects/:projectId", async (req, res: Response) => {
             .where(
               and(
                 eq(projectsTable.id, params.data.projectId),
-                eq(projectsTable.userId, userId),
+                eq(projectsTable.organisationId, organisationId),
               ),
             )
             .limit(1);
@@ -164,7 +164,7 @@ router.patch("/projects/:projectId", async (req, res: Response) => {
 });
 
 router.delete("/projects/:projectId", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const params = DeleteProjectParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid request" });
@@ -176,7 +176,7 @@ router.delete("/projects/:projectId", async (req, res: Response) => {
       .where(
         and(
           eq(projectsTable.id, params.data.projectId),
-          eq(projectsTable.userId, userId),
+          eq(projectsTable.organisationId, organisationId),
         ),
       )
       .returning({ id: projectsTable.id });

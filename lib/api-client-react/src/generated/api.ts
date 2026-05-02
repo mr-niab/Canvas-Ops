@@ -17,8 +17,10 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AcceptInviteRequest,
   AuthUser,
   CreateEvidenceFileRequest,
+  CreateInviteRequest,
   CreateLinkedBoardRequest,
   CreateLogEntryRequest,
   CreateProjectRequest,
@@ -29,9 +31,11 @@ import type {
   ErrorEnvelope,
   EvidenceFile,
   HealthStatus,
+  Invite,
   LinkedBoard,
   LogEntry,
   LoginRequest,
+  Member,
   MoveTaskRequest,
   Organisation,
   Project,
@@ -463,6 +467,96 @@ export function useGetCurrentUser<
 }
 
 /**
+ * Creates a user account (or reuses an existing one) using the invite
+token and joins the inviting organisation. The session is established
+on success.
+
+ * @summary Accept an invite token and sign in
+ */
+export const getAcceptInviteUrl = () => {
+  return `/api/auth/accept-invite`;
+};
+
+export const acceptInvite = async (
+  acceptInviteRequest: AcceptInviteRequest,
+  options?: RequestInit,
+): Promise<AuthUser> => {
+  return customFetch<AuthUser>(getAcceptInviteUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(acceptInviteRequest),
+  });
+};
+
+export const getAcceptInviteMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acceptInvite>>,
+    TError,
+    { data: BodyType<AcceptInviteRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof acceptInvite>>,
+  TError,
+  { data: BodyType<AcceptInviteRequest> },
+  TContext
+> => {
+  const mutationKey = ["acceptInvite"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof acceptInvite>>,
+    { data: BodyType<AcceptInviteRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return acceptInvite(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AcceptInviteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof acceptInvite>>
+>;
+export type AcceptInviteMutationBody = BodyType<AcceptInviteRequest>;
+export type AcceptInviteMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Accept an invite token and sign in
+ */
+export const useAcceptInvite = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acceptInvite>>,
+    TError,
+    { data: BodyType<AcceptInviteRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof acceptInvite>>,
+  TError,
+  { data: BodyType<AcceptInviteRequest> },
+  TContext
+> => {
+  return useMutation(getAcceptInviteMutationOptions(options));
+};
+
+/**
  * @summary Get the current user's organisation
  */
 export const getGetOrganisationUrl = () => {
@@ -622,6 +716,406 @@ export const useUpdateOrganisation = <
   TContext
 > => {
   return useMutation(getUpdateOrganisationMutationOptions(options));
+};
+
+/**
+ * @summary List members of the current organisation
+ */
+export const getListMembersUrl = () => {
+  return `/api/organisation/members`;
+};
+
+export const listMembers = async (options?: RequestInit): Promise<Member[]> => {
+  return customFetch<Member[]>(getListMembersUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListMembersQueryKey = () => {
+  return [`/api/organisation/members`] as const;
+};
+
+export const getListMembersQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMembers>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMembers>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListMembersQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listMembers>>> = ({
+    signal,
+  }) => listMembers({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMembers>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListMembersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMembers>>
+>;
+export type ListMembersQueryError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary List members of the current organisation
+ */
+
+export function useListMembers<
+  TData = Awaited<ReturnType<typeof listMembers>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listMembers>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListMembersQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Remove a member from the organisation
+ */
+export const getRemoveMemberUrl = (userId: string) => {
+  return `/api/organisation/members/${userId}`;
+};
+
+export const removeMember = async (
+  userId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getRemoveMemberUrl(userId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getRemoveMemberMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeMember>>,
+    TError,
+    { userId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeMember>>,
+  TError,
+  { userId: string },
+  TContext
+> => {
+  const mutationKey = ["removeMember"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeMember>>,
+    { userId: string }
+  > = (props) => {
+    const { userId } = props ?? {};
+
+    return removeMember(userId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveMemberMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeMember>>
+>;
+
+export type RemoveMemberMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Remove a member from the organisation
+ */
+export const useRemoveMember = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeMember>>,
+    TError,
+    { userId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof removeMember>>,
+  TError,
+  { userId: string },
+  TContext
+> => {
+  return useMutation(getRemoveMemberMutationOptions(options));
+};
+
+/**
+ * @summary List pending invites for the organisation
+ */
+export const getListInvitesUrl = () => {
+  return `/api/organisation/invites`;
+};
+
+export const listInvites = async (options?: RequestInit): Promise<Invite[]> => {
+  return customFetch<Invite[]>(getListInvitesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListInvitesQueryKey = () => {
+  return [`/api/organisation/invites`] as const;
+};
+
+export const getListInvitesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listInvites>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listInvites>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListInvitesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listInvites>>> = ({
+    signal,
+  }) => listInvites({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listInvites>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListInvitesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listInvites>>
+>;
+export type ListInvitesQueryError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary List pending invites for the organisation
+ */
+
+export function useListInvites<
+  TData = Awaited<ReturnType<typeof listInvites>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listInvites>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListInvitesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Invite an email address to the organisation
+ */
+export const getCreateInviteUrl = () => {
+  return `/api/organisation/invites`;
+};
+
+export const createInvite = async (
+  createInviteRequest: CreateInviteRequest,
+  options?: RequestInit,
+): Promise<Invite> => {
+  return customFetch<Invite>(getCreateInviteUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createInviteRequest),
+  });
+};
+
+export const getCreateInviteMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createInvite>>,
+    TError,
+    { data: BodyType<CreateInviteRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createInvite>>,
+  TError,
+  { data: BodyType<CreateInviteRequest> },
+  TContext
+> => {
+  const mutationKey = ["createInvite"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createInvite>>,
+    { data: BodyType<CreateInviteRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createInvite(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateInviteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createInvite>>
+>;
+export type CreateInviteMutationBody = BodyType<CreateInviteRequest>;
+export type CreateInviteMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Invite an email address to the organisation
+ */
+export const useCreateInvite = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createInvite>>,
+    TError,
+    { data: BodyType<CreateInviteRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createInvite>>,
+  TError,
+  { data: BodyType<CreateInviteRequest> },
+  TContext
+> => {
+  return useMutation(getCreateInviteMutationOptions(options));
+};
+
+/**
+ * @summary Cancel a pending invite
+ */
+export const getCancelInviteUrl = (inviteId: string) => {
+  return `/api/organisation/invites/${inviteId}`;
+};
+
+export const cancelInvite = async (
+  inviteId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getCancelInviteUrl(inviteId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getCancelInviteMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof cancelInvite>>,
+    TError,
+    { inviteId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof cancelInvite>>,
+  TError,
+  { inviteId: string },
+  TContext
+> => {
+  const mutationKey = ["cancelInvite"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof cancelInvite>>,
+    { inviteId: string }
+  > = (props) => {
+    const { inviteId } = props ?? {};
+
+    return cancelInvite(inviteId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CancelInviteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof cancelInvite>>
+>;
+
+export type CancelInviteMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Cancel a pending invite
+ */
+export const useCancelInvite = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof cancelInvite>>,
+    TError,
+    { inviteId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof cancelInvite>>,
+  TError,
+  { inviteId: string },
+  TContext
+> => {
+  return useMutation(getCancelInviteMutationOptions(options));
 };
 
 /**

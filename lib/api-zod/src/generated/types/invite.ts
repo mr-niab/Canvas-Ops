@@ -7,11 +7,12 @@
  */
 import type { MembershipRole } from "./membershipRole";
 
-export interface AuthUser {
+export interface Invite {
+  /** The invite token. Doubles as the invite identifier. */
   id: string;
   email: string;
-  name: string;
   role: MembershipRole;
-  /** The organisation the user is currently acting on behalf of. */
-  organisationId: string;
+  invitedBy: string;
+  createdAt: Date;
+  expiresAt: Date;
 }

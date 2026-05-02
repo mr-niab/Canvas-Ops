@@ -28,7 +28,7 @@ const router: IRouter = Router();
 router.use(requireAuth);
 
 async function loadTeammateIds(
-  userId: string,
+  organisationId: string,
   teamIds: string[],
 ): Promise<Map<string, string[]>> {
   const grouped = new Map<string, string[]>();
@@ -42,7 +42,10 @@ async function loadTeammateIds(
     .from(teamMembersTable)
     .innerJoin(teamsTable, eq(teamsTable.id, teamMembersTable.teamId))
     .where(
-      and(eq(teamsTable.userId, userId), inArray(teamMembersTable.teamId, teamIds)),
+      and(
+        eq(teamsTable.organisationId, organisationId),
+        inArray(teamMembersTable.teamId, teamIds),
+      ),
     );
 
   for (const row of rows) {
@@ -62,27 +65,27 @@ function serializeTeam(row: TeamRow, teammateIds: string[]) {
   };
 }
 
-async function loadTeam(userId: string, teamId: string) {
+async function loadTeam(organisationId: string, teamId: string) {
   const [row] = await db
     .select()
     .from(teamsTable)
-    .where(and(eq(teamsTable.id, teamId), eq(teamsTable.userId, userId)))
+    .where(and(eq(teamsTable.id, teamId), eq(teamsTable.organisationId, organisationId)))
     .limit(1);
   if (!row) return null;
-  const map = await loadTeammateIds(userId, [teamId]);
+  const map = await loadTeammateIds(organisationId, [teamId]);
   return serializeTeam(row, map.get(teamId) ?? []);
 }
 
 router.get("/teams", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   try {
     const rows = await db
       .select()
       .from(teamsTable)
-      .where(eq(teamsTable.userId, userId))
+      .where(eq(teamsTable.organisationId, organisationId))
       .orderBy(asc(teamsTable.createdAt));
     const map = await loadTeammateIds(
-      userId,
+      organisationId,
       rows.map((r) => r.id),
     );
     res.json(
@@ -97,7 +100,7 @@ router.get("/teams", async (req, res: Response) => {
 });
 
 router.post("/teams", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const body = CreateTeamBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: "Invalid request body" });
@@ -109,7 +112,7 @@ router.post("/teams", async (req, res: Response) => {
       .insert(teamsTable)
       .values({
         id,
-        userId,
+        organisationId,
         name: body.data.name.trim(),
         description: body.data.description?.trim() ?? "",
       })
@@ -122,7 +125,7 @@ router.post("/teams", async (req, res: Response) => {
 });
 
 router.patch("/teams/:teamId", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const params = UpdateTeamParams.safeParse(req.params);
   const body = UpdateTeamBody.safeParse(req.body);
   if (!params.success || !body.success) {
@@ -139,7 +142,7 @@ router.patch("/teams/:teamId", async (req, res: Response) => {
         .update(teamsTable)
         .set(updates)
         .where(
-          and(eq(teamsTable.id, params.data.teamId), eq(teamsTable.userId, userId)),
+          and(eq(teamsTable.id, params.data.teamId), eq(teamsTable.organisationId, organisationId)),
         )
         .returning({ id: teamsTable.id });
       if (result.length === 0) {
@@ -147,7 +150,7 @@ router.patch("/teams/:teamId", async (req, res: Response) => {
         return;
       }
     }
-    const team = await loadTeam(userId, params.data.teamId);
+    const team = await loadTeam(organisationId, params.data.teamId);
     if (!team) {
       res.status(404).json({ error: "Team not found" });
       return;
@@ -160,7 +163,7 @@ router.patch("/teams/:teamId", async (req, res: Response) => {
 });
 
 router.delete("/teams/:teamId", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const params = DeleteTeamParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid request" });
@@ -170,7 +173,7 @@ router.delete("/teams/:teamId", async (req, res: Response) => {
     const result = await db
       .delete(teamsTable)
       .where(
-        and(eq(teamsTable.id, params.data.teamId), eq(teamsTable.userId, userId)),
+        and(eq(teamsTable.id, params.data.teamId), eq(teamsTable.organisationId, organisationId)),
       )
       .returning({ id: teamsTable.id });
     if (result.length === 0) {
@@ -185,14 +188,14 @@ router.delete("/teams/:teamId", async (req, res: Response) => {
 });
 
 router.post("/teams/:teamId/members/:teammateId", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const params = AddTeamMemberParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid request" });
     return;
   }
   try {
-    const team = await loadTeam(userId, params.data.teamId);
+    const team = await loadTeam(organisationId, params.data.teamId);
     if (!team) {
       res.status(404).json({ error: "Team not found" });
       return;
@@ -203,7 +206,7 @@ router.post("/teams/:teamId/members/:teammateId", async (req, res: Response) => 
       .where(
         and(
           eq(teammatesTable.id, params.data.teammateId),
-          eq(teammatesTable.userId, userId),
+          eq(teammatesTable.organisationId, organisationId),
         ),
       )
       .limit(1);
@@ -215,7 +218,7 @@ router.post("/teams/:teamId/members/:teammateId", async (req, res: Response) => 
       .insert(teamMembersTable)
       .values({ teamId: params.data.teamId, teammateId: params.data.teammateId })
       .onConflictDoNothing();
-    const updated = await loadTeam(userId, params.data.teamId);
+    const updated = await loadTeam(organisationId, params.data.teamId);
     res.json(AddTeamMemberResponse.parse(updated));
   } catch (error) {
     req.log.error({ err: error }, "Failed to add team member");
@@ -224,14 +227,14 @@ router.post("/teams/:teamId/members/:teammateId", async (req, res: Response) => 
 });
 
 router.delete("/teams/:teamId/members/:teammateId", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const params = RemoveTeamMemberParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid request" });
     return;
   }
   try {
-    const team = await loadTeam(userId, params.data.teamId);
+    const team = await loadTeam(organisationId, params.data.teamId);
     if (!team) {
       res.status(404).json({ error: "Team not found" });
       return;
@@ -244,7 +247,7 @@ router.delete("/teams/:teamId/members/:teammateId", async (req, res: Response) =
           eq(teamMembersTable.teammateId, params.data.teammateId),
         ),
       );
-    const updated = await loadTeam(userId, params.data.teamId);
+    const updated = await loadTeam(organisationId, params.data.teamId);
     res.json(RemoveTeamMemberResponse.parse(updated));
   } catch (error) {
     req.log.error({ err: error }, "Failed to remove team member");

@@ -1,14 +1,47 @@
 import { useMemo, useState } from 'react';
 import { useAppContext } from '../AppContext';
-import { Team } from '../types';
+import { Role, Team } from '../types';
+
+function describeError(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message;
+  return 'Unexpected error';
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+}
 
 export function PeopleView() {
   const {
-    organisation, renameOrganisation,
-    teams, addTeam, renameTeam, deleteTeam,
-    teammates, addTeammate, updateTeammate, deleteTeammate,
-    addTeammateToTeam, removeTeammateFromTeam,
+    authUser,
+    currentRole,
+    members,
+    invites,
+    inviteMember,
+    cancelInvite,
+    removeMember,
+    buildInviteLink,
+    organisation,
+    renameOrganisation,
+    teams,
+    addTeam,
+    renameTeam,
+    deleteTeam,
+    teammates,
+    addTeammate,
+    updateTeammate,
+    deleteTeammate,
+    addTeammateToTeam,
+    removeTeammateFromTeam,
   } = useAppContext();
+
+  const isOwner = currentRole === 'owner';
 
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(teams[0]?.id ?? null);
   const [editingOrg, setEditingOrg] = useState(false);
@@ -29,6 +62,13 @@ export function PeopleView() {
   const [mateDraftName, setMateDraftName] = useState('');
   const [mateDraftEmail, setMateDraftEmail] = useState('');
   const [mateDraftRole, setMateDraftRole] = useState('');
+
+  // Invite form state
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<Role>('member');
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null);
 
   const selectedTeam = useMemo(
     () => teams.find(t => t.id === selectedTeamId) ?? null,
@@ -114,6 +154,59 @@ export function PeopleView() {
     deleteTeammate(teammateId);
   };
 
+  const handleSendInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail.trim() || inviteSubmitting) return;
+    setInviteSubmitting(true);
+    setInviteError(null);
+    try {
+      await inviteMember(inviteEmail.trim(), inviteRole);
+      setInviteEmail('');
+      setInviteRole('member');
+    } catch (err) {
+      setInviteError(describeError(err));
+    } finally {
+      setInviteSubmitting(false);
+    }
+  };
+
+  const handleCopyInvite = async (inviteId: string) => {
+    const link = buildInviteLink(inviteId);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(link);
+      } else {
+        window.prompt('Copy invite link:', link);
+      }
+      setCopiedInviteId(inviteId);
+      window.setTimeout(() => {
+        setCopiedInviteId((current) => (current === inviteId ? null : current));
+      }, 2000);
+    } catch {
+      window.prompt('Copy invite link:', link);
+    }
+  };
+
+  const handleCancelInvite = async (inviteId: string, email: string) => {
+    const ok = window.confirm(`Cancel invite for ${email}?`);
+    if (!ok) return;
+    try {
+      await cancelInvite(inviteId);
+    } catch (err) {
+      window.alert(describeError(err));
+    }
+  };
+
+  const handleRemoveMember = async (userId: string, name: string) => {
+    const ok = window.confirm(`Remove ${name} from the organisation? They will lose access immediately.`);
+    if (!ok) return;
+    try {
+      await removeMember(userId);
+    } catch (err) {
+      window.alert(describeError(err));
+    }
+  };
+
   const nonMembers = selectedTeam
     ? teammates.filter(m => !selectedTeam.teammateIds.includes(m.id))
     : [];
@@ -124,7 +217,7 @@ export function PeopleView() {
         <div>
           <div className="eyebrow">Workspace settings</div>
           <h1>People &amp; Teams</h1>
-          <p className="sub flush">Manage your organisation, the teams inside it, and the teammates who deliver your projects.</p>
+          <p className="sub flush">Manage your organisation, the people who can sign in, and the teams that deliver your projects.</p>
         </div>
       </div>
 
@@ -153,12 +246,119 @@ export function PeopleView() {
         ) : (
           <div className="org-display-row">
             <div className="org-name">{organisation.name}</div>
-            <button className="btn" onClick={() => { setOrgDraft(organisation.name); setEditingOrg(true); }}>
-              Rename organisation
-            </button>
+            {isOwner && (
+              <button className="btn" onClick={() => { setOrgDraft(organisation.name); setEditingOrg(true); }}>
+                Rename organisation
+              </button>
+            )}
           </div>
         )}
-        <div className="caption">{teams.length} {teams.length === 1 ? 'team' : 'teams'} · {teammates.length} {teammates.length === 1 ? 'teammate' : 'teammates'}</div>
+        <div className="caption">
+          {members.length} {members.length === 1 ? 'member' : 'members'}
+          {' · '}
+          {invites.length} pending {invites.length === 1 ? 'invite' : 'invites'}
+          {' · '}
+          {teams.length} {teams.length === 1 ? 'team' : 'teams'}
+        </div>
+      </div>
+
+      <div className="card pad">
+        <div className="toolbar">
+          <div>
+            <div className="section-title tight">Members</div>
+            <div className="muted-meta">
+              People who can sign in to {organisation.name}.
+              {!isOwner && ' Only owners can invite or remove members.'}
+            </div>
+          </div>
+        </div>
+
+        {isOwner && (
+          <form className="people-add-form" onSubmit={handleSendInvite}>
+            <input
+              className="field-input"
+              type="email"
+              placeholder="Email to invite"
+              value={inviteEmail}
+              onChange={e => setInviteEmail(e.target.value)}
+              required
+            />
+            <select
+              className="field-input"
+              value={inviteRole}
+              onChange={e => setInviteRole(e.target.value as Role)}
+            >
+              <option value="member">Member</option>
+              <option value="owner">Owner</option>
+            </select>
+            <button
+              type="submit"
+              className="btn primary"
+              disabled={!inviteEmail.trim() || inviteSubmitting}
+            >
+              {inviteSubmitting ? 'Sending…' : '+ Send invite'}
+            </button>
+          </form>
+        )}
+        {inviteError && <div className="people-empty">{inviteError}</div>}
+
+        <div className="member-list">
+          {members.length === 0 ? (
+            <div className="people-empty">No members yet.</div>
+          ) : (
+            members.map(m => {
+              const isSelf = m.userId === authUser.id;
+              return (
+                <div key={m.userId} className="member-row">
+                  <div>
+                    <div className="item-title">
+                      {m.name}{isSelf ? ' (you)' : ''}
+                      <span className="tag" style={{ marginLeft: 8 }}>{m.role}</span>
+                    </div>
+                    <div className="item-sub">{m.email} · joined {formatDate(m.joinedAt)}</div>
+                  </div>
+                  {isOwner && !isSelf && (
+                    <button className="btn" onClick={() => handleRemoveMember(m.userId, m.name)}>
+                      Remove
+                    </button>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {invites.length > 0 && (
+          <>
+            <div className="divider"></div>
+            <div className="eyebrow">Pending invites</div>
+            <div className="member-list">
+              {invites.map(inv => (
+                <div key={inv.id} className="member-row">
+                  <div>
+                    <div className="item-title">
+                      {inv.email}
+                      <span className="tag" style={{ marginLeft: 8 }}>{inv.role}</span>
+                    </div>
+                    <div className="item-sub">
+                      Invited {formatDate(inv.createdAt)} · expires {formatDate(inv.expiresAt)}
+                    </div>
+                  </div>
+                  <div className="cluster-sm">
+                    <button className="btn" onClick={() => handleCopyInvite(inv.id)}>
+                      {copiedInviteId === inv.id ? 'Copied!' : 'Copy link'}
+                    </button>
+                    {isOwner && (
+                      <button className="btn" onClick={() => handleCancelInvite(inv.id, inv.email)}>
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="people-layout">

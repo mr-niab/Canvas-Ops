@@ -25,12 +25,12 @@ function serialize(row: LogEntryRow) {
 }
 
 router.get("/log-entries", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   try {
     const rows = await db
       .select()
       .from(logEntriesTable)
-      .where(eq(logEntriesTable.userId, userId))
+      .where(eq(logEntriesTable.organisationId, organisationId))
       .orderBy(desc(logEntriesTable.createdAt));
     res.json(ListLogEntriesResponse.parse(rows.map(serialize)));
   } catch (error) {
@@ -40,7 +40,7 @@ router.get("/log-entries", async (req, res: Response) => {
 });
 
 router.post("/log-entries", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const body = CreateLogEntryBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: "Invalid request body" });
@@ -51,7 +51,7 @@ router.post("/log-entries", async (req, res: Response) => {
       .insert(logEntriesTable)
       .values({
         id: `l${randomUUID()}`,
-        userId,
+        organisationId,
         date: body.data.date.trim(),
         actor: body.data.actor.trim(),
         type: body.data.type.trim(),
@@ -67,7 +67,7 @@ router.post("/log-entries", async (req, res: Response) => {
 });
 
 router.delete("/log-entries/:logEntryId", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const { logEntryId } = req.params;
   try {
     const [row] = await db
@@ -75,7 +75,7 @@ router.delete("/log-entries/:logEntryId", async (req, res: Response) => {
       .where(
         and(
           eq(logEntriesTable.id, logEntryId),
-          eq(logEntriesTable.userId, userId),
+          eq(logEntriesTable.organisationId, organisationId),
         ),
       )
       .returning({ id: logEntriesTable.id });

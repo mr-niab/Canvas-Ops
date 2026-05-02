@@ -16,6 +16,8 @@ tags:
     description: Authentication and current user.
   - name: Organisation
     description: The signed-in user's organisation.
+  - name: Members
+    description: Members and invites for the current organisation.
   - name: Teams
     description: Teams within the organisation.
   - name: Teammates
@@ -119,6 +121,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorEnvelope'
+  /auth/accept-invite:
+    post:
+      tags: [Auth]
+      operationId: acceptInvite
+      summary: Accept an invite token and sign in
+      description: |
+        Creates a user account (or reuses an existing one) using the invite
+        token and joins the inviting organisation. The session is established
+        on success.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptInviteRequest'
+      responses:
+        '200':
+          description: Invite accepted; user signed in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUser'
+        '400':
+          description: Invalid request body or email mismatch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Existing user supplied the wrong password.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Invite not found or expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
 
   /organisation:
     get:
@@ -157,6 +199,139 @@ paths:
                 $ref: '#/components/schemas/Organisation'
         '401':
           description: Not signed in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Not an owner.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /organisation/members:
+    get:
+      tags: [Members]
+      operationId: listMembers
+      summary: List members of the current organisation
+      responses:
+        '200':
+          description: The organisation's members.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Member'
+        '401':
+          description: Not signed in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /organisation/members/{userId}:
+    delete:
+      tags: [Members]
+      operationId: removeMember
+      summary: Remove a member from the organisation
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Member removed.
+        '400':
+          description: Cannot remove this member (e.g. last owner, or self).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Not an owner.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Member not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /organisation/invites:
+    get:
+      tags: [Members]
+      operationId: listInvites
+      summary: List pending invites for the organisation
+      responses:
+        '200':
+          description: Pending (unaccepted, unexpired) invites.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invite'
+        '403':
+          description: Not an owner.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+    post:
+      tags: [Members]
+      operationId: createInvite
+      summary: Invite an email address to the organisation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInviteRequest'
+      responses:
+        '200':
+          description: Invite created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invite'
+        '400':
+          description: Invalid request body or already a member.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: Not an owner.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /organisation/invites/{inviteId}:
+    delete:
+      tags: [Members]
+      operationId: cancelInvite
+      summary: Cancel a pending invite
+      parameters:
+        - name: inviteId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Invite cancelled.
+        '403':
+          description: Not an owner.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: Invite not found.
           content:
             application/json:
               schema:
@@ -1021,7 +1196,7 @@ components:
 
     AuthUser:
       type: object
-      required: [id, email, name]
+      required: [id, email, name, role, organisationId]
       properties:
         id:
           type: string
@@ -1029,6 +1204,74 @@ components:
           type: string
         name:
           type: string
+        role:
+          $ref: '#/components/schemas/MembershipRole'
+        organisationId:
+          type: string
+          description: The organisation the user is currently acting on behalf of.
+
+    MembershipRole:
+      type: string
+      enum: [owner, member]
+    Member:
+      type: object
+      required: [userId, email, name, role, joinedAt]
+      properties:
+        userId:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          $ref: '#/components/schemas/MembershipRole'
+        joinedAt:
+          type: string
+          format: date-time
+    Invite:
+      type: object
+      required: [id, email, role, invitedBy, createdAt, expiresAt]
+      properties:
+        id:
+          type: string
+          description: The invite token. Doubles as the invite identifier.
+        email:
+          type: string
+        role:
+          $ref: '#/components/schemas/MembershipRole'
+        invitedBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+    CreateInviteRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          minLength: 3
+        role:
+          $ref: '#/components/schemas/MembershipRole'
+    AcceptInviteRequest:
+      type: object
+      required: [token, email, name, password]
+      properties:
+        token:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          minLength: 3
+        name:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 8
     RegisterRequest:
       type: object
       required: [email, password, name]

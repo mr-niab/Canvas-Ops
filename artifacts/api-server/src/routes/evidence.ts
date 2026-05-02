@@ -33,14 +33,19 @@ const objectStorageService = new ObjectStorageService();
 
 router.use(requireAuth);
 
-async function ensureProjectOwned(
-  userId: string,
+async function ensureProjectInOrg(
+  organisationId: string,
   projectId: string,
 ): Promise<boolean> {
   const [row] = await db
     .select({ id: projectsTable.id })
     .from(projectsTable)
-    .where(and(eq(projectsTable.id, projectId), eq(projectsTable.userId, userId)))
+    .where(
+      and(
+        eq(projectsTable.id, projectId),
+        eq(projectsTable.organisationId, organisationId),
+      ),
+    )
     .limit(1);
   return Boolean(row);
 }
@@ -83,13 +88,13 @@ function serializeBoard(row: LinkedBoardRow) {
 }
 
 router.get("/projects/:projectId/evidence", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const params = ListProjectEvidenceParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid project id" });
     return;
   }
-  if (!(await ensureProjectOwned(userId, params.data.projectId))) {
+  if (!(await ensureProjectInOrg(organisationId, params.data.projectId))) {
     res.status(404).json({ error: "Project not found" });
     return;
   }
@@ -102,7 +107,7 @@ router.get("/projects/:projectId/evidence", async (req, res: Response) => {
         .where(
           and(
             eq(evidenceFilesTable.projectId, params.data.projectId),
-            eq(evidenceFilesTable.userId, userId),
+            eq(evidenceFilesTable.organisationId, organisationId),
           ),
         )
         .orderBy(desc(evidenceFilesTable.addedAt)),
@@ -112,7 +117,7 @@ router.get("/projects/:projectId/evidence", async (req, res: Response) => {
         .where(
           and(
             eq(linkedBoardsTable.projectId, params.data.projectId),
-            eq(linkedBoardsTable.userId, userId),
+            eq(linkedBoardsTable.organisationId, organisationId),
           ),
         )
         .orderBy(desc(linkedBoardsTable.linkedAt)),
@@ -132,7 +137,7 @@ router.get("/projects/:projectId/evidence", async (req, res: Response) => {
 router.post(
   "/projects/:projectId/evidence/files",
   async (req, res: Response) => {
-    const userId = (req as AuthedRequest).userId;
+    const organisationId = (req as AuthedRequest).organisationId;
     const params = CreateEvidenceFileParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: "Invalid project id" });
@@ -143,7 +148,7 @@ router.post(
       res.status(400).json({ error: "Invalid request body" });
       return;
     }
-    if (!(await ensureProjectOwned(userId, params.data.projectId))) {
+    if (!(await ensureProjectInOrg(organisationId, params.data.projectId))) {
       res.status(404).json({ error: "Project not found" });
       return;
     }
@@ -162,7 +167,7 @@ router.post(
         .insert(evidenceFilesTable)
         .values({
           id,
-          userId,
+          organisationId,
           projectId: params.data.projectId,
           name: body.data.name,
           mimeType: body.data.mimeType,
@@ -183,7 +188,7 @@ router.post(
 router.delete(
   "/projects/:projectId/evidence/files/:fileId",
   async (req, res: Response) => {
-    const userId = (req as AuthedRequest).userId;
+    const organisationId = (req as AuthedRequest).organisationId;
     const params = DeleteEvidenceFileParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: "Invalid request" });
@@ -198,7 +203,7 @@ router.delete(
           and(
             eq(evidenceFilesTable.id, params.data.fileId),
             eq(evidenceFilesTable.projectId, params.data.projectId),
-            eq(evidenceFilesTable.userId, userId),
+            eq(evidenceFilesTable.organisationId, organisationId),
           ),
         )
         .limit(1);
@@ -238,7 +243,7 @@ router.delete(
 router.post(
   "/projects/:projectId/evidence/boards",
   async (req, res: Response) => {
-    const userId = (req as AuthedRequest).userId;
+    const organisationId = (req as AuthedRequest).organisationId;
     const params = CreateLinkedBoardParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: "Invalid project id" });
@@ -249,7 +254,7 @@ router.post(
       res.status(400).json({ error: "Invalid request body" });
       return;
     }
-    if (!(await ensureProjectOwned(userId, params.data.projectId))) {
+    if (!(await ensureProjectInOrg(organisationId, params.data.projectId))) {
       res.status(404).json({ error: "Project not found" });
       return;
     }
@@ -260,7 +265,7 @@ router.post(
         .insert(linkedBoardsTable)
         .values({
           id,
-          userId,
+          organisationId,
           projectId: params.data.projectId,
           provider: body.data.provider,
           url: body.data.url,
@@ -281,7 +286,7 @@ router.post(
 router.delete(
   "/projects/:projectId/evidence/boards/:boardId",
   async (req, res: Response) => {
-    const userId = (req as AuthedRequest).userId;
+    const organisationId = (req as AuthedRequest).organisationId;
     const params = DeleteLinkedBoardParams.safeParse(req.params);
     if (!params.success) {
       res.status(400).json({ error: "Invalid request" });
@@ -295,7 +300,7 @@ router.delete(
           and(
             eq(linkedBoardsTable.id, params.data.boardId),
             eq(linkedBoardsTable.projectId, params.data.projectId),
-            eq(linkedBoardsTable.userId, userId),
+            eq(linkedBoardsTable.organisationId, organisationId),
           ),
         )
         .returning({ id: linkedBoardsTable.id });

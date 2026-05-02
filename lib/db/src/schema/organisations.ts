@@ -1,13 +1,11 @@
-import { pgTable, text } from "drizzle-orm/pg-core";
-import { usersTable } from "./users";
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const organisationsTable = pgTable("organisations", {
   id: text("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" })
-    .unique(),
   name: text("name").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export type OrganisationRow = typeof organisationsTable.$inferSelect;

@@ -1,6 +1,11 @@
 import type { Request, Response, NextFunction } from "express";
-import { eq } from "drizzle-orm";
-import { db, usersTable, organisationsTable } from "@workspace/db";
+import { and, eq } from "drizzle-orm";
+import {
+  db,
+  membershipsTable,
+  organisationsTable,
+  usersTable,
+} from "@workspace/db";
 import { logger } from "./logger";
 
 export const PLACEHOLDER_USER_ID = "placeholder-user";
@@ -39,7 +44,7 @@ export async function ensurePlaceholderUser(): Promise<void> {
   const [existingOrg] = await db
     .select({ id: organisationsTable.id })
     .from(organisationsTable)
-    .where(eq(organisationsTable.userId, PLACEHOLDER_USER_ID))
+    .where(eq(organisationsTable.id, PLACEHOLDER_ORG_ID))
     .limit(1);
 
   if (!existingOrg) {
@@ -47,15 +52,38 @@ export async function ensurePlaceholderUser(): Promise<void> {
       .insert(organisationsTable)
       .values({
         id: PLACEHOLDER_ORG_ID,
-        userId: PLACEHOLDER_USER_ID,
         name: PLACEHOLDER_ORG_NAME,
       })
-      .onConflictDoNothing({ target: organisationsTable.userId });
+      .onConflictDoNothing({ target: organisationsTable.id });
+  }
+
+  // Make the placeholder user the owner of the placeholder org. Keeps the
+  // testing-auth fixture compatible with the org-scoped CRUD model.
+  const [existingMembership] = await db
+    .select({ userId: membershipsTable.userId })
+    .from(membershipsTable)
+    .where(
+      and(
+        eq(membershipsTable.organisationId, PLACEHOLDER_ORG_ID),
+        eq(membershipsTable.userId, PLACEHOLDER_USER_ID),
+      ),
+    )
+    .limit(1);
+
+  if (!existingMembership) {
+    await db
+      .insert(membershipsTable)
+      .values({
+        organisationId: PLACEHOLDER_ORG_ID,
+        userId: PLACEHOLDER_USER_ID,
+        role: "owner",
+      })
+      .onConflictDoNothing();
   }
 
   logger.info(
-    { userId: PLACEHOLDER_USER_ID },
-    "Testing auth enabled: placeholder user is signed in for all requests",
+    { userId: PLACEHOLDER_USER_ID, organisationId: PLACEHOLDER_ORG_ID },
+    "Testing auth enabled: placeholder owner is signed in for all requests",
   );
 }
 

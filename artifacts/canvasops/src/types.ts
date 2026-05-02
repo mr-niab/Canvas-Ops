@@ -83,6 +83,25 @@ export type Organisation = {
   name: string;
 };
 
+export type Role = 'owner' | 'member';
+
+export type Membership = {
+  userId: string;
+  email: string;
+  name: string;
+  role: Role;
+  joinedAt: string;
+};
+
+export type Invite = {
+  id: string;
+  email: string;
+  role: Role;
+  invitedBy: string;
+  createdAt: string;
+  expiresAt: string;
+};
+
 export type Team = {
   id: string;
   name: string;

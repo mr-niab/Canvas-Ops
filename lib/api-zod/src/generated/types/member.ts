@@ -7,11 +7,10 @@
  */
 import type { MembershipRole } from "./membershipRole";
 
-export interface AuthUser {
-  id: string;
+export interface Member {
+  userId: string;
   email: string;
   name: string;
   role: MembershipRole;
-  /** The organisation the user is currently acting on behalf of. */
-  organisationId: string;
+  joinedAt: Date;
 }

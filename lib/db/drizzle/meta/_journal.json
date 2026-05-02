@@ -15,6 +15,13 @@
       "when": 1777750356308,
       "tag": "0001_sharp_scream",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777751475688,
+      "tag": "0002_org_ownership",
+      "breakpoints": true
     }
   ]
 }

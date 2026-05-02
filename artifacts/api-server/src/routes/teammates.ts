@@ -24,7 +24,7 @@ const router: IRouter = Router();
 router.use(requireAuth);
 
 async function loadTeamIds(
-  userId: string,
+  organisationId: string,
   teammateIds: string[],
 ): Promise<Map<string, string[]>> {
   const grouped = new Map<string, string[]>();
@@ -38,7 +38,7 @@ async function loadTeamIds(
     .innerJoin(teammatesTable, eq(teammatesTable.id, teamMembersTable.teammateId))
     .where(
       and(
-        eq(teammatesTable.userId, userId),
+        eq(teammatesTable.organisationId, organisationId),
         inArray(teamMembersTable.teammateId, teammateIds),
       ),
     );
@@ -61,15 +61,15 @@ function serializeTeammate(row: TeammateRow, teamIds: string[]) {
 }
 
 router.get("/teammates", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   try {
     const rows = await db
       .select()
       .from(teammatesTable)
-      .where(eq(teammatesTable.userId, userId))
+      .where(eq(teammatesTable.organisationId, organisationId))
       .orderBy(asc(teammatesTable.createdAt));
     const map = await loadTeamIds(
-      userId,
+      organisationId,
       rows.map((r) => r.id),
     );
     res.json(
@@ -84,7 +84,7 @@ router.get("/teammates", async (req, res: Response) => {
 });
 
 router.post("/teammates", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const body = CreateTeammateBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: "Invalid request body" });
@@ -96,7 +96,7 @@ router.post("/teammates", async (req, res: Response) => {
       .insert(teammatesTable)
       .values({
         id,
-        userId,
+        organisationId,
         name: body.data.name.trim(),
         email: body.data.email?.trim() ?? "",
         role: body.data.role?.trim() ?? "",
@@ -105,11 +105,11 @@ router.post("/teammates", async (req, res: Response) => {
 
     const teamIds = Array.from(new Set(body.data.teamIds ?? []));
     if (teamIds.length > 0) {
-      // Only attach to teams the user owns.
+      // Only attach to teams in the same organisation.
       const ownedTeams = await db
         .select({ id: teamsTable.id })
         .from(teamsTable)
-        .where(and(eq(teamsTable.userId, userId), inArray(teamsTable.id, teamIds)));
+        .where(and(eq(teamsTable.organisationId, organisationId), inArray(teamsTable.id, teamIds)));
       if (ownedTeams.length > 0) {
         await db
           .insert(teamMembersTable)
@@ -118,7 +118,7 @@ router.post("/teammates", async (req, res: Response) => {
       }
     }
 
-    const map = await loadTeamIds(userId, [row.id]);
+    const map = await loadTeamIds(organisationId, [row.id]);
     res.json(CreateTeammateResponse.parse(serializeTeammate(row, map.get(row.id) ?? [])));
   } catch (error) {
     req.log.error({ err: error }, "Failed to create teammate");
@@ -127,7 +127,7 @@ router.post("/teammates", async (req, res: Response) => {
 });
 
 router.patch("/teammates/:teammateId", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const params = UpdateTeammateParams.safeParse(req.params);
   const body = UpdateTeammateBody.safeParse(req.body);
   if (!params.success || !body.success) {
@@ -148,7 +148,7 @@ router.patch("/teammates/:teammateId", async (req, res: Response) => {
             .where(
               and(
                 eq(teammatesTable.id, params.data.teammateId),
-                eq(teammatesTable.userId, userId),
+                eq(teammatesTable.organisationId, organisationId),
               ),
             )
             .returning()
@@ -158,7 +158,7 @@ router.patch("/teammates/:teammateId", async (req, res: Response) => {
             .where(
               and(
                 eq(teammatesTable.id, params.data.teammateId),
-                eq(teammatesTable.userId, userId),
+                eq(teammatesTable.organisationId, organisationId),
               ),
             )
             .limit(1);
@@ -166,7 +166,7 @@ router.patch("/teammates/:teammateId", async (req, res: Response) => {
       res.status(404).json({ error: "Teammate not found" });
       return;
     }
-    const map = await loadTeamIds(userId, [updated.id]);
+    const map = await loadTeamIds(organisationId, [updated.id]);
     res.json(
       UpdateTeammateResponse.parse(serializeTeammate(updated, map.get(updated.id) ?? [])),
     );
@@ -177,7 +177,7 @@ router.patch("/teammates/:teammateId", async (req, res: Response) => {
 });
 
 router.delete("/teammates/:teammateId", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const params = DeleteTeammateParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid request" });
@@ -189,7 +189,7 @@ router.delete("/teammates/:teammateId", async (req, res: Response) => {
       .where(
         and(
           eq(teammatesTable.id, params.data.teammateId),
-          eq(teammatesTable.userId, userId),
+          eq(teammatesTable.organisationId, organisationId),
         ),
       )
       .returning({ id: teammatesTable.id });

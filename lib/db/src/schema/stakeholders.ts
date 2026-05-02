@@ -1,11 +1,11 @@
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { usersTable } from "./users";
+import { organisationsTable } from "./organisations";
 
 export const stakeholdersTable = pgTable("stakeholders", {
   id: text("id").primaryKey(),
-  userId: text("user_id")
+  organisationId: text("organisation_id")
     .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
+    .references(() => organisationsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   role: text("role").notNull().default(""),
   email: text("email").notNull().default(""),

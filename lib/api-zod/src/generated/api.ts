@@ -32,6 +32,10 @@ export const RegisterUserResponse = zod.object({
   id: zod.string(),
   email: zod.string(),
   name: zod.string(),
+  role: zod.enum(["owner", "member"]),
+  organisationId: zod
+    .string()
+    .describe("The organisation the user is currently acting on behalf of."),
 });
 
 /**
@@ -48,6 +52,10 @@ export const LoginUserResponse = zod.object({
   id: zod.string(),
   email: zod.string(),
   name: zod.string(),
+  role: zod.enum(["owner", "member"]),
+  organisationId: zod
+    .string()
+    .describe("The organisation the user is currently acting on behalf of."),
 });
 
 /**
@@ -57,6 +65,39 @@ export const GetCurrentUserResponse = zod.object({
   id: zod.string(),
   email: zod.string(),
   name: zod.string(),
+  role: zod.enum(["owner", "member"]),
+  organisationId: zod
+    .string()
+    .describe("The organisation the user is currently acting on behalf of."),
+});
+
+/**
+ * Creates a user account (or reuses an existing one) using the invite
+token and joins the inviting organisation. The session is established
+on success.
+
+ * @summary Accept an invite token and sign in
+ */
+
+export const acceptInviteBodyEmailMin = 3;
+
+export const acceptInviteBodyPasswordMin = 8;
+
+export const AcceptInviteBody = zod.object({
+  token: zod.string().min(1),
+  email: zod.string().min(acceptInviteBodyEmailMin),
+  name: zod.string().min(1),
+  password: zod.string().min(acceptInviteBodyPasswordMin),
+});
+
+export const AcceptInviteResponse = zod.object({
+  id: zod.string(),
+  email: zod.string(),
+  name: zod.string(),
+  role: zod.enum(["owner", "member"]),
+  organisationId: zod
+    .string()
+    .describe("The organisation the user is currently acting on behalf of."),
 });
 
 /**
@@ -78,6 +119,68 @@ export const UpdateOrganisationBody = zod.object({
 export const UpdateOrganisationResponse = zod.object({
   id: zod.string(),
   name: zod.string(),
+});
+
+/**
+ * @summary List members of the current organisation
+ */
+export const ListMembersResponseItem = zod.object({
+  userId: zod.string(),
+  email: zod.string(),
+  name: zod.string(),
+  role: zod.enum(["owner", "member"]),
+  joinedAt: zod.coerce.date(),
+});
+export const ListMembersResponse = zod.array(ListMembersResponseItem);
+
+/**
+ * @summary Remove a member from the organisation
+ */
+export const RemoveMemberParams = zod.object({
+  userId: zod.coerce.string(),
+});
+
+/**
+ * @summary List pending invites for the organisation
+ */
+export const ListInvitesResponseItem = zod.object({
+  id: zod
+    .string()
+    .describe("The invite token. Doubles as the invite identifier."),
+  email: zod.string(),
+  role: zod.enum(["owner", "member"]),
+  invitedBy: zod.string(),
+  createdAt: zod.coerce.date(),
+  expiresAt: zod.coerce.date(),
+});
+export const ListInvitesResponse = zod.array(ListInvitesResponseItem);
+
+/**
+ * @summary Invite an email address to the organisation
+ */
+export const createInviteBodyEmailMin = 3;
+
+export const CreateInviteBody = zod.object({
+  email: zod.string().min(createInviteBodyEmailMin),
+  role: zod.enum(["owner", "member"]).optional(),
+});
+
+export const CreateInviteResponse = zod.object({
+  id: zod
+    .string()
+    .describe("The invite token. Doubles as the invite identifier."),
+  email: zod.string(),
+  role: zod.enum(["owner", "member"]),
+  invitedBy: zod.string(),
+  createdAt: zod.coerce.date(),
+  expiresAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Cancel a pending invite
+ */
+export const CancelInviteParams = zod.object({
+  inviteId: zod.coerce.string(),
 });
 
 /**

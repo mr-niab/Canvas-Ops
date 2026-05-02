@@ -1,11 +1,11 @@
 import { pgTable, text, timestamp, bigint } from "drizzle-orm/pg-core";
-import { usersTable } from "./users";
+import { organisationsTable } from "./organisations";
 
 export const evidenceFilesTable = pgTable("evidence_files", {
   id: text("id").primaryKey(),
-  userId: text("user_id")
+  organisationId: text("organisation_id")
     .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
+    .references(() => organisationsTable.id, { onDelete: "cascade" }),
   projectId: text("project_id").notNull(),
   name: text("name").notNull(),
   mimeType: text("mime_type").notNull(),
@@ -20,9 +20,9 @@ export type InsertEvidenceFileRow = typeof evidenceFilesTable.$inferInsert;
 
 export const linkedBoardsTable = pgTable("linked_boards", {
   id: text("id").primaryKey(),
-  userId: text("user_id")
+  organisationId: text("organisation_id")
     .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
+    .references(() => organisationsTable.id, { onDelete: "cascade" }),
   projectId: text("project_id").notNull(),
   provider: text("provider").notNull(),
   url: text("url").notNull(),

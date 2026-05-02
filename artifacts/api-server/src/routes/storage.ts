@@ -64,7 +64,7 @@ router.get(
   "/storage/objects/*path",
   requireAuth,
   async (req: Request, res: Response) => {
-    const userId = (req as AuthedRequest).userId;
+    const organisationId = (req as AuthedRequest).organisationId;
     const raw = req.params.path;
     const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
     const objectPath = `/objects/${wildcardPath}`;
@@ -81,7 +81,7 @@ router.get(
         .where(
           and(
             eq(evidenceFilesTable.objectPath, objectPath),
-            eq(evidenceFilesTable.userId, userId),
+            eq(evidenceFilesTable.organisationId, organisationId),
           ),
         )
         .limit(1);

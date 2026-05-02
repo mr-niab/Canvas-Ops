@@ -1,11 +1,11 @@
 import { pgTable, text, timestamp, primaryKey } from "drizzle-orm/pg-core";
-import { usersTable } from "./users";
+import { organisationsTable } from "./organisations";
 
 export const teamsTable = pgTable("teams", {
   id: text("id").primaryKey(),
-  userId: text("user_id")
+  organisationId: text("organisation_id")
     .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
+    .references(() => organisationsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description").notNull().default(""),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -18,9 +18,9 @@ export type InsertTeamRow = typeof teamsTable.$inferInsert;
 
 export const teammatesTable = pgTable("teammates", {
   id: text("id").primaryKey(),
-  userId: text("user_id")
+  organisationId: text("organisation_id")
     .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
+    .references(() => organisationsTable.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   email: text("email").notNull().default(""),
   role: text("role").notNull().default(""),

@@ -34,11 +34,11 @@ function serialize(row: TaskRow) {
   };
 }
 
-async function loadAllForUser(userId: string): Promise<TaskRow[]> {
+async function loadAllForOrg(organisationId: string): Promise<TaskRow[]> {
   return db
     .select()
     .from(tasksTable)
-    .where(eq(tasksTable.userId, userId))
+    .where(eq(tasksTable.organisationId, organisationId))
     .orderBy(asc(tasksTable.discipline), asc(tasksTable.position), asc(tasksTable.createdAt));
 }
 
@@ -66,8 +66,8 @@ function recomputeBlocked(rows: TaskRow[]): TaskRow[] {
   });
 }
 
-async function persistRecompute(userId: string): Promise<TaskRow[]> {
-  const rows = await loadAllForUser(userId);
+async function persistRecompute(organisationId: string): Promise<TaskRow[]> {
+  const rows = await loadAllForOrg(organisationId);
   const recomputed = recomputeBlocked(rows);
   const changed = recomputed.filter((next, idx) => {
     const prev = rows[idx];
@@ -85,9 +85,9 @@ async function persistRecompute(userId: string): Promise<TaskRow[]> {
 }
 
 router.get("/tasks", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   try {
-    const rows = await loadAllForUser(userId);
+    const rows = await loadAllForOrg(organisationId);
     res.json(ListTasksResponse.parse(rows.map(serialize)));
   } catch (error) {
     req.log.error({ err: error }, "Failed to list tasks");
@@ -96,7 +96,7 @@ router.get("/tasks", async (req, res: Response) => {
 });
 
 router.post("/tasks", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const body = CreateTaskBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: "Invalid request body" });
@@ -108,7 +108,7 @@ router.post("/tasks", async (req, res: Response) => {
       .from(tasksTable)
       .where(
         and(
-          eq(tasksTable.userId, userId),
+          eq(tasksTable.organisationId, organisationId),
           eq(tasksTable.discipline, body.data.discipline),
         ),
       )
@@ -119,14 +119,14 @@ router.post("/tasks", async (req, res: Response) => {
         : existingInLane[existingInLane.length - 1].position + 1;
     await db.insert(tasksTable).values({
       id: `t${randomUUID()}`,
-      userId,
+      organisationId,
       discipline: body.data.discipline,
       title: body.data.title.trim(),
       status: body.data.status?.trim() || "Backlog",
       dependencies: body.data.dependencies ?? [],
       position: nextPos,
     });
-    const rows = await persistRecompute(userId);
+    const rows = await persistRecompute(organisationId);
     res.json(CreateTaskResponse.parse(rows.map(serialize)));
   } catch (error) {
     req.log.error({ err: error }, "Failed to create task");
@@ -135,7 +135,7 @@ router.post("/tasks", async (req, res: Response) => {
 });
 
 router.patch("/tasks/:taskId", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const params = UpdateTaskParams.safeParse(req.params);
   const body = UpdateTaskBody.safeParse(req.body);
   if (!params.success || !body.success) {
@@ -157,7 +157,10 @@ router.patch("/tasks/:taskId", async (req, res: Response) => {
         .update(tasksTable)
         .set(updates)
         .where(
-          and(eq(tasksTable.id, params.data.taskId), eq(tasksTable.userId, userId)),
+          and(
+            eq(tasksTable.id, params.data.taskId),
+            eq(tasksTable.organisationId, organisationId),
+          ),
         )
         .returning({ id: tasksTable.id });
       if (result.length === 0) {
@@ -165,7 +168,7 @@ router.patch("/tasks/:taskId", async (req, res: Response) => {
         return;
       }
     }
-    const rows = await persistRecompute(userId);
+    const rows = await persistRecompute(organisationId);
     res.json(UpdateTaskResponse.parse(rows.map(serialize)));
   } catch (error) {
     req.log.error({ err: error }, "Failed to update task");
@@ -174,7 +177,7 @@ router.patch("/tasks/:taskId", async (req, res: Response) => {
 });
 
 router.delete("/tasks/:taskId", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const params = DeleteTaskParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid request" });
@@ -184,7 +187,10 @@ router.delete("/tasks/:taskId", async (req, res: Response) => {
     const deleted = await db
       .delete(tasksTable)
       .where(
-        and(eq(tasksTable.id, params.data.taskId), eq(tasksTable.userId, userId)),
+        and(
+          eq(tasksTable.id, params.data.taskId),
+          eq(tasksTable.organisationId, organisationId),
+        ),
       )
       .returning({ id: tasksTable.id });
     if (deleted.length === 0) {
@@ -192,7 +198,7 @@ router.delete("/tasks/:taskId", async (req, res: Response) => {
       return;
     }
     // Strip references to the deleted task from any dependencies.
-    const remaining = await loadAllForUser(userId);
+    const remaining = await loadAllForOrg(organisationId);
     for (const row of remaining) {
       if (row.dependencies.includes(params.data.taskId)) {
         await db
@@ -203,7 +209,7 @@ router.delete("/tasks/:taskId", async (req, res: Response) => {
           .where(eq(tasksTable.id, row.id));
       }
     }
-    const rows = await persistRecompute(userId);
+    const rows = await persistRecompute(organisationId);
     res.json(DeleteTaskResponse.parse(rows.map(serialize)));
   } catch (error) {
     req.log.error({ err: error }, "Failed to delete task");
@@ -212,7 +218,7 @@ router.delete("/tasks/:taskId", async (req, res: Response) => {
 });
 
 router.post("/tasks/:taskId/move", async (req, res: Response) => {
-  const userId = (req as AuthedRequest).userId;
+  const organisationId = (req as AuthedRequest).organisationId;
   const params = MoveTaskParams.safeParse(req.params);
   const body = MoveTaskBody.safeParse(req.body);
   if (!params.success || !body.success) {
@@ -220,7 +226,7 @@ router.post("/tasks/:taskId/move", async (req, res: Response) => {
     return;
   }
   try {
-    const all = await loadAllForUser(userId);
+    const all = await loadAllForOrg(organisationId);
     const moving = all.find((t) => t.id === params.data.taskId);
     if (!moving) {
       res.status(404).json({ error: "Task not found" });
@@ -260,7 +266,7 @@ router.post("/tasks/:taskId/move", async (req, res: Response) => {
       }
     }
 
-    const rows = await persistRecompute(userId);
+    const rows = await persistRecompute(organisationId);
     res.json(MoveTaskResponse.parse(rows.map(serialize)));
   } catch (error) {
     req.log.error({ err: error }, "Failed to move task");

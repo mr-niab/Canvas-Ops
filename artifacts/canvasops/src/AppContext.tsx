@@ -19,10 +19,15 @@ import {
   Team,
   Teammate,
   BoardProvider,
+  Role,
+  Membership,
+  Invite,
 } from './types';
 import {
   addTeamMember as apiAddTeamMember,
+  cancelInvite as apiCancelInvite,
   createEvidenceFile as apiCreateEvidenceFile,
+  createInvite as apiCreateInvite,
   createLinkedBoard as apiCreateLinkedBoard,
   createLogEntry as apiCreateLogEntry,
   createProject as apiCreateProject,
@@ -36,8 +41,11 @@ import {
   deleteTask as apiDeleteTask,
   deleteTeam as apiDeleteTeam,
   deleteTeammate as apiDeleteTeammate,
+  getCurrentUser,
   getOrganisation,
+  listInvites,
   listLogEntries,
+  listMembers,
   listProjectEvidence as apiListProjectEvidence,
   listProjects,
   listStakeholders,
@@ -45,6 +53,7 @@ import {
   listTeammates,
   listTeams,
   moveTask as apiMoveTask,
+  removeMember as apiRemoveMember,
   removeTeamMember as apiRemoveTeamMember,
   requestUploadUrl as apiRequestUploadUrl,
   type CreateProjectRequestStage,
@@ -58,12 +67,20 @@ import {
   updateTeammate as apiUpdateTeammate,
 } from '@workspace/api-client-react';
 
-type PlaceholderUser = { id: string; name: string; email: string };
+type AuthUserState = {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  organisationId: string;
+};
 
-const PLACEHOLDER_USER: PlaceholderUser = {
+const PLACEHOLDER_AUTH_USER: AuthUserState = {
   id: 'placeholder-user',
   name: 'Test User',
   email: 'test@canvasops.local',
+  role: 'owner',
+  organisationId: 'placeholder-org',
 };
 
 // ---------------------------------------------------------------------------
@@ -195,7 +212,16 @@ const EMPTY_EVIDENCE_STATE: EvidenceState = {
 
 interface AppContextType {
   // Auth (stubbed for testing; no real login flow) ------------------------
-  authUser: PlaceholderUser;
+  authUser: AuthUserState;
+  currentRole: Role;
+
+  // Members & invites -----------------------------------------------------
+  members: Membership[];
+  invites: Invite[];
+  inviteMember: (email: string, role?: Role) => Promise<Invite>;
+  cancelInvite: (inviteId: string) => Promise<void>;
+  removeMember: (userId: string) => Promise<void>;
+  buildInviteLink: (token: string) => string;
 
   // Routing ---------------------------------------------------------------
   currentView: View;
@@ -316,6 +342,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   // -- Domain data --------------------------------------------------------
+  const [authUser, setAuthUser] = useState<AuthUserState>(PLACEHOLDER_AUTH_USER);
   const [organisation, setOrganisation] = useState<Organisation>(EMPTY_ORG);
   const [teams, setTeams] = useState<Team[]>([]);
   const [teammates, setTeammates] = useState<Teammate[]>([]);
@@ -323,6 +350,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
+  const [members, setMembers] = useState<Membership[]>([]);
+  const [invites, setInvites] = useState<Invite[]>([]);
 
   const [evidenceByProject, setEvidenceByProject] = useState<
     Record<string, EvidenceState>
@@ -333,16 +362,58 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Auth is intentionally disabled for testing: load workspace data on mount.
 
   const loadAllForUser = useCallback(async () => {
-    const [org, teamRows, mateRows, projectRows, taskRows, stakeRows, logRows] =
-      await Promise.all([
-        getOrganisation(),
-        listTeams(),
-        listTeammates(),
-        listProjects(),
-        listTasks(),
-        listStakeholders(),
-        listLogEntries(),
-      ]);
+    // Fetch the current user first so we know whether to request owner-only
+    // resources like the pending-invites list.
+    const me = await getCurrentUser();
+    const role = me.role as Role;
+    setAuthUser({
+      id: me.id,
+      name: me.name,
+      email: me.email,
+      role,
+      organisationId: me.organisationId,
+    });
+
+    const [
+      org,
+      teamRows,
+      mateRows,
+      projectRows,
+      taskRows,
+      stakeRows,
+      logRows,
+      memberRows,
+      inviteRows,
+    ] = await Promise.all([
+      getOrganisation(),
+      listTeams(),
+      listTeammates(),
+      listProjects(),
+      listTasks(),
+      listStakeholders(),
+      listLogEntries(),
+      listMembers(),
+      role === 'owner' ? listInvites() : Promise.resolve([] as Awaited<ReturnType<typeof listInvites>>),
+    ]);
+    setMembers(
+      memberRows.map((m) => ({
+        userId: m.userId,
+        email: m.email,
+        name: m.name,
+        role: m.role as Role,
+        joinedAt: m.joinedAt,
+      })),
+    );
+    setInvites(
+      inviteRows.map((i) => ({
+        id: i.id,
+        email: i.email,
+        role: i.role as Role,
+        invitedBy: i.invitedBy,
+        createdAt: i.createdAt,
+        expiresAt: i.expiresAt,
+      })),
+    );
     setOrganisation({ id: org.id, name: org.name });
     setTeams(
       teamRows.map((t) => ({
@@ -667,6 +738,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setOrganisation({ id: updated.id, name: updated.name });
   }, []);
 
+  // -- Members & invites --------------------------------------------------
+  const inviteMember = useCallback(
+    async (email: string, role: Role = 'member'): Promise<Invite> => {
+      const trimmed = email.trim();
+      if (!trimmed) throw new Error('Email is required');
+      const created = await apiCreateInvite({ email: trimmed, role });
+      const invite: Invite = {
+        id: created.id,
+        email: created.email,
+        role: created.role as Role,
+        invitedBy: created.invitedBy,
+        createdAt: created.createdAt,
+        expiresAt: created.expiresAt,
+      };
+      setInvites((prev) => [invite, ...prev.filter((i) => i.id !== invite.id)]);
+      return invite;
+    },
+    [],
+  );
+
+  const cancelInvite = useCallback(async (inviteId: string) => {
+    await apiCancelInvite(inviteId);
+    setInvites((prev) => prev.filter((i) => i.id !== inviteId));
+  }, []);
+
+  const removeMember = useCallback(async (userId: string) => {
+    await apiRemoveMember(userId);
+    setMembers((prev) => prev.filter((m) => m.userId !== userId));
+  }, []);
+
+  const buildInviteLink = useCallback((token: string): string => {
+    const origin =
+      typeof window !== 'undefined' ? window.location.origin : '';
+    const base = import.meta.env.BASE_URL || '/';
+    const normalised = base.endsWith('/') ? base : `${base}/`;
+    return `${origin}${normalised}accept-invite?token=${encodeURIComponent(token)}`;
+  }, []);
+
   // -- Teams --------------------------------------------------------------
   const addTeam = useCallback(
     async ({ name, description = '' }: { name: string; description?: string }) => {
@@ -896,7 +1005,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider
       value={{
-        authUser: PLACEHOLDER_USER,
+        authUser,
+        currentRole: authUser.role,
+        members,
+        invites,
+        inviteMember,
+        cancelInvite,
+        removeMember,
+        buildInviteLink,
         currentView,
         setCurrentView,
         organisation,

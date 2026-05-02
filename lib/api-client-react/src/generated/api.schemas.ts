@@ -13,10 +13,56 @@ export interface ErrorEnvelope {
   error: string;
 }
 
+export type MembershipRole =
+  (typeof MembershipRole)[keyof typeof MembershipRole];
+
+export const MembershipRole = {
+  owner: "owner",
+  member: "member",
+} as const;
+
 export interface AuthUser {
   id: string;
   email: string;
   name: string;
+  role: MembershipRole;
+  /** The organisation the user is currently acting on behalf of. */
+  organisationId: string;
+}
+
+export interface Member {
+  userId: string;
+  email: string;
+  name: string;
+  role: MembershipRole;
+  joinedAt: string;
+}
+
+export interface Invite {
+  /** The invite token. Doubles as the invite identifier. */
+  id: string;
+  email: string;
+  role: MembershipRole;
+  invitedBy: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface CreateInviteRequest {
+  /** @minLength 3 */
+  email: string;
+  role?: MembershipRole;
+}
+
+export interface AcceptInviteRequest {
+  /** @minLength 1 */
+  token: string;
+  /** @minLength 3 */
+  email: string;
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 8 */
+  password: string;
 }
 
 export interface RegisterRequest {
