@@ -62,7 +62,7 @@ export function StakeholdersTable() {
       </thead>
       <tbody>
         {sorted.map(s => (
-          <tr key={s.id}>
+          <tr key={s.id} tabIndex={0}>
             <td><strong>{s.name}</strong></td>
             <td>{s.role}</td>
             <td>{s.email}</td>

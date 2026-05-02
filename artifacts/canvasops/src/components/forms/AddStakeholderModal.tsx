@@ -2,28 +2,6 @@ import { useState } from 'react';
 import { useAppContext } from '../../AppContext';
 import { Modal } from '../Modal';
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  background: 'var(--surface-2)',
-  border: '1px solid var(--border)',
-  padding: '10px 12px',
-  borderRadius: 'var(--radius-sm)',
-  color: 'var(--text)',
-  fontFamily: 'inherit',
-  fontSize: 14,
-  outline: 'none',
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: 12,
-  color: 'var(--muted)',
-  marginBottom: 6,
-  textTransform: 'uppercase',
-  letterSpacing: '.06em',
-  fontWeight: 700,
-};
-
 const STATUS_OPTIONS: Array<{ label: string; cls: string }> = [
   { label: 'Aligned', cls: 'good' },
   { label: 'Needs update', cls: 'risk' },
@@ -64,26 +42,26 @@ export function AddStakeholderModal() {
 
   return (
     <Modal isOpen={isStakeholderModalOpen} onClose={close} title="Add stakeholder">
-      <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 14 }}>
+      <form onSubmit={handleSubmit} className="form-grid">
         <div>
-          <label style={labelStyle}>Name</label>
-          <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Sasha Patel" autoFocus />
+          <label className="field-label">Name</label>
+          <input className="field-input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Sasha Patel" autoFocus />
         </div>
         <div>
-          <label style={labelStyle}>Role</label>
-          <input style={inputStyle} value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Service owner" />
+          <label className="field-label">Role</label>
+          <input className="field-input" value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Service owner" />
         </div>
         <div>
-          <label style={labelStyle}>Email</label>
-          <input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" />
+          <label className="field-label">Email</label>
+          <input className="field-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" />
         </div>
         <div>
-          <label style={labelStyle}>Status</label>
-          <select style={inputStyle} value={statusIdx} onChange={e => setStatusIdx(Number(e.target.value))}>
+          <label className="field-label">Status</label>
+          <select className="field-input" value={statusIdx} onChange={e => setStatusIdx(Number(e.target.value))}>
             {STATUS_OPTIONS.map((s, i) => <option key={s.label} value={i}>{s.label}</option>)}
           </select>
         </div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+        <div className="form-actions">
           <button type="button" className="btn" onClick={close}>Cancel</button>
           <button type="submit" className="btn primary">Add stakeholder</button>
         </div>

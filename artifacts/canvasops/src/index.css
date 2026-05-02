@@ -24,6 +24,33 @@
   --radius: 14px;
   --radius-sm: 10px;
   --shadow: 0 10px 30px rgba(40, 37, 29, 0.08);
+
+  /* Spacing scale — used everywhere to keep rhythm consistent.
+     --space-1   4px   hairline gap (icon→label inside a button, item-sub margin)
+     --space-2   8px   tight cluster gap (chip groups, button groups, lane head gap)
+     --space-3  12px   inner content gap (lane bodies, form rows, kpi grid)
+     --space-4  16px   default item spacing (list-item padding, section-title margin)
+     --space-5  24px   card padding & gap between sibling cards / columns
+     --space-6  32px   page outer padding & gap between top-level sections
+     --space-7  48px   page bottom padding (extra room below the fold)
+  */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Motion — single shared transition reused by every hover/focus/lane state. */
+  --duration: 160ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --transition: var(--duration) var(--ease);
+
+  /* Interaction recipes — hover surface tint, hover border tint, focus ring. */
+  --hover-tint: rgba(40, 37, 29, 0.04);
+  --hover-border: rgba(1, 105, 111, 0.45);
+  --focus-ring: 0 0 0 3px rgba(1, 105, 111, 0.28);
 }
 
 * {
@@ -57,7 +84,7 @@ button {
 .sidebar {
   background: var(--surface);
   border-right: 1px solid var(--border);
-  padding: 20px 14px;
+  padding: var(--space-5) var(--space-3);
   position: sticky;
   top: 0;
   height: 100vh;
@@ -71,8 +98,8 @@ button {
   letter-spacing: -0.04em;
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: var(--space-2);
+  margin: 0 var(--space-2) var(--space-5);
 }
 
 .logo {
@@ -106,33 +133,47 @@ button {
   text-transform: uppercase;
   font-size: 11px;
   letter-spacing: 0.08em;
-  margin: 18px 10px 8px;
+  margin: var(--space-5) var(--space-3) var(--space-2);
 }
 
 .nav-btn {
   width: 100%;
   text-align: left;
   background: transparent;
-  border: 0;
+  border: 1px solid transparent;
   color: var(--muted);
-  padding: 11px 12px;
+  padding: var(--space-2) var(--space-3);
   border-radius: 12px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2);
   cursor: pointer;
   font-size: 14px;
+  transition:
+    background var(--transition),
+    color var(--transition),
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 
 .nav-btn:hover {
-  background: var(--surface-3);
+  background: var(--hover-tint);
+  border-color: var(--hover-border);
   color: var(--text);
 }
 
-.nav-btn.active {
+.nav-btn.active,
+.nav-btn.active:hover {
   background: var(--primary-bg);
+  border-color: transparent;
   color: var(--primary);
   font-weight: 700;
+}
+
+.nav-btn:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: var(--focus-ring);
 }
 
 .dot {
@@ -145,32 +186,41 @@ button {
 }
 
 .main {
-  padding: 28px 28px 60px;
+  padding: var(--space-6) var(--space-6) var(--space-7);
   max-width: 1200px;
   width: 100%;
 }
 
 .topbar {
   display: flex;
-  gap: 14px;
+  gap: var(--space-3);
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .search {
   flex: 1;
   background: var(--surface);
   border: 1px solid var(--border);
-  padding: 12px 14px;
+  padding: var(--space-3) var(--space-4);
   border-radius: 12px;
   color: var(--text);
   font-family: inherit;
   font-size: 14px;
   outline: none;
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 
-.search:focus {
+.search:hover {
+  border-color: var(--hover-border);
+}
+
+.search:focus,
+.search:focus-visible {
   border-color: var(--primary);
+  box-shadow: var(--focus-ring);
 }
 
 .avatar {
@@ -200,14 +250,18 @@ h1 {
   font-size: 34px;
   line-height: 1.05;
   letter-spacing: -0.045em;
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-2);
   color: var(--text);
 }
 
 .sub {
   color: var(--muted);
-  margin-bottom: 22px;
+  margin: 0 0 var(--space-5);
   font-size: 14px;
+}
+
+.sub.flush {
+  margin-bottom: 0;
 }
 
 .card {
@@ -218,7 +272,7 @@ h1 {
 }
 
 .card.pad {
-  padding: 20px;
+  padding: var(--space-5);
 }
 
 .section-title {
@@ -226,31 +280,48 @@ h1 {
   font-weight: 700;
   font-size: 20px;
   letter-spacing: -0.025em;
-  margin: 0 0 14px;
+  margin: 0 0 var(--space-4);
   color: var(--text);
+}
+
+.section-title.flush {
+  margin: 0;
+}
+
+.section-title.tight {
+  margin-bottom: var(--space-2);
 }
 
 .hero-list {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .project-row {
   display: grid;
   grid-template-columns: minmax(260px, 1.4fr) 110px 120px 1fr auto;
-  gap: 14px;
+  gap: var(--space-4);
   align-items: center;
-  padding: 16px 18px;
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface-2);
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    background var(--transition),
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 
 .project-row:hover {
+  background: var(--hover-tint);
+  border-color: var(--hover-border);
+}
+
+.project-row:focus-visible {
+  outline: none;
   border-color: var(--primary);
-  box-shadow: 0 4px 16px rgba(1, 105, 111, 0.1);
+  box-shadow: var(--focus-ring);
 }
 
 .project-name {
@@ -262,7 +333,7 @@ h1 {
 .project-meta {
   color: var(--muted);
   font-size: 13px;
-  margin-top: 3px;
+  margin-top: var(--space-1);
 }
 
 .badge {
@@ -332,16 +403,27 @@ h1 {
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text);
-  padding: 10px 14px;
+  padding: var(--space-2) var(--space-4);
   border-radius: 12px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background var(--transition),
+    color var(--transition),
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 
 .btn:hover {
-  background: var(--surface-3);
+  background: var(--hover-tint);
+  border-color: var(--hover-border);
+}
+
+.btn:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: var(--focus-ring);
 }
 
 .btn.primary {
@@ -352,24 +434,40 @@ h1 {
 
 .btn.primary:hover {
   background: #0c4e54;
+  border-color: transparent;
+}
+
+.btn.primary:focus-visible {
+  border-color: transparent;
+  box-shadow: var(--focus-ring);
+}
+
+.btn.btn-icon {
+  padding: var(--space-1) var(--space-2);
 }
 
 .grid-2 {
   display: grid;
   grid-template-columns: 1.6fr 1fr;
-  gap: 18px;
-  margin-top: 18px;
+  gap: var(--space-5);
+  margin-top: var(--space-5);
 }
 
 .stack {
   display: grid;
-  gap: 18px;
+  gap: var(--space-5);
+  align-content: start;
+}
+
+.stack-tight {
+  display: grid;
+  gap: var(--space-3);
   align-content: start;
 }
 
 .list-item {
   display: block;
-  padding: 14px 16px;
+  padding: var(--space-4);
   border-top: 1px solid var(--border);
 }
 
@@ -384,30 +482,30 @@ h1 {
 
 .item-sub {
   color: var(--muted);
-  margin-top: 4px;
+  margin-top: var(--space-1);
   font-size: 13px;
 }
 
 .page-head {
   display: flex;
   justify-content: space-between;
-  gap: 18px;
+  gap: var(--space-4);
   align-items: flex-start;
-  margin-bottom: 18px;
+  margin-bottom: var(--space-5);
   flex-wrap: wrap;
 }
 
 .stage-track {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-  margin: 14px 0 8px;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 var(--space-2);
 }
 
 .stage {
   background: var(--surface-2);
   border: 1px solid var(--border);
-  padding: 12px;
+  padding: var(--space-3);
   border-radius: 12px;
   text-align: center;
   font-size: 12px;
@@ -431,13 +529,13 @@ h1 {
 
 .tabs {
   display: flex;
-  gap: 6px;
+  gap: var(--space-2);
   flex-wrap: wrap;
-  margin: 18px 0;
+  margin: var(--space-5) 0;
 }
 
 .tab {
-  padding: 10px 14px;
+  padding: var(--space-2) var(--space-4);
   border-radius: 12px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -445,10 +543,27 @@ h1 {
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background var(--transition),
+    color var(--transition),
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 
-.tab.active {
+.tab:hover {
+  background: var(--hover-tint);
+  border-color: var(--hover-border);
+  color: var(--text);
+}
+
+.tab:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: var(--focus-ring);
+}
+
+.tab.active,
+.tab.active:hover {
   background: var(--primary-bg);
   color: var(--primary);
   border-color: transparent;
@@ -457,13 +572,13 @@ h1 {
 .project-layout {
   display: grid;
   grid-template-columns: 1.4fr 0.8fr;
-  gap: 18px;
+  gap: var(--space-5);
 }
 
 .lane-wrap {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  gap: var(--space-4);
 }
 
 .lane {
@@ -471,7 +586,10 @@ h1 {
   border: 1px solid var(--border);
   border-radius: 14px;
   overflow: hidden;
-  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  transition:
+    background var(--transition),
+    border-color var(--transition),
+    box-shadow var(--transition);
 }
 
 .lane.lane-active {
@@ -483,7 +601,7 @@ h1 {
 .lane-empty {
   border: 1px dashed var(--border);
   border-radius: 12px;
-  padding: 14px;
+  padding: var(--space-4);
   text-align: center;
   color: var(--muted);
   font-size: 12px;
@@ -498,35 +616,45 @@ h1 {
 }
 
 .lane-head {
-  padding: 12px 14px;
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--border);
   font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   font-size: 13px;
 }
 
 .lane-body {
-  padding: 12px;
+  padding: var(--space-3);
   display: grid;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .task {
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 12px;
+  padding: var(--space-3);
   font-size: 13px;
   cursor: grab;
-  transition: border-color 0.15s;
+  transition:
+    background var(--transition),
+    border-color var(--transition),
+    box-shadow var(--transition);
   user-select: none;
   touch-action: none;
 }
 
 .task:hover {
+  background: var(--hover-tint);
+  border-color: var(--hover-border);
+}
+
+.task:focus-visible {
+  outline: none;
   border-color: var(--primary);
+  box-shadow: var(--focus-ring);
 }
 
 .task:active {
@@ -544,18 +672,18 @@ h1 {
 .task small {
   display: block;
   color: var(--muted);
-  margin-top: 5px;
+  margin-top: var(--space-1);
   font-size: 12px;
 }
 
 .kpi {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: var(--space-3);
 }
 
-.kpi .card {
-  padding: 14px;
+.kpi .card.pad {
+  padding: var(--space-4);
 }
 
 .kpi strong {
@@ -579,7 +707,7 @@ h1 {
 
 .table th,
 .table td {
-  padding: 13px 10px;
+  padding: var(--space-3) var(--space-2);
   border-top: 1px solid var(--border);
   text-align: left;
   vertical-align: middle;
@@ -592,6 +720,12 @@ h1 {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 700;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.table th:hover {
+  color: var(--text);
 }
 
 .table tr:first-child th,
@@ -599,15 +733,28 @@ h1 {
   border-top: 0;
 }
 
-.table tr:hover td {
-  background: var(--surface-3);
+.table tbody tr {
+  transition: background var(--transition);
+}
+
+.table tbody tr:hover td {
+  background: var(--hover-tint);
+}
+
+.table tbody tr:focus-visible {
+  outline: none;
+}
+
+.table tbody tr:focus-visible td {
+  background: var(--hover-tint);
+  box-shadow: inset 0 0 0 2px var(--primary);
 }
 
 .log-row {
   display: grid;
   grid-template-columns: 140px 130px 120px 1fr;
-  gap: 12px;
-  padding: 16px 0;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
   border-top: 1px solid var(--border);
   align-items: start;
   font-size: 13px;
@@ -635,21 +782,25 @@ h1 {
 .divider {
   height: 1px;
   background: var(--border);
-  margin: 16px 0;
+  margin: var(--space-4) 0;
 }
 
 .low-section {
-  margin-top: 28px;
+  margin-top: var(--space-6);
 }
 
 .health-block {
-  margin-bottom: 14px;
+  margin-bottom: var(--space-3);
+}
+
+.health-block:last-child {
+  margin-bottom: 0;
 }
 
 .health-label {
   font-size: 12px;
   color: var(--muted);
-  margin-bottom: 5px;
+  margin-bottom: var(--space-1);
 }
 
 .tag {
@@ -663,7 +814,183 @@ h1 {
   letter-spacing: 0.06em;
 }
 
+/* ---------------- shared layout helpers ----------------
+   These replace ad-hoc inline style overrides in the page components.
+*/
+
+.crumb {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: var(--space-1);
+  cursor: pointer;
+  display: inline-block;
+  transition: color var(--transition);
+}
+
+.crumb:hover {
+  color: var(--text);
+}
+
+.cluster {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cluster-sm {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.eyebrow {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 var(--space-1);
+}
+
+.caption {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.muted-meta {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.task-shell {
+  border-radius: 12px;
+  outline: none;
+}
+
+.task-shell:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: 12px;
+}
+
+.task-shell:focus-visible .task {
+  border-color: var(--primary);
+}
+
+/* ---------------- modal ---------------- */
+
+.modal-dialog {
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  width: 400px;
+  max-width: 90vw;
+  box-shadow: var(--shadow);
+  color: var(--text);
+}
+
+.modal-dialog::backdrop {
+  background: rgba(40, 37, 29, 0.35);
+}
+
+.modal-body {
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 20px;
+  font-family: "Inter", sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+/* ---------------- forms ---------------- */
+
+.field-input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition:
+    border-color var(--transition),
+    box-shadow var(--transition);
+}
+
+.field-input:hover {
+  border-color: var(--hover-border);
+}
+
+.field-input:focus,
+.field-input:focus-visible {
+  border-color: var(--primary);
+  box-shadow: var(--focus-ring);
+}
+
+.field-textarea {
+  min-height: 90px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.field-label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: var(--space-1);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.form-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  margin-top: var(--space-1);
+}
+
+/* ---------------- responsive ----------------
+   Tighten the outer-rhythm tokens at the existing single breakpoint
+   so the new spacing scale feels proportional on small screens.
+*/
+
 @media (max-width: 1100px) {
+  :root {
+    --space-5: 18px;
+    --space-6: 20px;
+    --space-7: 32px;
+  }
   .app {
     grid-template-columns: 1fr;
   }
@@ -678,6 +1005,6 @@ h1 {
   }
   .project-row {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: var(--space-2);
   }
 }

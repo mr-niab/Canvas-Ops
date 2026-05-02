@@ -18,7 +18,18 @@ function ProjectRow({ project, onOpen }: { project: Project; onOpen: () => void 
   const done = project.status === 'Shipped' ? project.totalProgress : Math.max(0, project.progress - 1);
   const activeAt = project.status === 'Shipped' ? -1 : project.progress - 1;
   return (
-    <div className="project-row" onClick={onOpen}>
+    <div
+      className="project-row"
+      onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+    >
       <div>
         <div className="project-name">{project.name}</div>
         <div className="project-meta">{project.meta}</div>
@@ -51,7 +62,7 @@ export function HomeView() {
       <div className="grid-2">
         <div className="card">
           <div className="list-item">
-            <div className="section-title" style={{ margin: 0 }}>My actions today</div>
+            <div className="section-title flush">My actions today</div>
           </div>
           <div className="list-item">
             <div className="item-title">Review synthesis report</div>
@@ -72,22 +83,22 @@ export function HomeView() {
 
         <div className="stack">
           <div className="card pad">
-            <div className="section-title" style={{ marginBottom: 10 }}>Quick stats</div>
+            <div className="section-title tight">Quick stats</div>
             <div className="kpi">
               <div className="card pad">
-                <div className="muted" style={{ fontSize: 12, color: 'var(--muted)' }}>Active projects</div>
+                <div className="muted">Active projects</div>
                 <strong>12</strong>
               </div>
               <div className="card pad">
-                <div className="muted" style={{ fontSize: 12, color: 'var(--muted)' }}>Awaiting review</div>
+                <div className="muted">Awaiting review</div>
                 <strong>4</strong>
               </div>
               <div className="card pad">
-                <div className="muted" style={{ fontSize: 12, color: 'var(--muted)' }}>Stakeholders</div>
+                <div className="muted">Stakeholders</div>
                 <strong>26</strong>
               </div>
               <div className="card pad">
-                <div className="muted" style={{ fontSize: 12, color: 'var(--muted)' }}>Open log items</div>
+                <div className="muted">Open log items</div>
                 <strong>18</strong>
               </div>
             </div>
@@ -97,7 +108,7 @@ export function HomeView() {
 
       <div className="low-section card">
         <div className="list-item">
-          <div className="section-title" style={{ margin: 0 }}>Upcoming sessions</div>
+          <div className="section-title flush">Upcoming sessions</div>
         </div>
         <div className="list-item">
           <div className="item-title">Design crit — Appointment Booking</div>

@@ -21,27 +21,18 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
   if (!isOpen) return null;
 
   return (
-    <dialog 
+    <dialog
       ref={dialogRef}
       onClose={onClose}
-      style={{
-        padding: 0,
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius)',
-        background: 'var(--surface)',
-        width: '400px',
-        maxWidth: '90vw',
-        boxShadow: 'var(--shadow)',
-        color: 'var(--text)',
-      }}
+      className="modal-dialog"
       onClick={(e) => {
         if (e.target === dialogRef.current) onClose();
       }}
     >
-      <div style={{ padding: '20px', display: 'grid', gap: '16px' }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0, fontSize: '20px', fontFamily: '"Inter", sans-serif', fontWeight: 700, letterSpacing: '-0.025em' }}>{title}</h2>
-          <button className="btn" style={{ padding: '4px 8px' }} onClick={onClose}>Close</button>
+      <div className="modal-body" onClick={e => e.stopPropagation()}>
+        <div className="modal-head">
+          <h2 className="modal-title">{title}</h2>
+          <button className="btn btn-icon" onClick={onClose}>Close</button>
         </div>
         {children}
       </div>

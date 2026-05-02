@@ -2,28 +2,6 @@ import { useState } from 'react';
 import { useAppContext } from '../../AppContext';
 import { Modal } from '../Modal';
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  background: 'var(--surface-2)',
-  border: '1px solid var(--border)',
-  padding: '10px 12px',
-  borderRadius: 'var(--radius-sm)',
-  color: 'var(--text)',
-  fontFamily: 'inherit',
-  fontSize: 14,
-  outline: 'none',
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: 12,
-  color: 'var(--muted)',
-  marginBottom: 6,
-  textTransform: 'uppercase',
-  letterSpacing: '.06em',
-  fontWeight: 700,
-};
-
 const TYPE_OPTIONS: Array<{ label: string; cls: string }> = [
   { label: 'Conversation', cls: 'disc' },
   { label: 'Decision', cls: 'good' },
@@ -75,28 +53,28 @@ export function AddLogEntryModal() {
 
   return (
     <Modal isOpen={isLogModalOpen} onClose={close} title="Add log entry">
-      <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 14 }}>
+      <form onSubmit={handleSubmit} className="form-grid">
         <div>
-          <label style={labelStyle}>Actor</label>
-          <input style={inputStyle} value={actor} onChange={e => setActor(e.target.value)} placeholder="Your name" />
+          <label className="field-label">Actor</label>
+          <input className="field-input" value={actor} onChange={e => setActor(e.target.value)} placeholder="Your name" />
         </div>
         <div>
-          <label style={labelStyle}>Type</label>
-          <select style={inputStyle} value={typeIdx} onChange={e => setTypeIdx(Number(e.target.value))}>
+          <label className="field-label">Type</label>
+          <select className="field-input" value={typeIdx} onChange={e => setTypeIdx(Number(e.target.value))}>
             {TYPE_OPTIONS.map((t, i) => <option key={t.label} value={i}>{t.label}</option>)}
           </select>
         </div>
         <div>
-          <label style={labelStyle}>Detail</label>
+          <label className="field-label">Detail</label>
           <textarea
-            style={{ ...inputStyle, minHeight: 90, resize: 'vertical', lineHeight: 1.5 }}
+            className="field-input field-textarea"
             value={detail}
             onChange={e => setDetail(e.target.value)}
             placeholder="What happened?"
             autoFocus
           />
         </div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+        <div className="form-actions">
           <button type="button" className="btn" onClick={close}>Cancel</button>
           <button type="submit" className="btn primary">Add entry</button>
         </div>

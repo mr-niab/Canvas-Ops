@@ -49,15 +49,15 @@ export function Sidebar() {
 
       <div className="nav-label">Recent projects</div>
       <button className="nav-btn" onClick={() => setCurrentView('project')}>
-        <span style={{ width: '8px', height: '8px', borderRadius: '999px', background: 'var(--service)', flexShrink: 0 }}></span>
+        <span className="dot" style={{ color: 'var(--service)', opacity: 1 }}></span>
         Appointment Booking
       </button>
       <button className="nav-btn" onClick={() => setCurrentView('project')}>
-        <span style={{ width: '8px', height: '8px', borderRadius: '999px', background: 'var(--warn)', flexShrink: 0 }}></span>
+        <span className="dot" style={{ color: 'var(--warn)', opacity: 1 }}></span>
         Staff Portal v2
       </button>
       <button className="nav-btn" onClick={() => setCurrentView('project')}>
-        <span style={{ width: '8px', height: '8px', borderRadius: '999px', background: 'var(--primary)', flexShrink: 0 }}></span>
+        <span className="dot" style={{ color: 'var(--primary)', opacity: 1 }}></span>
         Payment Journey
       </button>
     </aside>

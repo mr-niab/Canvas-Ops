@@ -55,7 +55,7 @@ function SortableTaskCard({ task }: { task: Task }) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} className="task-shell" style={style} {...attributes} {...listeners}>
       <TaskCardPresentation task={task} />
     </div>
   );
@@ -206,9 +206,9 @@ export function WorkflowView() {
     <section>
       <div className="page-head">
         <div>
-          <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 6, cursor: 'pointer' }} onClick={() => setCurrentView('project')}>← Appointment Booking Redesign</div>
+          <div className="crumb" onClick={() => setCurrentView('project')}>← Appointment Booking Redesign</div>
           <h1>Workflow</h1>
-          <p className="sub" style={{ marginBottom: 0 }}>Cross-discipline kanban — all three disciplines visible in one board.</p>
+          <p className="sub flush">Cross-discipline kanban — all three disciplines visible in one board.</p>
         </div>
         <button className="btn primary" onClick={() => setTaskModalOpen(true)}>+ Add task</button>
       </div>
