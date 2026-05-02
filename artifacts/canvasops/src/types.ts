@@ -21,6 +21,7 @@ export type Task = {
   discipline: Discipline;
   title: string;
   status: string;
+  dependencies: string[];
 };
 
 export type Stakeholder = {

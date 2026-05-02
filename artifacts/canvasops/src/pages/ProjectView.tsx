@@ -4,8 +4,10 @@ import { Discipline, Task } from '../types';
 import { AddTaskModal } from '../components/forms/AddTaskModal';
 import { AddStakeholderModal } from '../components/forms/AddStakeholderModal';
 import { AddLogEntryModal } from '../components/forms/AddLogEntryModal';
+import { TaskDetailModal } from '../components/forms/TaskDetailModal';
 import { StakeholdersTable } from '../components/StakeholdersTable';
 import { LogList } from '../components/LogList';
+import { BlockedByChip } from '../components/BlockedByChip';
 
 type Tab = 'overview' | 'workflow' | 'evidence' | 'stakeholders' | 'resources' | 'log';
 
@@ -20,6 +22,7 @@ const DISCIPLINES: Array<{ key: Discipline; label: string; color: string }> = [
 ];
 
 function Lane({ discipline, label, color, tasks }: { discipline: Discipline; label: string; color: string; tasks: Task[] }) {
+  const { setEditingTaskId } = useAppContext();
   const laneTasks = tasks.filter(t => t.discipline === discipline);
   return (
     <div className="lane">
@@ -29,9 +32,24 @@ function Lane({ discipline, label, color, tasks }: { discipline: Discipline; lab
       </div>
       <div className="lane-body">
         {laneTasks.map(t => (
-          <div className="task" key={t.id}>
+          <div
+            className="task task-clickable"
+            key={t.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => setEditingTaskId(t.id)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setEditingTaskId(t.id);
+              }
+            }}
+          >
             {t.title}
             <small>{t.status}</small>
+            <div className="task-meta">
+              <BlockedByChip task={t} allTasks={tasks} />
+            </div>
           </div>
         ))}
       </div>
@@ -234,6 +252,7 @@ export function ProjectView() {
       <AddTaskModal />
       <AddStakeholderModal />
       <AddLogEntryModal />
+      <TaskDetailModal />
     </section>
   );
 }

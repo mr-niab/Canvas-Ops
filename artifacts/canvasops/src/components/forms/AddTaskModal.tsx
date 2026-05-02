@@ -2,17 +2,20 @@ import { useState } from 'react';
 import { useAppContext } from '../../AppContext';
 import { Modal } from '../Modal';
 import { Discipline } from '../../types';
+import { DependencyPicker } from './DependencyPicker';
 
 export function AddTaskModal() {
-  const { isTaskModalOpen, setTaskModalOpen, addTask } = useAppContext();
+  const { isTaskModalOpen, setTaskModalOpen, addTask, tasks } = useAppContext();
   const [discipline, setDiscipline] = useState<Discipline>('UX/UI Design');
   const [title, setTitle] = useState('');
   const [status, setStatus] = useState('Backlog');
+  const [dependencies, setDependencies] = useState<string[]>([]);
 
   const reset = () => {
     setDiscipline('UX/UI Design');
     setTitle('');
     setStatus('Backlog');
+    setDependencies([]);
   };
 
   const close = () => {
@@ -23,7 +26,12 @@ export function AddTaskModal() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    addTask({ discipline, title: title.trim(), status: status.trim() || 'Backlog' });
+    addTask({
+      discipline,
+      title: title.trim(),
+      status: status.trim() || 'Backlog',
+      dependencies,
+    });
     close();
   };
 
@@ -54,6 +62,14 @@ export function AddTaskModal() {
             <option>Complete</option>
             <option>Done</option>
           </select>
+        </div>
+        <div>
+          <label className="field-label">Depends on (optional)</label>
+          <DependencyPicker
+            allTasks={tasks}
+            value={dependencies}
+            onChange={setDependencies}
+          />
         </div>
         <div className="form-actions">
           <button type="button" className="btn" onClick={close}>Cancel</button>

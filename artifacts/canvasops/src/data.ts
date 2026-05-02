@@ -48,17 +48,17 @@ export const initialProjects: Project[] = [
 ];
 
 export const initialTasks: Task[] = [
-  { id: 't1', discipline: 'UX/UI Design', title: 'Booking confirmation screen', status: 'In review · 2 comments open' },
-  { id: 't2', discipline: 'UX/UI Design', title: 'Error state flows', status: 'Designing' },
-  { id: 't3', discipline: 'UX/UI Design', title: 'Prototype handoff prep', status: 'Backlog' },
-  
-  { id: 't4', discipline: 'User Research', title: 'Usability round 2 synthesis', status: 'In progress' },
-  { id: 't5', discipline: 'User Research', title: 'Stakeholder playback notes', status: 'Ready for session' },
-  { id: 't6', discipline: 'User Research', title: 'Participant recruitment', status: 'Complete' },
-  
-  { id: 't7', discipline: 'Service Design', title: 'Service blueprint v3', status: 'In progress' },
-  { id: 't8', discipline: 'Service Design', title: 'Operational dependency map', status: 'Needs review' },
-  { id: 't9', discipline: 'Service Design', title: 'Backstage actions', status: 'Done' },
+  { id: 't1', discipline: 'UX/UI Design', title: 'Booking confirmation screen', status: 'In review · 2 comments open', dependencies: [] },
+  { id: 't2', discipline: 'UX/UI Design', title: 'Error state flows', status: 'Designing', dependencies: [] },
+  { id: 't3', discipline: 'UX/UI Design', title: 'Prototype handoff prep', status: 'Backlog', dependencies: ['t1', 't2'] },
+
+  { id: 't4', discipline: 'User Research', title: 'Usability round 2 synthesis', status: 'In progress', dependencies: ['t6'] },
+  { id: 't5', discipline: 'User Research', title: 'Stakeholder playback notes', status: 'Ready for session', dependencies: ['t4'] },
+  { id: 't6', discipline: 'User Research', title: 'Participant recruitment', status: 'Complete', dependencies: [] },
+
+  { id: 't7', discipline: 'Service Design', title: 'Service blueprint v3', status: 'In progress', dependencies: [] },
+  { id: 't8', discipline: 'Service Design', title: 'Operational dependency map', status: 'Needs review', dependencies: ['t7'] },
+  { id: 't9', discipline: 'Service Design', title: 'Backstage actions', status: 'Done', dependencies: [] },
 ];
 
 export const initialStakeholders: Stakeholder[] = [

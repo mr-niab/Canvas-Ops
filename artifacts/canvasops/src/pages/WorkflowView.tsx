@@ -26,6 +26,8 @@ import { CSS } from '@dnd-kit/utilities';
 import { useAppContext } from '../AppContext';
 import { Discipline, Task } from '../types';
 import { AddTaskModal } from '../components/forms/AddTaskModal';
+import { TaskDetailModal } from '../components/forms/TaskDetailModal';
+import { BlockedByChip } from '../components/BlockedByChip';
 
 const DISCIPLINES: Array<{ key: Discipline; label: string; color: string }> = [
   { key: 'UX/UI Design', label: 'UX / UI Design', color: 'var(--primary)' },
@@ -33,16 +35,49 @@ const DISCIPLINES: Array<{ key: Discipline; label: string; color: string }> = [
   { key: 'Service Design', label: 'Service Design', color: 'var(--service)' },
 ];
 
-function TaskCardPresentation({ task, isOverlay = false }: { task: Task; isOverlay?: boolean }) {
+function TaskCardPresentation({
+  task,
+  allTasks,
+  isOverlay = false,
+  onOpen,
+}: {
+  task: Task;
+  allTasks: Task[];
+  isOverlay?: boolean;
+  onOpen?: () => void;
+}) {
   return (
     <div className={`task${isOverlay ? ' task-overlay' : ''}`}>
-      {task.title}
+      <div className="task-row">
+        <span className="task-title">{task.title}</span>
+        {onOpen && (
+          <button
+            type="button"
+            className="task-open-btn"
+            aria-label={`Open ${task.title}`}
+            // Stop dnd-kit's pointer/keyboard sensors (attached to the parent
+            // `.task-shell`) from grabbing the card when this button is used.
+            onPointerDown={e => e.stopPropagation()}
+            onKeyDown={e => e.stopPropagation()}
+            onClick={e => {
+              e.stopPropagation();
+              onOpen();
+            }}
+          >
+            Open
+          </button>
+        )}
+      </div>
       <small>{task.status}</small>
+      <div className="task-meta">
+        <BlockedByChip task={task} allTasks={allTasks} />
+      </div>
     </div>
   );
 }
 
-function SortableTaskCard({ task }: { task: Task }) {
+function SortableTaskCard({ task, allTasks }: { task: Task; allTasks: Task[] }) {
+  const { setEditingTaskId } = useAppContext();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
     data: { type: 'task', discipline: task.discipline },
@@ -56,7 +91,11 @@ function SortableTaskCard({ task }: { task: Task }) {
 
   return (
     <div ref={setNodeRef} className="task-shell" style={style} {...attributes} {...listeners}>
-      <TaskCardPresentation task={task} />
+      <TaskCardPresentation
+        task={task}
+        allTasks={allTasks}
+        onOpen={() => setEditingTaskId(task.id)}
+      />
     </div>
   );
 }
@@ -66,11 +105,13 @@ function Lane({
   label,
   color,
   tasks,
+  allTasks,
 }: {
   discipline: Discipline;
   label: string;
   color: string;
   tasks: Task[];
+  allTasks: Task[];
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `lane:${discipline}`,
@@ -86,7 +127,7 @@ function Lane({
       <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
         <div ref={setNodeRef} className="lane-body">
           {tasks.map(t => (
-            <SortableTaskCard key={t.id} task={t} />
+            <SortableTaskCard key={t.id} task={t} allTasks={allTasks} />
           ))}
           {tasks.length === 0 && (
             <div className="lane-empty">Drop here</div>
@@ -236,16 +277,18 @@ export function WorkflowView() {
                 label={d.label}
                 color={d.color}
                 tasks={tasksByLane[d.key]}
+                allTasks={tasks}
               />
             ))}
           </div>
           <DragOverlay>
-            {activeTask ? <TaskCardPresentation task={activeTask} isOverlay /> : null}
+            {activeTask ? <TaskCardPresentation task={activeTask} allTasks={tasks} isOverlay /> : null}
           </DragOverlay>
         </DndContext>
       </div>
 
       <AddTaskModal />
+      <TaskDetailModal />
     </section>
   );
 }
