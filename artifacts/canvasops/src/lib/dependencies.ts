@@ -2,6 +2,10 @@ import { Discipline, Task } from '../types';
 
 export const DONE_STATUSES: ReadonlyArray<string> = ['Done', 'Complete'];
 
+export const BLOCKED_STATUS = 'Blocked';
+
+export const DEFAULT_RESTORE_STATUS = 'Backlog';
+
 export function isTaskDone(task: Task): boolean {
   return DONE_STATUSES.includes(task.status);
 }
@@ -46,6 +50,62 @@ export function wouldCreateCycle(
     }
   }
   return false;
+}
+
+/**
+ * Reflects each task's dependency state in its `status` field:
+ *  - If a task has at least one unfinished dependency and its status isn't
+ *    already "Blocked", store the current status as `previousStatus` and set
+ *    status to "Blocked".
+ *  - If a task has no unfinished dependencies and its status is "Blocked",
+ *    restore status from `previousStatus` (falling back to "Backlog") and
+ *    clear `previousStatus`.
+ *
+ * Iterates to a fixed point so that effects propagate through chains —
+ * e.g. when a blocked task whose `previousStatus` is "Done" gets restored,
+ * any dependents pointing at it are also unblocked in the same call.
+ *
+ * Idempotent: calling repeatedly on already-reconciled tasks is a no-op
+ * (returns the same array reference).
+ */
+export function recomputeBlockedStates(tasks: Task[]): Task[] {
+  // Defensive cap so a pathological dependency graph can't run forever.
+  // Each iteration must change at least one task to continue, so the worst
+  // case is bounded by the number of tasks.
+  const maxIterations = tasks.length + 1;
+  let current = tasks;
+  let everChanged = false;
+
+  for (let i = 0; i < maxIterations; i++) {
+    let changedThisPass = false;
+    const next = current.map(t => {
+      const unmet = unmetDependencies(t, current);
+      if (unmet.length > 0) {
+        if (t.status === BLOCKED_STATUS) return t;
+        changedThisPass = true;
+        return { ...t, previousStatus: t.status, status: BLOCKED_STATUS };
+      }
+      if (t.status === BLOCKED_STATUS) {
+        changedThisPass = true;
+        const restored = t.previousStatus ?? DEFAULT_RESTORE_STATUS;
+        const { previousStatus: _omit, ...rest } = t;
+        void _omit;
+        return { ...rest, status: restored };
+      }
+      if (t.previousStatus !== undefined) {
+        changedThisPass = true;
+        const { previousStatus: _omit, ...rest } = t;
+        void _omit;
+        return rest;
+      }
+      return t;
+    });
+    if (!changedThisPass) break;
+    everChanged = true;
+    current = next;
+  }
+
+  return everChanged ? current : tasks;
 }
 
 export const DISCIPLINE_ORDER: ReadonlyArray<Discipline> = [

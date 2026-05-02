@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { View, Project, Task, Stakeholder, LogEntry, EvidenceFile, LinkedBoard, ProjectEvidence, Organisation, Team, Teammate } from './types';
 import { initialProjects, initialTasks, initialStakeholders, initialLogEntries, initialOrganisation, initialTeams, initialTeammates } from './data';
+import { recomputeBlockedStates } from './lib/dependencies';
 
 const TASKS_STORAGE_KEY = 'canvasops:tasks:v1';
 const ORG_STORAGE_KEY = 'canvasops:organisation:v1';
@@ -20,12 +21,12 @@ function normalizeDependencies(value: unknown): string[] {
 }
 
 function loadPersistedTasks(): Task[] {
-  if (typeof window === 'undefined') return initialTasks;
+  if (typeof window === 'undefined') return recomputeBlockedStates(initialTasks);
   try {
     const raw = window.localStorage.getItem(TASKS_STORAGE_KEY);
-    if (!raw) return initialTasks;
+    if (!raw) return recomputeBlockedStates(initialTasks);
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return initialTasks;
+    if (!Array.isArray(parsed)) return recomputeBlockedStates(initialTasks);
     const valid = parsed.every(
       (t: unknown) =>
         t !== null &&
@@ -35,21 +36,30 @@ function loadPersistedTasks(): Task[] {
         typeof (t as Task).status === 'string' &&
         VALID_DISCIPLINES.includes((t as Task).discipline)
     );
-    if (!valid) return initialTasks;
+    if (!valid) return recomputeBlockedStates(initialTasks);
     const ids = new Set((parsed as Array<{ id: string }>).map(t => t.id));
-    return (parsed as Array<Record<string, unknown>>).map(t => ({
-      id: t.id as string,
-      title: t.title as string,
-      status: t.status as string,
-      discipline: t.discipline as Task['discipline'],
-      // Drop any references to ids that no longer exist so stale data
-      // can't render a "Blocked by" chip pointing nowhere.
-      dependencies: normalizeDependencies(t.dependencies).filter(
-        depId => depId !== t.id && ids.has(depId)
-      ),
-    }));
+    const loaded: Task[] = (parsed as Array<Record<string, unknown>>).map(t => {
+      const task: Task = {
+        id: t.id as string,
+        title: t.title as string,
+        status: t.status as string,
+        discipline: t.discipline as Task['discipline'],
+        // Drop any references to ids that no longer exist so stale data
+        // can't render a "Blocked by" chip pointing nowhere.
+        dependencies: normalizeDependencies(t.dependencies).filter(
+          depId => depId !== t.id && ids.has(depId)
+        ),
+      };
+      if (typeof t.previousStatus === 'string') {
+        task.previousStatus = t.previousStatus;
+      }
+      return task;
+    });
+    // Re-derive blocked state on load so the persisted snapshot stays in sync
+    // even if dependency graphs were edited in another tab.
+    return recomputeBlockedStates(loaded);
   } catch {
-    return initialTasks;
+    return recomputeBlockedStates(initialTasks);
   }
 }
 
@@ -284,10 +294,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addTask = (task: Omit<Task, 'id'>) => {
-    setTasks(prev => [
-      ...prev,
-      { ...task, id: `t${Date.now()}`, dependencies: task.dependencies ?? [] },
-    ]);
+    setTasks(prev =>
+      recomputeBlockedStates([
+        ...prev,
+        { ...task, id: `t${Date.now()}`, dependencies: task.dependencies ?? [] },
+      ])
+    );
   };
 
   const moveTask = (taskId: string, targetDiscipline: Task['discipline'], targetIndex: number) => {
@@ -326,40 +338,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     updates: Partial<Pick<Task, 'title' | 'status' | 'discipline'>>
   ) => {
     setTasks(prev =>
-      prev.map(t => {
-        if (t.id !== taskId) return t;
-        const next = { ...t };
-        if (updates.title !== undefined) {
-          const trimmed = updates.title.trim();
-          if (trimmed) next.title = trimmed;
-        }
-        if (updates.status !== undefined) {
-          const trimmed = updates.status.trim();
-          if (trimmed) next.status = trimmed;
-        }
-        if (updates.discipline !== undefined && VALID_DISCIPLINES.includes(updates.discipline)) {
-          next.discipline = updates.discipline;
-        }
-        return next;
-      })
+      recomputeBlockedStates(
+        prev.map(t => {
+          if (t.id !== taskId) return t;
+          const next = { ...t };
+          if (updates.title !== undefined) {
+            const trimmed = updates.title.trim();
+            if (trimmed) next.title = trimmed;
+          }
+          if (updates.status !== undefined) {
+            const trimmed = updates.status.trim();
+            if (trimmed) next.status = trimmed;
+          }
+          if (updates.discipline !== undefined && VALID_DISCIPLINES.includes(updates.discipline)) {
+            next.discipline = updates.discipline;
+          }
+          return next;
+        })
+      )
     );
   };
 
   const updateTaskDependencies = (taskId: string, dependencies: string[]) => {
     setTasks(prev =>
-      prev.map(t => (t.id === taskId ? { ...t, dependencies: [...dependencies] } : t))
+      recomputeBlockedStates(
+        prev.map(t => (t.id === taskId ? { ...t, dependencies: [...dependencies] } : t))
+      )
     );
   };
 
   const deleteTask = (taskId: string) => {
     setTasks(prev =>
-      prev
-        .filter(t => t.id !== taskId)
-        .map(t =>
-          t.dependencies && t.dependencies.includes(taskId)
-            ? { ...t, dependencies: t.dependencies.filter(id => id !== taskId) }
-            : t
-        )
+      recomputeBlockedStates(
+        prev
+          .filter(t => t.id !== taskId)
+          .map(t =>
+            t.dependencies && t.dependencies.includes(taskId)
+              ? { ...t, dependencies: t.dependencies.filter(id => id !== taskId) }
+              : t
+          )
+      )
     );
     setEditingTaskId(null);
   };

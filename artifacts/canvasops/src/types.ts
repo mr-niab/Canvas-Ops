@@ -51,6 +51,12 @@ export type Task = {
   title: string;
   status: string;
   dependencies: string[];
+  /**
+   * The status the task had before being auto-set to "Blocked" by an
+   * unfinished dependency. Used to restore the prior status once all
+   * dependencies are satisfied. Absent on tasks that aren't auto-blocked.
+   */
+  previousStatus?: string;
 };
 
 export type Stakeholder = {
