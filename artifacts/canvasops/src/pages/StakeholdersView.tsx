@@ -1,8 +1,9 @@
 import { useAppContext } from '../AppContext';
 import { AddStakeholderModal } from '../components/forms/AddStakeholderModal';
+import { StakeholdersTable } from '../components/StakeholdersTable';
 
 export function StakeholdersView() {
-  const { stakeholders, setCurrentView, setStakeholderModalOpen } = useAppContext();
+  const { setCurrentView, setStakeholderModalOpen } = useAppContext();
 
   return (
     <section>
@@ -16,28 +17,7 @@ export function StakeholdersView() {
       </div>
 
       <div className="card pad">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Role</th>
-              <th>Email</th>
-              <th>Last contacted</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stakeholders.map(s => (
-              <tr key={s.id}>
-                <td><strong>{s.name}</strong></td>
-                <td>{s.role}</td>
-                <td>{s.email}</td>
-                <td>{s.lastContacted}</td>
-                <td><span className={`badge ${s.statusClass}`}>{s.status}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <StakeholdersTable />
       </div>
 
       <AddStakeholderModal />

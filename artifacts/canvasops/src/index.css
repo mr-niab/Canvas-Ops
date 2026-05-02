@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@import url("https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&f[]=cabinet-grotesk@500,700,800&display=swap");
-
 :root {
   --bg: #f7f6f2;
   --surface: #f9f8f5;

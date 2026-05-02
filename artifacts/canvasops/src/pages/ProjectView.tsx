@@ -2,6 +2,12 @@ import { useState } from 'react';
 import { useAppContext } from '../AppContext';
 import { Discipline, Task } from '../types';
 import { AddTaskModal } from '../components/forms/AddTaskModal';
+import { AddStakeholderModal } from '../components/forms/AddStakeholderModal';
+import { AddLogEntryModal } from '../components/forms/AddLogEntryModal';
+import { StakeholdersTable } from '../components/StakeholdersTable';
+import { LogList } from '../components/LogList';
+
+type Tab = 'overview' | 'workflow' | 'evidence' | 'stakeholders' | 'resources' | 'log';
 
 const STAGES: Array<'Intake' | 'Discovery' | 'Alpha' | 'Beta' | 'Live'> = [
   'Intake', 'Discovery', 'Alpha', 'Beta', 'Live'
@@ -34,8 +40,8 @@ function Lane({ discipline, label, color, tasks }: { discipline: Discipline; lab
 }
 
 export function ProjectView() {
-  const { setCurrentView, tasks, setTaskModalOpen } = useAppContext();
-  const [activeTab, setActiveTab] = useState<'overview' | 'workflow' | 'evidence' | 'resources'>('overview');
+  const { setCurrentView, tasks, setTaskModalOpen, setStakeholderModalOpen, setLogModalOpen } = useAppContext();
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   const project = {
     name: 'Appointment Booking Redesign',
@@ -76,9 +82,9 @@ export function ProjectView() {
         <button className={`tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
         <button className={`tab ${activeTab === 'workflow' ? 'active' : ''}`} onClick={() => setActiveTab('workflow')}>Workflow</button>
         <button className={`tab ${activeTab === 'evidence' ? 'active' : ''}`} onClick={() => setActiveTab('evidence')}>Evidence</button>
-        <button className="tab" onClick={() => setCurrentView('stakeholders')}>Stakeholders</button>
+        <button className={`tab ${activeTab === 'stakeholders' ? 'active' : ''}`} onClick={() => setActiveTab('stakeholders')}>Stakeholders</button>
         <button className={`tab ${activeTab === 'resources' ? 'active' : ''}`} onClick={() => setActiveTab('resources')}>Resources</button>
-        <button className="tab" onClick={() => setCurrentView('log')}>Log</button>
+        <button className={`tab ${activeTab === 'log' ? 'active' : ''}`} onClick={() => setActiveTab('log')}>Log</button>
       </div>
 
       {activeTab === 'overview' && (
@@ -139,7 +145,7 @@ export function ProjectView() {
                 <div className="item-title">5 recorded</div>
                 <div className="item-sub">Project sponsor, service owner, operations lead, IT lead, research representative</div>
               </div>
-              <button className="btn" onClick={() => setCurrentView('stakeholders')}>Open stakeholders →</button>
+              <button className="btn" onClick={() => setActiveTab('stakeholders')}>Open stakeholders →</button>
             </div>
 
             <div className="card pad">
@@ -157,7 +163,7 @@ export function ProjectView() {
                 <div className="item-sub">30 Apr · Anika P. · Decision</div>
               </div>
               <div className="divider"></div>
-              <button className="btn" onClick={() => setCurrentView('log')}>Open full log →</button>
+              <button className="btn" onClick={() => setActiveTab('log')}>Open full log →</button>
             </div>
           </div>
         </div>
@@ -187,7 +193,41 @@ export function ProjectView() {
         </div>
       )}
 
+      {activeTab === 'stakeholders' && (
+        <div className="card pad">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div>
+              <div className="section-title" style={{ marginBottom: 4 }}>Stakeholders</div>
+              <div style={{ fontSize: 13, color: 'var(--muted)' }}>People connected to this project — recorded with role, email, last contact, and alignment status.</div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn" onClick={() => setCurrentView('stakeholders')}>Open full page →</button>
+              <button className="btn primary" onClick={() => setStakeholderModalOpen(true)}>+ Add stakeholder</button>
+            </div>
+          </div>
+          <StakeholdersTable />
+        </div>
+      )}
+
+      {activeTab === 'log' && (
+        <div className="card pad">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div>
+              <div className="section-title" style={{ marginBottom: 4 }}>Project log</div>
+              <div style={{ fontSize: 13, color: 'var(--muted)' }}>Chronological record of conversations, decisions, files, and key activity for this project.</div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn" onClick={() => setCurrentView('log')}>Open full page →</button>
+              <button className="btn primary" onClick={() => setLogModalOpen(true)}>+ Add log entry</button>
+            </div>
+          </div>
+          <LogList />
+        </div>
+      )}
+
       <AddTaskModal />
+      <AddStakeholderModal />
+      <AddLogEntryModal />
     </section>
   );
 }
