@@ -1145,7 +1145,7 @@ components:
 
     Project:
       type: object
-      required: [id, name, meta, stage, stageClass, status, statusClass, progress, totalProgress]
+      required: [id, name, meta, stage, stageClass, status, statusClass]
       properties:
         id:
           type: string
@@ -1162,10 +1162,6 @@ components:
           type: string
         statusClass:
           type: string
-        progress:
-          type: integer
-        totalProgress:
-          type: integer
         teamId:
           type: string
           nullable: true

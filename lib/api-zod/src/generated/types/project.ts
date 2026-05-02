@@ -15,7 +15,5 @@ export interface Project {
   stageClass: string;
   status: string;
   statusClass: string;
-  progress: number;
-  totalProgress: number;
   teamId?: string | null;
 }

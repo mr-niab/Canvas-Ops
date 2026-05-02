@@ -233,8 +233,6 @@ export const ListProjectsResponseItem = zod.object({
   stageClass: zod.string(),
   status: zod.string(),
   statusClass: zod.string(),
-  progress: zod.number(),
-  totalProgress: zod.number(),
   teamId: zod.string().nullish(),
 });
 export const ListProjectsResponse = zod.array(ListProjectsResponseItem);
@@ -258,8 +256,6 @@ export const CreateProjectResponse = zod.object({
   stageClass: zod.string(),
   status: zod.string(),
   statusClass: zod.string(),
-  progress: zod.number(),
-  totalProgress: zod.number(),
   teamId: zod.string().nullish(),
 });
 
@@ -285,8 +281,6 @@ export const UpdateProjectResponse = zod.object({
   stageClass: zod.string(),
   status: zod.string(),
   statusClass: zod.string(),
-  progress: zod.number(),
-  totalProgress: zod.number(),
   teamId: zod.string().nullish(),
 });
 

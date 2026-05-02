@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 import { teamsTable } from "./teams";
 
@@ -13,8 +13,6 @@ export const projectsTable = pgTable("projects", {
   stageClass: text("stage_class").notNull().default("disc"),
   status: text("status").notNull().default("On track"),
   statusClass: text("status_class").notNull().default("good"),
-  progress: integer("progress").notNull().default(1),
-  totalProgress: integer("total_progress").notNull().default(5),
   teamId: text("team_id").references(() => teamsTable.id, {
     onDelete: "set null",
   }),

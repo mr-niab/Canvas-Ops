@@ -26,13 +26,6 @@ const STAGE_CLASS: Record<Stage, string> = {
   Beta: "beta",
   Live: "good",
 };
-const STAGE_PROGRESS: Record<Stage, number> = {
-  Intake: 1,
-  Discovery: 2,
-  Alpha: 3,
-  Beta: 4,
-  Live: 5,
-};
 
 function serialize(row: ProjectRow) {
   return {
@@ -43,8 +36,6 @@ function serialize(row: ProjectRow) {
     stageClass: row.stageClass,
     status: row.status,
     statusClass: row.statusClass,
-    progress: row.progress,
-    totalProgress: row.totalProgress,
     teamId: row.teamId,
   };
 }
@@ -102,8 +93,6 @@ router.post("/projects", async (req, res: Response) => {
         stageClass: STAGE_CLASS[stage],
         status: stage === "Live" ? "Shipped" : "On track",
         statusClass: "good",
-        progress: STAGE_PROGRESS[stage],
-        totalProgress: 5,
         teamId: body.data.teamId ?? null,
       })
       .returning();
@@ -137,7 +126,6 @@ router.patch("/projects/:projectId", async (req, res: Response) => {
       const stage = body.data.stage as Stage;
       updates.stage = stage;
       updates.stageClass = STAGE_CLASS[stage];
-      updates.progress = STAGE_PROGRESS[stage];
       if (stage === "Live") updates.status = "Shipped";
     }
     if (body.data.teamId !== undefined) updates.teamId = body.data.teamId;

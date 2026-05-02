@@ -161,8 +161,6 @@ function normalizeProject(raw: {
   stageClass: string;
   status: string;
   statusClass: string;
-  progress: number;
-  totalProgress: number;
   teamId?: string | null;
 }): Project {
   return {
@@ -173,8 +171,6 @@ function normalizeProject(raw: {
     stageClass: raw.stageClass,
     status: raw.status,
     statusClass: raw.statusClass,
-    progress: raw.progress,
-    totalProgress: raw.totalProgress,
     teamId: raw.teamId ?? undefined,
   };
 }
