@@ -1,5 +1,6 @@
 import { useAppContext } from '../AppContext';
 import { Project } from '../types';
+import { AddProjectModal } from '../components/forms/AddProjectModal';
 
 function MiniProgress({ done, total, activeAt }: { done: number; total: number; activeAt?: number }) {
   return (
@@ -14,7 +15,7 @@ function MiniProgress({ done, total, activeAt }: { done: number; total: number; 
   );
 }
 
-function ProjectCard({ project, onOpen }: { project: Project; onOpen: () => void }) {
+function ProjectCard({ project, teamName, onOpen }: { project: Project; teamName?: string; onOpen: () => void }) {
   const done = project.status === 'Shipped' ? project.totalProgress : Math.max(0, project.progress - 1);
   const activeAt = project.status === 'Shipped' ? -1 : project.progress - 1;
   return (
@@ -37,6 +38,7 @@ function ProjectCard({ project, onOpen }: { project: Project; onOpen: () => void
       <div className="project-card-badges">
         <span className={`badge ${project.stageClass}`}>{project.stage}</span>
         <span className={`badge ${project.statusClass}`}>{project.status}</span>
+        {teamName && <span className="badge team-badge">{teamName}</span>}
       </div>
       <MiniProgress done={done} total={project.totalProgress} activeAt={activeAt} />
       <div className="project-card-open">Open →</div>
@@ -45,19 +47,32 @@ function ProjectCard({ project, onOpen }: { project: Project; onOpen: () => void
 }
 
 export function HomeView() {
-  const { projects, setCurrentView } = useAppContext();
-  const openProject = () => setCurrentView('project');
+  const { projects, teams, openProject, setProjectModalOpen } = useAppContext();
+  const teamById = new Map(teams.map(t => [t.id, t]));
 
   return (
     <section>
-      <h1>Projects at a glance</h1>
-      <p className="sub">Open a project to navigate across its workflow, evidence, stakeholders, resources, and activity log.</p>
+      <div className="page-head">
+        <div>
+          <h1>Projects at a glance</h1>
+          <p className="sub flush">Open a project to navigate across its workflow, evidence, stakeholders, resources, and activity log.</p>
+        </div>
+        <button className="btn primary" onClick={() => setProjectModalOpen(true)}>+ Add project</button>
+      </div>
 
       <div className="card pad">
         <div className="project-strip">
-          {projects.map((p) => (
-            <ProjectCard key={p.id} project={p} onOpen={openProject} />
-          ))}
+          {projects.map((p) => {
+            const team = p.teamId ? teamById.get(p.teamId) : undefined;
+            return (
+              <ProjectCard
+                key={p.id}
+                project={p}
+                teamName={team?.name}
+                onOpen={() => openProject(p.id)}
+              />
+            );
+          })}
         </div>
       </div>
 
@@ -129,6 +144,8 @@ export function HomeView() {
           <div className="item-sub">Thu 2:00pm · All disciplines · Beta → Live readiness</div>
         </div>
       </div>
+
+      <AddProjectModal />
     </section>
   );
 }

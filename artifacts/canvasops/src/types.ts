@@ -1,4 +1,4 @@
-export type View = 'home' | 'project' | 'work' | 'stakeholders' | 'log';
+export type View = 'home' | 'project' | 'work' | 'stakeholders' | 'log' | 'people';
 
 export type Stage = 'Intake' | 'Discovery' | 'Alpha' | 'Beta' | 'Live';
 
@@ -42,6 +42,7 @@ export type Project = {
   progress: number;
   totalProgress: number;
   evidence: ProjectEvidence;
+  teamId?: string;
 };
 
 export type Task = {
@@ -71,8 +72,31 @@ export type LogEntry = {
   detail: string;
 };
 
+export type Organisation = {
+  id: string;
+  name: string;
+};
+
+export type Team = {
+  id: string;
+  name: string;
+  description: string;
+  teammateIds: string[];
+};
+
+export type Teammate = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  teamIds: string[];
+};
+
 export type AppState = {
   currentView: View;
+  organisation: Organisation;
+  teams: Team[];
+  teammates: Teammate[];
   projects: Project[];
   tasks: Task[];
   stakeholders: Stakeholder[];

@@ -1393,6 +1393,195 @@ h1 {
   color: var(--primary);
 }
 
+/* ---------------- people & teams ---------------- */
+
+.workspace-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: var(--muted);
+  margin: calc(-1 * var(--space-3)) var(--space-2) var(--space-5);
+  padding: var(--space-1) var(--space-2);
+  border-left: 2px solid var(--primary);
+  background: var(--surface-2);
+  border-radius: 4px;
+}
+
+.nav-btn-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
+  flex: 1;
+}
+
+.nav-btn-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--faint);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.team-badge {
+  background: var(--research-bg);
+  color: var(--research);
+}
+
+.project-team-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.project-team-label {
+  margin: 0;
+}
+
+.project-team-select {
+  width: auto;
+  min-width: 180px;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.org-card {
+  margin-bottom: var(--space-5);
+}
+
+.org-display-row,
+.org-edit-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin: var(--space-1) 0 var(--space-2);
+}
+
+.org-edit-row .field-input {
+  flex: 1;
+  min-width: 220px;
+}
+
+.org-name {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--text);
+}
+
+.people-layout {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.people-add-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.people-add-form .btn {
+  white-space: nowrap;
+}
+
+.people-empty {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  background: var(--surface-2);
+}
+
+.team-list,
+.teammate-list,
+.member-list,
+.add-mate-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.team-row,
+.teammate-row,
+.member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  transition:
+    border-color var(--transition),
+    background var(--transition);
+}
+
+.team-row:hover,
+.teammate-row:hover,
+.member-row:hover {
+  border-color: var(--hover-border);
+}
+
+.team-row.selected {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+}
+
+.team-row-main {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+
+.team-row-main:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: 8px;
+}
+
+.teammate-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.teammate-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: var(--space-2);
+}
+
+.tag-team {
+  background: var(--research-bg);
+  color: var(--research);
+}
+
+.team-edit {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.team-edit .cluster-sm {
+  justify-content: flex-end;
+}
+
 /* ---------------- responsive ----------------
    Tighten the outer-rhythm tokens at the existing single breakpoint
    so the new spacing scale feels proportional on small screens.
@@ -1413,7 +1602,11 @@ h1 {
   .grid-2,
   .project-layout,
   .lane-wrap,
-  .kpi {
+  .kpi,
+  .people-layout {
+    grid-template-columns: 1fr;
+  }
+  .people-add-form {
     grid-template-columns: 1fr;
   }
 }

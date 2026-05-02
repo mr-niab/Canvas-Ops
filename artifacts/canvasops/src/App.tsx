@@ -6,6 +6,7 @@ import { ProjectView } from './pages/ProjectView';
 import { WorkflowView } from './pages/WorkflowView';
 import { StakeholdersView } from './pages/StakeholdersView';
 import { LogView } from './pages/LogView';
+import { PeopleView } from './pages/PeopleView';
 
 function ViewRouter() {
   const { currentView } = useAppContext();
@@ -20,6 +21,8 @@ function ViewRouter() {
       return <StakeholdersView />;
     case 'log':
       return <LogView />;
+    case 'people':
+      return <PeopleView />;
     default:
       return <HomeView />;
   }

@@ -10,8 +10,6 @@ import { LogList } from '../components/LogList';
 import { BlockedByChip } from '../components/BlockedByChip';
 import { EvidencePanel } from '../components/EvidencePanel';
 
-const CURRENT_PROJECT_ID = 'p1';
-
 type Tab = 'overview' | 'workflow' | 'evidence' | 'stakeholders' | 'resources' | 'log';
 
 const STAGES: Array<'Intake' | 'Discovery' | 'Alpha' | 'Beta' | 'Live'> = [
@@ -61,17 +59,44 @@ function Lane({ discipline, label, color, tasks }: { discipline: Discipline; lab
 }
 
 export function ProjectView() {
-  const { setCurrentView, tasks, setTaskModalOpen, setStakeholderModalOpen, setLogModalOpen, getProjectEvidence } = useAppContext();
+  const {
+    setCurrentView,
+    tasks,
+    projects,
+    teams,
+    selectedProjectId,
+    setProjectTeam,
+    setTaskModalOpen,
+    setStakeholderModalOpen,
+    setLogModalOpen,
+    getProjectEvidence,
+  } = useAppContext();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 
-  const project = {
-    name: 'Appointment Booking Redesign',
-    sub: 'NHS · Lead Jamie D. · Next session Tue 2pm',
-    currentStage: 'Beta' as const,
-  };
-  const currentIdx = STAGES.indexOf(project.currentStage);
-  const evidence = getProjectEvidence(CURRENT_PROJECT_ID);
+  const project = projects.find(p => p.id === selectedProjectId) ?? projects[0] ?? null;
+
+  if (!project) {
+    return (
+      <section>
+        <div className="page-head">
+          <div>
+            <div className="crumb" onClick={() => setCurrentView('home')}>← All projects</div>
+            <h1>No project selected</h1>
+            <p className="sub flush">Pick a project from Home or create a new one to get started.</p>
+          </div>
+        </div>
+        <AddTaskModal />
+        <AddStakeholderModal />
+        <AddLogEntryModal />
+        <TaskDetailModal />
+      </section>
+    );
+  }
+
+  const currentIdx = STAGES.indexOf(project.stage);
+  const evidence = getProjectEvidence(project.id);
   const evidenceCount = evidence.files.length + evidence.boards.length;
+  const projectTeam = project.teamId ? teams.find(t => t.id === project.teamId) : undefined;
 
   return (
     <section>
@@ -79,11 +104,26 @@ export function ProjectView() {
         <div>
           <div className="crumb" onClick={() => setCurrentView('home')}>← All projects</div>
           <h1>{project.name}</h1>
-          <p className="sub flush">{project.sub}</p>
+          <p className="sub flush">{project.meta}</p>
+          <div className="project-team-row">
+            <span className="eyebrow project-team-label">Team</span>
+            <select
+              className="field-input project-team-select"
+              value={project.teamId ?? ''}
+              onChange={e => setProjectTeam(project.id, e.target.value || undefined)}
+              aria-label="Project team"
+            >
+              <option value="">Unassigned</option>
+              {teams.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+            {projectTeam && <span className="badge team-badge">{projectTeam.name}</span>}
+          </div>
         </div>
         <div className="cluster">
-          <span className="badge beta">Beta</span>
-          <span className="badge good">On track</span>
+          <span className={`badge ${project.stageClass}`}>{project.stage}</span>
+          <span className={`badge ${project.statusClass}`}>{project.status}</span>
           <button className="btn primary" onClick={() => setTaskModalOpen(true)}>+ Add task</button>
         </div>
       </div>
@@ -137,8 +177,8 @@ export function ProjectView() {
                 <div className="item-sub">Wed 3:00pm · Service findings with project stakeholders</div>
               </div>
               <div className="list-item">
-                <div className="item-title">Stage gate review — Beta</div>
-                <div className="item-sub">Thu 2:00pm · All disciplines · Beta → Live readiness</div>
+                <div className="item-title">Stage gate review — {project.stage}</div>
+                <div className="item-sub">Thu 2:00pm · All disciplines · Stage readiness</div>
               </div>
             </div>
           </div>
@@ -211,7 +251,7 @@ export function ProjectView() {
       )}
 
       {activeTab === 'evidence' && (
-        <EvidencePanel projectId={CURRENT_PROJECT_ID} />
+        <EvidencePanel projectId={project.id} />
       )}
 
       {activeTab === 'resources' && (

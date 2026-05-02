@@ -1,7 +1,9 @@
 import { useAppContext } from '../AppContext';
 
 export function Sidebar() {
-  const { currentView, setCurrentView } = useAppContext();
+  const { currentView, setCurrentView, organisation, projects, teams, openProject, selectedProjectId } = useAppContext();
+  const teamById = new Map(teams.map(t => [t.id, t]));
+  const recentProjects = projects.slice(0, 4);
 
   return (
     <aside className="sidebar">
@@ -14,6 +16,7 @@ export function Sidebar() {
         </div>
         CanvasOps
       </div>
+      <div className="workspace-label">{organisation.name}</div>
 
       <div className="nav-label">Workspace</div>
       <button 
@@ -46,20 +49,31 @@ export function Sidebar() {
       >
         <span className="dot"></span>Project log
       </button>
+      <button
+        className={`nav-btn ${currentView === 'people' ? 'active' : ''}`}
+        onClick={() => setCurrentView('people')}
+      >
+        <span className="dot"></span>People &amp; Teams
+      </button>
 
       <div className="nav-label">Recent projects</div>
-      <button className="nav-btn" onClick={() => setCurrentView('project')}>
-        <span className="dot" style={{ color: 'var(--service)', opacity: 1 }}></span>
-        Appointment Booking
-      </button>
-      <button className="nav-btn" onClick={() => setCurrentView('project')}>
-        <span className="dot" style={{ color: 'var(--warn)', opacity: 1 }}></span>
-        Staff Portal v2
-      </button>
-      <button className="nav-btn" onClick={() => setCurrentView('project')}>
-        <span className="dot" style={{ color: 'var(--primary)', opacity: 1 }}></span>
-        Payment Journey
-      </button>
+      {recentProjects.map(p => {
+        const team = p.teamId ? teamById.get(p.teamId) : undefined;
+        const isActive = currentView === 'project' && selectedProjectId === p.id;
+        return (
+          <button
+            key={p.id}
+            className={`nav-btn ${isActive ? 'active' : ''}`}
+            onClick={() => openProject(p.id)}
+          >
+            <span className="dot" style={{ color: 'var(--service)', opacity: 1 }}></span>
+            <span className="nav-btn-text">
+              {p.name}
+              {team && <small className="nav-btn-sub">{team.name}</small>}
+            </span>
+          </button>
+        );
+      })}
     </aside>
   );
 }

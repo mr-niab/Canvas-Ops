@@ -1,4 +1,38 @@
-import { Project, Task, Stakeholder, LogEntry } from './types';
+import { Project, Task, Stakeholder, LogEntry, Organisation, Team, Teammate } from './types';
+
+export const initialOrganisation: Organisation = {
+  id: 'org1',
+  name: 'Northwind Design Studio',
+};
+
+export const initialTeammates: Teammate[] = [
+  { id: 'tm1', name: 'Jamie D.', email: 'jamie.d@example.com', role: 'Lead designer', teamIds: ['team1', 'team2'] },
+  { id: 'tm2', name: 'Sam T.', email: 'sam.t@example.com', role: 'Senior researcher', teamIds: ['team2'] },
+  { id: 'tm3', name: 'Alex W.', email: 'alex.w@example.com', role: 'Service designer', teamIds: ['team3'] },
+  { id: 'tm4', name: 'Anika P.', email: 'anika.p@example.com', role: 'Product designer', teamIds: ['team1'] },
+  { id: 'tm5', name: 'Tom K.', email: 'tom.k@example.com', role: 'Service design lead', teamIds: ['team3', 'team1'] },
+];
+
+export const initialTeams: Team[] = [
+  {
+    id: 'team1',
+    name: 'Digital Design',
+    description: 'UX/UI design across the product portfolio.',
+    teammateIds: ['tm1', 'tm4', 'tm5'],
+  },
+  {
+    id: 'team2',
+    name: 'Research & Insight',
+    description: 'User research, synthesis and stakeholder discovery.',
+    teammateIds: ['tm1', 'tm2'],
+  },
+  {
+    id: 'team3',
+    name: 'Service Design',
+    description: 'End-to-end service blueprints and operational design.',
+    teammateIds: ['tm3', 'tm5'],
+  },
+];
 
 export const initialProjects: Project[] = [
   {
@@ -12,6 +46,7 @@ export const initialProjects: Project[] = [
     progress: 4,
     totalProgress: 5,
     evidence: { files: [], boards: [] },
+    teamId: 'team1',
   },
   {
     id: 'p2',
@@ -24,6 +59,7 @@ export const initialProjects: Project[] = [
     progress: 3,
     totalProgress: 5,
     evidence: { files: [], boards: [] },
+    teamId: 'team2',
   },
   {
     id: 'p3',
@@ -36,6 +72,7 @@ export const initialProjects: Project[] = [
     progress: 1,
     totalProgress: 5,
     evidence: { files: [], boards: [] },
+    teamId: 'team3',
   },
   {
     id: 'p4',
@@ -48,6 +85,7 @@ export const initialProjects: Project[] = [
     progress: 5,
     totalProgress: 5,
     evidence: { files: [], boards: [] },
+    teamId: 'team1',
   },
 ];
 
