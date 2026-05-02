@@ -590,6 +590,36 @@ h1 {
   font-size: 13px;
 }
 
+.action-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.action-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.action-row-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.action-row-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.action-empty .item-sub {
+  max-width: 360px;
+}
+
 .page-head {
   display: flex;
   justify-content: space-between;

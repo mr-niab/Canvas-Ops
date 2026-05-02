@@ -117,6 +117,14 @@ export type Teammate = {
   teamIds: string[];
 };
 
+export type Action = {
+  id: string;
+  title: string;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AppState = {
   currentView: View;
   organisation: Organisation;

@@ -9,3 +9,4 @@ export * from "./tasks";
 export * from "./stakeholders";
 export * from "./logEntries";
 export * from "./evidence";
+export * from "./actions";

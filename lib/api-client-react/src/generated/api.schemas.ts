@@ -411,3 +411,23 @@ export interface ProjectEvidence {
   files: EvidenceFile[];
   boards: LinkedBoard[];
 }
+
+export interface Action {
+  id: string;
+  title: string;
+  note?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateActionRequest {
+  /** @minLength 1 */
+  title: string;
+  note?: string | null;
+}
+
+export interface UpdateActionRequest {
+  /** @minLength 1 */
+  title?: string;
+  note?: string | null;
+}

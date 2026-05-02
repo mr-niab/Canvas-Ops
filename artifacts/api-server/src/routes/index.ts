@@ -10,6 +10,7 @@ import stakeholdersRouter from "./stakeholders";
 import logEntriesRouter from "./logEntries";
 import storageRouter from "./storage";
 import evidenceRouter from "./evidence";
+import actionsRouter from "./actions";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(stakeholdersRouter);
 router.use(logEntriesRouter);
 router.use(storageRouter);
 router.use(evidenceRouter);
+router.use(actionsRouter);
 
 export default router;

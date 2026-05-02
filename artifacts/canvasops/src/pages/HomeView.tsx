@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useAppContext } from '../AppContext';
-import { Project } from '../types';
+import { Project, Action } from '../types';
 import { AddProjectModal } from '../components/forms/AddProjectModal';
+import { AddActionModal } from '../components/forms/AddActionModal';
 
 function ProjectCard({ project, teamName, onOpen }: { project: Project; teamName?: string; onOpen: () => void }) {
   return (
@@ -30,9 +32,102 @@ function ProjectCard({ project, teamName, onOpen }: { project: Project; teamName
   );
 }
 
+function ActionRow({
+  action,
+  onEdit,
+  onDelete,
+}: {
+  action: Action;
+  onEdit: () => void;
+  onDelete: () => Promise<void>;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const handleDelete = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await onDelete();
+    } finally {
+      setBusy(false);
+      setConfirming(false);
+    }
+  };
+
+  return (
+    <div className="list-item action-row">
+      <div className="action-row-text">
+        <div className="item-title">{action.title}</div>
+        {action.note && <div className="item-sub">{action.note}</div>}
+      </div>
+      <div className="action-row-controls">
+        {confirming ? (
+          <>
+            <button
+              type="button"
+              className="btn btn-icon"
+              onClick={() => setConfirming(false)}
+              disabled={busy}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-icon danger"
+              onClick={handleDelete}
+              disabled={busy}
+            >
+              {busy ? 'Deleting…' : 'Delete'}
+            </button>
+          </>
+        ) : (
+          <>
+            <button type="button" className="btn btn-icon" onClick={onEdit}>
+              Edit
+            </button>
+            <button
+              type="button"
+              className="btn btn-icon danger-text"
+              onClick={() => setConfirming(true)}
+            >
+              Delete
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function HomeView() {
-  const { projects, teams, openProject, setProjectModalOpen } = useAppContext();
+  const {
+    projects,
+    teams,
+    openProject,
+    setProjectModalOpen,
+    actions,
+    deleteAction,
+  } = useAppContext();
   const teamById = new Map(teams.map(t => [t.id, t]));
+
+  const [actionModalOpen, setActionModalOpen] = useState(false);
+  const [editingAction, setEditingAction] = useState<Action | null>(null);
+
+  const openAddAction = () => {
+    setEditingAction(null);
+    setActionModalOpen(true);
+  };
+
+  const openEditAction = (action: Action) => {
+    setEditingAction(action);
+    setActionModalOpen(true);
+  };
+
+  const closeActionModal = () => {
+    setActionModalOpen(false);
+    setEditingAction(null);
+  };
 
   return (
     <section>
@@ -74,24 +169,29 @@ export function HomeView() {
 
       <div className="grid-2">
         <div className="card">
-          <div className="list-item">
+          <div className="list-item action-head">
             <div className="section-title flush">My actions today</div>
+            <button type="button" className="btn btn-icon" onClick={openAddAction}>
+              + Add action
+            </button>
           </div>
-          <div className="list-item">
-            <div className="item-title">Review synthesis report</div>
-            <div className="item-sub">Staff Portal v2 · Research · Awaiting your comments</div>
-          </div>
-          <div className="list-item">
-            <div className="item-title">Update service blueprint</div>
-            <div className="item-sub">Appointment Booking · Service Design · Overdue</div>
-          </div>
-          <div className="list-item">
-            <div className="item-title">Approve stakeholder playback deck</div>
-            <div className="item-sub">Appointment Booking · UX/UI · Session Wed 3pm</div>
-          </div>
-          <div className="list-item">
-            <div className="item-title" style={{ color: 'var(--muted)', fontWeight: 400 }}>+ Add action</div>
-          </div>
+          {actions.length === 0 ? (
+            <div className="list-item action-empty">
+              <div className="item-title">Nothing on your plate yet</div>
+              <div className="item-sub">
+                Capture the things you want to get to today. Only you can see your list.
+              </div>
+            </div>
+          ) : (
+            actions.map((action) => (
+              <ActionRow
+                key={action.id}
+                action={action}
+                onEdit={() => openEditAction(action)}
+                onDelete={() => deleteAction(action.id)}
+              />
+            ))
+          )}
         </div>
 
         <div className="stack">
@@ -142,6 +242,11 @@ export function HomeView() {
       </div>
 
       <AddProjectModal />
+      <AddActionModal
+        isOpen={actionModalOpen}
+        onClose={closeActionModal}
+        editing={editingAction}
+      />
     </section>
   );
 }

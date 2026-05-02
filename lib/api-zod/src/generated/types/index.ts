@@ -7,7 +7,9 @@
  */
 
 export * from "./acceptInviteRequest";
+export * from "./action";
 export * from "./authUser";
+export * from "./createActionRequest";
 export * from "./createEvidenceFileRequest";
 export * from "./createInviteRequest";
 export * from "./createLinkedBoardRequest";
@@ -42,6 +44,7 @@ export * from "./task";
 export * from "./taskDiscipline";
 export * from "./team";
 export * from "./teammate";
+export * from "./updateActionRequest";
 export * from "./updateOrganisationRequest";
 export * from "./updateProjectRequest";
 export * from "./updateProjectRequestStage";

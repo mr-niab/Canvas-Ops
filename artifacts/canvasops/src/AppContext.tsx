@@ -22,10 +22,12 @@ import {
   Role,
   Membership,
   Invite,
+  Action,
 } from './types';
 import {
   addTeamMember as apiAddTeamMember,
   cancelInvite as apiCancelInvite,
+  createAction as apiCreateAction,
   createEvidenceFile as apiCreateEvidenceFile,
   createInvite as apiCreateInvite,
   createLinkedBoard as apiCreateLinkedBoard,
@@ -35,6 +37,7 @@ import {
   createTask as apiCreateTask,
   createTeam as apiCreateTeam,
   createTeammate as apiCreateTeammate,
+  deleteAction as apiDeleteAction,
   deleteEvidenceFile as apiDeleteEvidenceFile,
   deleteLinkedBoard as apiDeleteLinkedBoard,
   deleteProject as apiDeleteProject,
@@ -43,6 +46,7 @@ import {
   deleteTeammate as apiDeleteTeammate,
   getCurrentUser,
   getOrganisation,
+  listActions,
   listInvites,
   listLogEntries,
   listMembers,
@@ -52,6 +56,7 @@ import {
   listTasks,
   listTeammates,
   listTeams,
+  updateAction as apiUpdateAction,
   moveTask as apiMoveTask,
   removeMember as apiRemoveMember,
   removeTeamMember as apiRemoveTeamMember,
@@ -170,6 +175,22 @@ function normalizeTask(raw: {
   return t;
 }
 
+function normalizeAction(raw: {
+  id: string;
+  title: string;
+  note?: string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}): Action {
+  return {
+    id: raw.id,
+    title: raw.title,
+    note: raw.note ?? null,
+    createdAt: toIso(raw.createdAt),
+    updatedAt: toIso(raw.updatedAt),
+  };
+}
+
 function normalizeProject(raw: {
   id: string;
   name: string;
@@ -235,6 +256,7 @@ interface AppContextType {
   tasks: Task[];
   stakeholders: Stakeholder[];
   logEntries: LogEntry[];
+  actions: Action[];
 
   selectedProjectId: string | null;
   setSelectedProjectId: (id: string | null) => void;
@@ -266,6 +288,14 @@ interface AppContextType {
   deleteTask: (taskId: string) => Promise<void>;
   addStakeholder: (stakeholder: Omit<Stakeholder, 'id'>) => Promise<void>;
   addLogEntry: (entry: Omit<LogEntry, 'id'>) => Promise<void>;
+
+  // Personal actions ------------------------------------------------------
+  addAction: (input: { title: string; note?: string | null }) => Promise<void>;
+  updateAction: (
+    actionId: string,
+    updates: { title?: string; note?: string | null },
+  ) => Promise<void>;
+  deleteAction: (actionId: string) => Promise<void>;
 
   // Evidence (server-backed) ----------------------------------------------
   getProjectEvidence: (projectId: string) => EvidenceState;
@@ -352,6 +382,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [members, setMembers] = useState<Membership[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
+  const [actions, setActions] = useState<Action[]>([]);
 
   const [evidenceByProject, setEvidenceByProject] = useState<
     Record<string, EvidenceState>
@@ -384,6 +415,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       logRows,
       memberRows,
       inviteRows,
+      actionRows,
     ] = await Promise.all([
       getOrganisation(),
       listTeams(),
@@ -394,6 +426,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       listLogEntries(),
       listMembers(),
       role === 'owner' ? listInvites() : Promise.resolve([] as Awaited<ReturnType<typeof listInvites>>),
+      listActions(),
     ]);
     setMembers(
       memberRows.map((m) => ({
@@ -437,6 +470,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTasks(taskRows.map(normalizeTask));
     setStakeholders(stakeRows.map((s) => ({ ...s })));
     setLogEntries(logRows.map((l) => ({ ...l })));
+    setActions(actionRows.map(normalizeAction));
     setSelectedProjectId(normalizedProjects[0]?.id ?? null);
   }, []);
 
@@ -522,6 +556,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addLogEntry = useCallback(async (entry: Omit<LogEntry, 'id'>) => {
     const created = await apiCreateLogEntry(entry);
     setLogEntries((prev) => [{ ...created }, ...prev]);
+  }, []);
+
+  // -- Personal actions --------------------------------------------------
+  const addAction = useCallback(
+    async ({ title, note }: { title: string; note?: string | null }) => {
+      const trimmedTitle = title.trim();
+      if (!trimmedTitle) return;
+      const trimmedNote = typeof note === 'string' ? note.trim() : '';
+      const created = await apiCreateAction({
+        title: trimmedTitle,
+        note: trimmedNote ? trimmedNote : null,
+      });
+      const persisted = normalizeAction(created);
+      setActions((prev) => [persisted, ...prev.filter((a) => a.id !== persisted.id)]);
+    },
+    [],
+  );
+
+  const updateAction = useCallback(
+    async (
+      actionId: string,
+      updates: { title?: string; note?: string | null },
+    ) => {
+      const body: { title?: string; note?: string | null } = {};
+      if (updates.title !== undefined) body.title = updates.title.trim();
+      if (updates.note !== undefined) {
+        const next = typeof updates.note === 'string' ? updates.note.trim() : '';
+        body.note = next ? next : null;
+      }
+      const updated = await apiUpdateAction(actionId, body);
+      const persisted = normalizeAction(updated);
+      setActions((prev) => prev.map((a) => (a.id === actionId ? persisted : a)));
+    },
+    [],
+  );
+
+  const deleteAction = useCallback(async (actionId: string) => {
+    await apiDeleteAction(actionId);
+    setActions((prev) => prev.filter((a) => a.id !== actionId));
   }, []);
 
   // -- Evidence -----------------------------------------------------------
@@ -1022,6 +1095,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         tasks,
         stakeholders,
         logEntries,
+        actions,
+        addAction,
+        updateAction,
+        deleteAction,
         selectedProjectId,
         setSelectedProjectId,
         openProject,

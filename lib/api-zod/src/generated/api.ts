@@ -643,6 +643,62 @@ export const GetStorageObjectParams = zod.object({
 });
 
 /**
+ * @summary List the signed-in user's personal actions
+ */
+export const ListActionsResponseItem = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  note: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListActionsResponse = zod.array(ListActionsResponseItem);
+
+/**
+ * @summary Add a personal action
+ */
+
+export const CreateActionBody = zod.object({
+  title: zod.string().min(1),
+  note: zod.string().nullish(),
+});
+
+export const CreateActionResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  note: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update a personal action
+ */
+export const UpdateActionParams = zod.object({
+  actionId: zod.coerce.string(),
+});
+
+export const UpdateActionBody = zod.object({
+  title: zod.string().min(1).optional(),
+  note: zod.string().nullish(),
+});
+
+export const UpdateActionResponse = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  note: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a personal action
+ */
+export const DeleteActionParams = zod.object({
+  actionId: zod.coerce.string(),
+});
+
+/**
  * @summary List files and linked boards for a project
  */
 export const ListProjectEvidenceParams = zod.object({
