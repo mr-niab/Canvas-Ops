@@ -18,6 +18,7 @@ interface AppContextType {
   setLogModalOpen: (open: boolean) => void;
 
   addTask: (task: Omit<Task, 'id'>) => void;
+  moveTask: (taskId: string, targetDiscipline: Task['discipline'], targetIndex: number) => void;
   addStakeholder: (stakeholder: Omit<Stakeholder, 'id'>) => void;
   addLogEntry: (entry: Omit<LogEntry, 'id'>) => void;
 }
@@ -39,6 +40,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTasks(prev => [...prev, { ...task, id: `t${Date.now()}` }]);
   };
 
+  const moveTask = (taskId: string, targetDiscipline: Task['discipline'], targetIndex: number) => {
+    setTasks(prev => {
+      const moving = prev.find(t => t.id === taskId);
+      if (!moving) return prev;
+
+      const without = prev.filter(t => t.id !== taskId);
+      const updatedMoving: Task =
+        moving.discipline === targetDiscipline ? moving : { ...moving, discipline: targetDiscipline };
+
+      const targetLane = without.filter(t => t.discipline === targetDiscipline);
+      const clampedIndex = Math.max(0, Math.min(targetIndex, targetLane.length));
+      const newTargetLane = [...targetLane];
+      newTargetLane.splice(clampedIndex, 0, updatedMoving);
+
+      const result: Task[] = [];
+      let inserted = false;
+      for (const t of without) {
+        if (t.discipline === targetDiscipline) {
+          if (!inserted) {
+            result.push(...newTargetLane);
+            inserted = true;
+          }
+          continue;
+        }
+        result.push(t);
+      }
+      if (!inserted) result.push(...newTargetLane);
+      return result;
+    });
+  };
+
   const addStakeholder = (stakeholder: Omit<Stakeholder, 'id'>) => {
     setStakeholders(prev => [...prev, { ...stakeholder, id: `s${Date.now()}` }]);
   };
@@ -54,7 +86,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isTaskModalOpen, setTaskModalOpen,
       isStakeholderModalOpen, setStakeholderModalOpen,
       isLogModalOpen, setLogModalOpen,
-      addTask, addStakeholder, addLogEntry
+      addTask, moveTask, addStakeholder, addLogEntry
     }}>
       {children}
     </AppContext.Provider>
