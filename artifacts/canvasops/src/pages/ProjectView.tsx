@@ -8,6 +8,9 @@ import { TaskDetailModal } from '../components/forms/TaskDetailModal';
 import { StakeholdersTable } from '../components/StakeholdersTable';
 import { LogList } from '../components/LogList';
 import { BlockedByChip } from '../components/BlockedByChip';
+import { EvidencePanel } from '../components/EvidencePanel';
+
+const CURRENT_PROJECT_ID = 'p1';
 
 type Tab = 'overview' | 'workflow' | 'evidence' | 'stakeholders' | 'resources' | 'log';
 
@@ -58,7 +61,7 @@ function Lane({ discipline, label, color, tasks }: { discipline: Discipline; lab
 }
 
 export function ProjectView() {
-  const { setCurrentView, tasks, setTaskModalOpen, setStakeholderModalOpen, setLogModalOpen } = useAppContext();
+  const { setCurrentView, tasks, setTaskModalOpen, setStakeholderModalOpen, setLogModalOpen, getProjectEvidence } = useAppContext();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   const project = {
@@ -67,6 +70,8 @@ export function ProjectView() {
     currentStage: 'Beta' as const,
   };
   const currentIdx = STAGES.indexOf(project.currentStage);
+  const evidence = getProjectEvidence(CURRENT_PROJECT_ID);
+  const evidenceCount = evidence.files.length + evidence.boards.length;
 
   return (
     <section>
@@ -99,7 +104,9 @@ export function ProjectView() {
       <div className="tabs">
         <button className={`tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
         <button className={`tab ${activeTab === 'workflow' ? 'active' : ''}`} onClick={() => setActiveTab('workflow')}>Workflow</button>
-        <button className={`tab ${activeTab === 'evidence' ? 'active' : ''}`} onClick={() => setActiveTab('evidence')}>Evidence</button>
+        <button className={`tab ${activeTab === 'evidence' ? 'active' : ''}`} onClick={() => setActiveTab('evidence')}>
+          Evidence{evidenceCount > 0 && <span className="tab-count">{evidenceCount}</span>}
+        </button>
         <button className={`tab ${activeTab === 'stakeholders' ? 'active' : ''}`} onClick={() => setActiveTab('stakeholders')}>Stakeholders</button>
         <button className={`tab ${activeTab === 'resources' ? 'active' : ''}`} onClick={() => setActiveTab('resources')}>Resources</button>
         <button className={`tab ${activeTab === 'log' ? 'active' : ''}`} onClick={() => setActiveTab('log')}>Log</button>
@@ -204,10 +211,7 @@ export function ProjectView() {
       )}
 
       {activeTab === 'evidence' && (
-        <div className="card pad">
-          <div className="section-title">Evidence</div>
-          <p className="muted-meta">Coming soon — research artefacts, interview clips, and synthesis boards will live here.</p>
-        </div>
+        <EvidencePanel projectId={CURRENT_PROJECT_ID} />
       )}
 
       {activeTab === 'resources' && (

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { View, Project, Task, Stakeholder, LogEntry } from './types';
+import { View, Project, Task, Stakeholder, LogEntry, EvidenceFile, LinkedBoard, ProjectEvidence } from './types';
 import { initialProjects, initialTasks, initialStakeholders, initialLogEntries } from './data';
 
 const TASKS_STORAGE_KEY = 'canvasops:tasks:v1';
@@ -49,6 +49,19 @@ function loadPersistedTasks(): Task[] {
   }
 }
 
+function formatDateTime(date: Date): string {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = date.toLocaleString('en-GB', { month: 'short' });
+  const year = date.getFullYear();
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  return `${day} ${month} ${year} · ${hh}:${mm}`;
+}
+
+function uid(prefix: string): string {
+  return `${prefix}${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 interface AppContextType {
   currentView: View;
   setCurrentView: (view: View) => void;
@@ -72,13 +85,21 @@ interface AppContextType {
   updateTaskDependencies: (taskId: string, dependencies: string[]) => void;
   addStakeholder: (stakeholder: Omit<Stakeholder, 'id'>) => void;
   addLogEntry: (entry: Omit<LogEntry, 'id'>) => void;
+
+  getProjectEvidence: (projectId: string) => ProjectEvidence;
+  addEvidenceFile: (projectId: string, file: Omit<EvidenceFile, 'id' | 'addedAt'>) => void;
+  removeEvidenceFile: (projectId: string, fileId: string) => void;
+  addLinkedBoard: (projectId: string, board: Omit<LinkedBoard, 'id' | 'linkedAt'>) => void;
+  removeLinkedBoard: (projectId: string, boardId: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const EMPTY_EVIDENCE: ProjectEvidence = { files: [], boards: [] };
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentView, setCurrentView] = useState<View>('home');
-  const [projects] = useState<Project[]>(initialProjects);
+  const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [tasks, setTasks] = useState<Task[]>(loadPersistedTasks);
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>(initialStakeholders);
   const [logEntries, setLogEntries] = useState<LogEntry[]>(initialLogEntries);
@@ -146,7 +167,96 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addLogEntry = (entry: Omit<LogEntry, 'id'>) => {
-    setLogEntries(prev => [{ ...entry, id: `l${Date.now()}` }, ...prev]);
+    setLogEntries(prev => [{ ...entry, id: uid('l') }, ...prev]);
+  };
+
+  const getProjectEvidence = (projectId: string): ProjectEvidence => {
+    const project = projects.find(p => p.id === projectId);
+    return project?.evidence ?? EMPTY_EVIDENCE;
+  };
+
+  const addEvidenceFile = (projectId: string, file: Omit<EvidenceFile, 'id' | 'addedAt'>) => {
+    const newFile: EvidenceFile = {
+      ...file,
+      id: uid('ef'),
+      addedAt: new Date().toISOString(),
+    };
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? { ...p, evidence: { ...p.evidence, files: [newFile, ...p.evidence.files] } }
+        : p
+    ));
+    addLogEntry({
+      date: formatDateTime(new Date()),
+      actor: file.addedBy,
+      type: 'File',
+      typeClass: 'beta',
+      detail: `Added file "${file.name}" to Evidence.`,
+    });
+  };
+
+  const removeEvidenceFile = (projectId: string, fileId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    const removed = project.evidence.files.find(f => f.id === fileId);
+    if (!removed) return;
+
+    if (removed.previewUrl) {
+      try { URL.revokeObjectURL(removed.previewUrl); } catch { /* noop */ }
+    }
+
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? { ...p, evidence: { ...p.evidence, files: p.evidence.files.filter(f => f.id !== fileId) } }
+        : p
+    ));
+    addLogEntry({
+      date: formatDateTime(new Date()),
+      actor: removed.addedBy,
+      type: 'File',
+      typeClass: 'beta',
+      detail: `Removed file "${removed.name}" from Evidence.`,
+    });
+  };
+
+  const addLinkedBoard = (projectId: string, board: Omit<LinkedBoard, 'id' | 'linkedAt'>) => {
+    const newBoard: LinkedBoard = {
+      ...board,
+      id: uid('lb'),
+      linkedAt: new Date().toISOString(),
+    };
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? { ...p, evidence: { ...p.evidence, boards: [newBoard, ...p.evidence.boards] } }
+        : p
+    ));
+    addLogEntry({
+      date: formatDateTime(new Date()),
+      actor: board.linkedBy,
+      type: 'Board',
+      typeClass: 'disc',
+      detail: `Linked ${board.provider === 'miro' ? 'Miro' : 'FigJam'} board "${board.title}" to Evidence.`,
+    });
+  };
+
+  const removeLinkedBoard = (projectId: string, boardId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    const removed = project.evidence.boards.find(b => b.id === boardId);
+    if (!removed) return;
+
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? { ...p, evidence: { ...p.evidence, boards: p.evidence.boards.filter(b => b.id !== boardId) } }
+        : p
+    ));
+    addLogEntry({
+      date: formatDateTime(new Date()),
+      actor: removed.linkedBy,
+      type: 'Board',
+      typeClass: 'disc',
+      detail: `Unlinked ${removed.provider === 'miro' ? 'Miro' : 'FigJam'} board "${removed.title}" from Evidence.`,
+    });
   };
 
   return (
@@ -157,7 +267,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isStakeholderModalOpen, setStakeholderModalOpen,
       isLogModalOpen, setLogModalOpen,
       editingTaskId, setEditingTaskId,
-      addTask, moveTask, updateTaskDependencies, addStakeholder, addLogEntry
+      addTask, moveTask, updateTaskDependencies, addStakeholder, addLogEntry,
+      getProjectEvidence, addEvidenceFile, removeEvidenceFile, addLinkedBoard, removeLinkedBoard,
     }}>
       {children}
     </AppContext.Provider>

@@ -1184,6 +1184,215 @@ h1 {
   flex-wrap: wrap;
 }
 
+/* ---------------- evidence ---------------- */
+
+.evidence-stack {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.evidence-section-title {
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  margin: 0 0 var(--space-3);
+  color: var(--text);
+}
+
+.dropzone {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: var(--space-5);
+  text-align: center;
+  color: var(--muted);
+  background: var(--surface-2);
+  cursor: pointer;
+  transition:
+    border-color var(--transition),
+    background var(--transition),
+    color var(--transition);
+}
+
+.dropzone:hover {
+  border-color: var(--hover-border);
+  color: var(--text);
+}
+
+.dropzone:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: var(--focus-ring);
+  color: var(--text);
+}
+
+.dropzone.dragover {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+  color: var(--primary);
+}
+
+.dropzone-strong {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.dropzone.dragover .dropzone-strong {
+  color: var(--primary);
+}
+
+.dropzone-sub {
+  font-size: 12px;
+  margin-top: var(--space-1);
+}
+
+.evidence-list {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.evidence-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.evidence-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--surface-3);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.evidence-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.evidence-meta .item-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.evidence-empty {
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: var(--space-4);
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  background: var(--surface-2);
+}
+
+.board-form {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.board-form .field-input {
+  flex: 1;
+  min-width: 220px;
+}
+
+.board-list {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.board-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.board-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.board-card-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.board-card-meta .item-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-card-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.board-embed {
+  width: 100%;
+  height: 520px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  display: block;
+}
+
+.board-embed-fallback {
+  padding: var(--space-2) var(--space-3);
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.board-embed-fallback a {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.badge-miro {
+  background: #fff1c2;
+  color: #8a6d00;
+}
+
+.badge-figjam {
+  background: var(--research-bg);
+  color: var(--research);
+}
+
+.tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  background: var(--surface-3);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 18px;
+}
+
+.tab.active .tab-count {
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--primary);
+}
+
 /* ---------------- responsive ----------------
    Tighten the outer-rhythm tokens at the existing single breakpoint
    so the new spacing scale feels proportional on small screens.

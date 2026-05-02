@@ -4,6 +4,33 @@ export type Stage = 'Intake' | 'Discovery' | 'Alpha' | 'Beta' | 'Live';
 
 export type Discipline = 'UX/UI Design' | 'User Research' | 'Service Design';
 
+export type EvidenceFile = {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  addedBy: string;
+  addedAt: string;
+  previewUrl?: string;
+};
+
+export type BoardProvider = 'miro' | 'figjam';
+
+export type LinkedBoard = {
+  id: string;
+  provider: BoardProvider;
+  url: string;
+  embedUrl: string;
+  title: string;
+  linkedBy: string;
+  linkedAt: string;
+};
+
+export type ProjectEvidence = {
+  files: EvidenceFile[];
+  boards: LinkedBoard[];
+};
+
 export type Project = {
   id: string;
   name: string;
@@ -14,6 +41,7 @@ export type Project = {
   statusClass: string;
   progress: number;
   totalProgress: number;
+  evidence: ProjectEvidence;
 };
 
 export type Task = {
@@ -49,7 +77,7 @@ export type AppState = {
   tasks: Task[];
   stakeholders: Stakeholder[];
   logEntries: LogEntry[];
-  
+
   // Modals
   isTaskModalOpen: boolean;
   isStakeholderModalOpen: boolean;
