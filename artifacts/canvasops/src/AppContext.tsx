@@ -178,6 +178,7 @@ interface AppContextType {
 
   addTask: (task: Omit<Task, 'id'>) => void;
   moveTask: (taskId: string, targetDiscipline: Task['discipline'], targetIndex: number) => void;
+  updateTask: (taskId: string, updates: Partial<Pick<Task, 'title' | 'status' | 'discipline'>>) => void;
   updateTaskDependencies: (taskId: string, dependencies: string[]) => void;
   addStakeholder: (stakeholder: Omit<Stakeholder, 'id'>) => void;
   addLogEntry: (entry: Omit<LogEntry, 'id'>) => void;
@@ -317,6 +318,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!inserted) result.push(...newTargetLane);
       return result;
     });
+  };
+
+  const updateTask = (
+    taskId: string,
+    updates: Partial<Pick<Task, 'title' | 'status' | 'discipline'>>
+  ) => {
+    setTasks(prev =>
+      prev.map(t => {
+        if (t.id !== taskId) return t;
+        const next = { ...t };
+        if (updates.title !== undefined) {
+          const trimmed = updates.title.trim();
+          if (trimmed) next.title = trimmed;
+        }
+        if (updates.status !== undefined) {
+          const trimmed = updates.status.trim();
+          if (trimmed) next.status = trimmed;
+        }
+        if (updates.discipline !== undefined && VALID_DISCIPLINES.includes(updates.discipline)) {
+          next.discipline = updates.discipline;
+        }
+        return next;
+      })
+    );
   };
 
   const updateTaskDependencies = (taskId: string, dependencies: string[]) => {
@@ -563,7 +588,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isLogModalOpen, setLogModalOpen,
       isProjectModalOpen, setProjectModalOpen,
       editingTaskId, setEditingTaskId,
-      addTask, moveTask, updateTaskDependencies, addStakeholder, addLogEntry,
+      addTask, moveTask, updateTask, updateTaskDependencies, addStakeholder, addLogEntry,
       getProjectEvidence, addEvidenceFile, removeEvidenceFile, addLinkedBoard, removeLinkedBoard,
       renameOrganisation,
       addTeam, renameTeam, deleteTeam,

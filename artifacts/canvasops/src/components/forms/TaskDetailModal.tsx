@@ -1,22 +1,39 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAppContext } from '../../AppContext';
 import { Modal } from '../Modal';
-import { Task } from '../../types';
+import { Discipline, Task } from '../../types';
 import { wouldCreateCycle } from '../../lib/dependencies';
 import { DependencyPicker } from './DependencyPicker';
 
 export function TaskDetailModal() {
-  const { tasks, editingTaskId, setEditingTaskId, updateTaskDependencies } = useAppContext();
+  const { tasks, editingTaskId, setEditingTaskId, updateTask, updateTaskDependencies } = useAppContext();
   const task: Task | null = useMemo(
     () => (editingTaskId ? tasks.find(t => t.id === editingTaskId) ?? null : null),
     [editingTaskId, tasks]
   );
 
+  const [draftTitle, setDraftTitle] = useState('');
+  const [draftStatus, setDraftStatus] = useState('Backlog');
+  const [draftDiscipline, setDraftDiscipline] = useState<Discipline>('UX/UI Design');
   const [draftDeps, setDraftDeps] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const STATUS_PRESETS = [
+    'Backlog',
+    'Designing',
+    'In progress',
+    'In review',
+    'Needs review',
+    'Ready for session',
+    'Complete',
+    'Done',
+  ];
+
   useEffect(() => {
     if (task) {
+      setDraftTitle(task.title);
+      setDraftStatus(task.status);
+      setDraftDiscipline(task.discipline);
       setDraftDeps(task.dependencies ?? []);
       setError(null);
     }
@@ -46,20 +63,66 @@ export function TaskDetailModal() {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedTitle = draftTitle.trim();
+    if (!trimmedTitle) {
+      setError('Title is required.');
+      return;
+    }
     if (wouldCreateCycle(task.id, draftDeps, tasks)) {
       setError("That would create a circular dependency — two items can't depend on each other.");
       return;
     }
+    updateTask(task.id, {
+      title: trimmedTitle,
+      status: draftStatus.trim() || 'Backlog',
+      discipline: draftDiscipline,
+    });
     updateTaskDependencies(task.id, draftDeps);
     close();
   };
 
   return (
-    <Modal isOpen={!!editingTaskId} onClose={close} title={task.title}>
+    <Modal isOpen={!!editingTaskId} onClose={close} title="Edit task">
       <form onSubmit={handleSave} className="form-grid">
-        <div className="task-detail-meta">
-          <span className="badge disc">{task.discipline}</span>
-          <span className="muted-meta">{task.status}</span>
+        <div>
+          <label className="field-label">Title</label>
+          <input
+            className="field-input"
+            value={draftTitle}
+            onChange={e => {
+              setDraftTitle(e.target.value);
+              setError(null);
+            }}
+            autoFocus
+          />
+        </div>
+        <div>
+          <label className="field-label">Discipline</label>
+          <select
+            className="field-input"
+            value={draftDiscipline}
+            onChange={e => setDraftDiscipline(e.target.value as Discipline)}
+          >
+            <option value="UX/UI Design">UX / UI Design</option>
+            <option value="User Research">User Research</option>
+            <option value="Service Design">Service Design</option>
+          </select>
+        </div>
+        <div>
+          <label className="field-label" htmlFor="task-detail-status">Status</label>
+          <input
+            id="task-detail-status"
+            className="field-input"
+            list="task-detail-status-presets"
+            value={draftStatus}
+            onChange={e => setDraftStatus(e.target.value)}
+            placeholder="e.g. In progress"
+          />
+          <datalist id="task-detail-status-presets">
+            {STATUS_PRESETS.map(opt => (
+              <option key={opt} value={opt} />
+            ))}
+          </datalist>
         </div>
         <div>
           <label className="field-label">Depends on</label>
