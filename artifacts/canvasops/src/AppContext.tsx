@@ -4,6 +4,12 @@ import { initialProjects, initialTasks, initialStakeholders, initialLogEntries }
 
 const TASKS_STORAGE_KEY = 'canvasops:tasks:v1';
 
+const VALID_DISCIPLINES: ReadonlyArray<Task['discipline']> = [
+  'UX/UI Design',
+  'User Research',
+  'Service Design',
+];
+
 function loadPersistedTasks(): Task[] {
   if (typeof window === 'undefined') return initialTasks;
   try {
@@ -18,7 +24,7 @@ function loadPersistedTasks(): Task[] {
         typeof (t as Task).id === 'string' &&
         typeof (t as Task).title === 'string' &&
         typeof (t as Task).status === 'string' &&
-        typeof (t as Task).discipline === 'string'
+        VALID_DISCIPLINES.includes((t as Task).discipline)
     );
     return valid ? (parsed as Task[]) : initialTasks;
   } catch {
