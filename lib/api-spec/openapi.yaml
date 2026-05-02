@@ -1095,6 +1095,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Action'
+        '400':
+          description: Invalid request body or empty title.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Not signed in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           description: Not found.
           content:
@@ -1114,6 +1126,18 @@ paths:
       responses:
         '204':
           description: Action deleted.
+        '400':
+          description: Invalid request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: Not signed in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           description: Not found.
           content:
