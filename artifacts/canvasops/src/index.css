@@ -51,6 +51,26 @@
   --hover-tint: rgba(40, 37, 29, 0.04);
   --hover-border: rgba(1, 105, 111, 0.45);
   --focus-ring: 0 0 0 3px rgba(1, 105, 111, 0.28);
+
+  /* Heading typography tokens — single source of truth for every heading.
+     Sizes are intentionally compact so headings sit proportional to body text.
+     --fs-h1       page titles (h1)
+     --fs-section  section titles & modal titles
+     --fs-kpi      kpi numbers (.kpi strong)
+     --fs-brand    sidebar brand wordmark
+     --fw-display  weight for display headings (h1, kpi, brand)
+     --fw-section  weight for sub-headings (section / modal titles)
+     --tracking-*  matching letter-spacing for each grouping
+  */
+  --fs-h1: 26px;
+  --fs-section: 17px;
+  --fs-kpi: 22px;
+  --fs-brand: 18px;
+  --fw-display: 800;
+  --fw-section: 700;
+  --tracking-display: -0.045em;
+  --tracking-section: -0.025em;
+  --tracking-brand: -0.04em;
 }
 
 * {
@@ -92,10 +112,9 @@ button {
 }
 
 .brand {
-  font-family: "Inter", sans-serif;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  font-size: var(--fs-brand);
+  font-weight: var(--fw-display);
+  letter-spacing: var(--tracking-brand);
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -245,11 +264,10 @@ button {
 }
 
 h1 {
-  font-family: "Inter", sans-serif;
-  font-weight: 800;
-  font-size: 34px;
+  font-weight: var(--fw-display);
+  font-size: var(--fs-h1);
   line-height: 1.05;
-  letter-spacing: -0.045em;
+  letter-spacing: var(--tracking-display);
   margin: 0 0 var(--space-2);
   color: var(--text);
 }
@@ -276,10 +294,9 @@ h1 {
 }
 
 .section-title {
-  font-family: "Inter", sans-serif;
-  font-weight: 700;
-  font-size: 20px;
-  letter-spacing: -0.025em;
+  font-weight: var(--fw-section);
+  font-size: var(--fs-section);
+  letter-spacing: var(--tracking-section);
   margin: 0 0 var(--space-4);
   color: var(--text);
 }
@@ -816,10 +833,9 @@ h1 {
 
 .kpi strong {
   display: block;
-  font-size: 28px;
-  font-family: "Inter", sans-serif;
-  font-weight: 800;
-  letter-spacing: -0.045em;
+  font-size: var(--fs-kpi);
+  font-weight: var(--fw-display);
+  letter-spacing: var(--tracking-display);
   color: var(--text);
 }
 
@@ -1047,10 +1063,9 @@ h1 {
 
 .modal-title {
   margin: 0;
-  font-size: 20px;
-  font-family: "Inter", sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-size: var(--fs-section);
+  font-weight: var(--fw-section);
+  letter-spacing: var(--tracking-section);
 }
 
 /* ---------------- forms ---------------- */
