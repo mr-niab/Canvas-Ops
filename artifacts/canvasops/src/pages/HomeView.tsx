@@ -61,19 +61,31 @@ export function HomeView() {
       </div>
 
       <div className="card pad">
-        <div className="project-strip">
-          {projects.map((p) => {
-            const team = p.teamId ? teamById.get(p.teamId) : undefined;
-            return (
-              <ProjectCard
-                key={p.id}
-                project={p}
-                teamName={team?.name}
-                onOpen={() => openProject(p.id)}
-              />
-            );
-          })}
-        </div>
+        {projects.length === 0 ? (
+          <div className="project-strip-empty">
+            <h3 className="project-strip-empty-title">No projects yet</h3>
+            <p className="project-strip-empty-sub">
+              Create a project to start tracking workflow, evidence, and stakeholders.
+            </p>
+            <button className="btn primary" onClick={() => setProjectModalOpen(true)}>
+              Create your first project
+            </button>
+          </div>
+        ) : (
+          <div className="project-strip">
+            {projects.map((p) => {
+              const team = p.teamId ? teamById.get(p.teamId) : undefined;
+              return (
+                <ProjectCard
+                  key={p.id}
+                  project={p}
+                  teamName={team?.name}
+                  onOpen={() => openProject(p.id)}
+                />
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="grid-2">
