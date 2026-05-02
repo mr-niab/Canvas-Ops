@@ -180,6 +180,7 @@ interface AppContextType {
   moveTask: (taskId: string, targetDiscipline: Task['discipline'], targetIndex: number) => void;
   updateTask: (taskId: string, updates: Partial<Pick<Task, 'title' | 'status' | 'discipline'>>) => void;
   updateTaskDependencies: (taskId: string, dependencies: string[]) => void;
+  deleteTask: (taskId: string) => void;
   addStakeholder: (stakeholder: Omit<Stakeholder, 'id'>) => void;
   addLogEntry: (entry: Omit<LogEntry, 'id'>) => void;
 
@@ -348,6 +349,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTasks(prev =>
       prev.map(t => (t.id === taskId ? { ...t, dependencies: [...dependencies] } : t))
     );
+  };
+
+  const deleteTask = (taskId: string) => {
+    setTasks(prev =>
+      prev
+        .filter(t => t.id !== taskId)
+        .map(t =>
+          t.dependencies && t.dependencies.includes(taskId)
+            ? { ...t, dependencies: t.dependencies.filter(id => id !== taskId) }
+            : t
+        )
+    );
+    setEditingTaskId(null);
   };
 
   const addStakeholder = (stakeholder: Omit<Stakeholder, 'id'>) => {
@@ -588,7 +602,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isLogModalOpen, setLogModalOpen,
       isProjectModalOpen, setProjectModalOpen,
       editingTaskId, setEditingTaskId,
-      addTask, moveTask, updateTask, updateTaskDependencies, addStakeholder, addLogEntry,
+      addTask, moveTask, updateTask, updateTaskDependencies, deleteTask, addStakeholder, addLogEntry,
       getProjectEvidence, addEvidenceFile, removeEvidenceFile, addLinkedBoard, removeLinkedBoard,
       renameOrganisation,
       addTeam, renameTeam, deleteTeam,

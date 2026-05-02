@@ -6,7 +6,7 @@ import { wouldCreateCycle } from '../../lib/dependencies';
 import { DependencyPicker } from './DependencyPicker';
 
 export function TaskDetailModal() {
-  const { tasks, editingTaskId, setEditingTaskId, updateTask, updateTaskDependencies } = useAppContext();
+  const { tasks, editingTaskId, setEditingTaskId, updateTask, updateTaskDependencies, deleteTask } = useAppContext();
   const task: Task | null = useMemo(
     () => (editingTaskId ? tasks.find(t => t.id === editingTaskId) ?? null : null),
     [editingTaskId, tasks]
@@ -17,6 +17,7 @@ export function TaskDetailModal() {
   const [draftDiscipline, setDraftDiscipline] = useState<Discipline>('UX/UI Design');
   const [draftDeps, setDraftDeps] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const STATUS_PRESETS = [
     'Backlog',
@@ -36,12 +37,14 @@ export function TaskDetailModal() {
       setDraftDiscipline(task.discipline);
       setDraftDeps(task.dependencies ?? []);
       setError(null);
+      setConfirmingDelete(false);
     }
   }, [task]);
 
   const close = () => {
     setEditingTaskId(null);
     setError(null);
+    setConfirmingDelete(false);
   };
 
   // Pre-compute which other tasks would create a cycle if added — so we can
@@ -80,6 +83,14 @@ export function TaskDetailModal() {
     updateTaskDependencies(task.id, draftDeps);
     close();
   };
+
+  const handleDelete = () => {
+    deleteTask(task.id);
+  };
+
+  const dependentCount = tasks.filter(
+    t => t.id !== task.id && (t.dependencies ?? []).includes(task.id)
+  ).length;
 
   return (
     <Modal isOpen={!!editingTaskId} onClose={close} title="Edit task">
@@ -139,9 +150,41 @@ export function TaskDetailModal() {
           />
         </div>
         {error && <div className="form-error" role="alert">{error}</div>}
-        <div className="form-actions">
-          <button type="button" className="btn" onClick={close}>Cancel</button>
-          <button type="submit" className="btn primary">Save</button>
+        {confirmingDelete && (
+          <div className="form-confirm" role="alertdialog" aria-label="Confirm delete">
+            <div className="form-confirm-text">
+              Delete <strong>"{task.title}"</strong>? This can't be undone.
+              {dependentCount > 0 && (
+                <div className="form-confirm-meta">
+                  {dependentCount === 1
+                    ? '1 other item depends on this — its "Blocked by" chip will be removed.'
+                    : `${dependentCount} other items depend on this — their "Blocked by" chips will be removed.`}
+                </div>
+              )}
+            </div>
+            <div className="form-confirm-actions">
+              <button type="button" className="btn" onClick={() => setConfirmingDelete(false)}>
+                Keep
+              </button>
+              <button type="button" className="btn danger" onClick={handleDelete}>
+                Yes, delete
+              </button>
+            </div>
+          </div>
+        )}
+        <div className="form-actions form-actions-split">
+          <button
+            type="button"
+            className="btn danger-text"
+            onClick={() => setConfirmingDelete(true)}
+            disabled={confirmingDelete}
+          >
+            Delete task
+          </button>
+          <div className="cluster-sm">
+            <button type="button" className="btn" onClick={close}>Cancel</button>
+            <button type="submit" className="btn primary">Save</button>
+          </div>
         </div>
       </form>
     </Modal>
