@@ -37,7 +37,7 @@ body {
 }
 
 body {
-  font-family: "Satoshi", sans-serif;
+  font-family: "Inter", sans-serif;
   background: var(--bg);
   color: var(--text);
   font-size: 14px;
@@ -65,10 +65,10 @@ button {
 }
 
 .brand {
-  font-family: "Cabinet Grotesk", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 22px;
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -195,10 +195,11 @@ button {
 }
 
 h1 {
-  font-family: "Cabinet Grotesk", sans-serif;
+  font-family: "Inter", sans-serif;
+  font-weight: 800;
   font-size: 34px;
   line-height: 1.05;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.045em;
   margin: 0 0 6px;
   color: var(--text);
 }
@@ -221,9 +222,10 @@ h1 {
 }
 
 .section-title {
-  font-family: "Cabinet Grotesk", sans-serif;
+  font-family: "Inter", sans-serif;
+  font-weight: 700;
   font-size: 20px;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.025em;
   margin: 0 0 14px;
   color: var(--text);
 }
@@ -559,8 +561,9 @@ h1 {
 .kpi strong {
   display: block;
   font-size: 28px;
-  font-family: "Cabinet Grotesk", sans-serif;
-  letter-spacing: -0.04em;
+  font-family: "Inter", sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.045em;
   color: var(--text);
 }
 

@@ -40,7 +40,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
     >
       <div style={{ padding: '20px', display: 'grid', gap: '16px' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0, fontSize: '20px', fontFamily: '"Cabinet Grotesk", sans-serif' }}>{title}</h2>
+          <h2 style={{ margin: 0, fontSize: '20px', fontFamily: '"Inter", sans-serif', fontWeight: 700, letterSpacing: '-0.025em' }}>{title}</h2>
           <button className="btn" style={{ padding: '4px 8px' }} onClick={onClose}>Close</button>
         </div>
         {children}
