@@ -635,6 +635,26 @@ h1 {
   gap: var(--space-3);
 }
 
+.action-row-checkbox {
+  margin-top: 4px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.action-row-done .item-title {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.action-row-done .item-sub {
+  opacity: 0.6;
+}
+
+.action-done-head {
+  border-top: 1px solid var(--border, #e5e7eb);
+  padding-top: var(--space-2);
+}
+
 .action-row-text {
   min-width: 0;
   flex: 1;

@@ -2030,7 +2030,7 @@ components:
 
     Action:
       type: object
-      required: [id, title, createdAt, updatedAt]
+      required: [id, title, createdAt, updatedAt, completedAt]
       properties:
         id:
           type: string
@@ -2045,6 +2045,10 @@ components:
         updatedAt:
           type: string
           format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
     CreateActionRequest:
       type: object
       required: [title]
@@ -2063,6 +2067,10 @@ components:
           minLength: 1
         note:
           type: string
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
           nullable: true
     ProjectSession:
       type: object

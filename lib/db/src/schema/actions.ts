@@ -20,6 +20,7 @@ export const actionsTable = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
   },
   (t) => ({
     actionsOrgUserIdx: index("actions_org_user_idx").on(

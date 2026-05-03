@@ -138,6 +138,7 @@ export type Action = {
   note: string | null;
   createdAt: string;
   updatedAt: string;
+  completedAt: string | null;
 };
 
 export type AppState = {

@@ -43,13 +43,17 @@ function ActionRow({
   action,
   onEdit,
   onDelete,
+  onToggleComplete,
 }: {
   action: Action;
   onEdit: () => void;
   onDelete: () => Promise<void>;
+  onToggleComplete: (next: boolean) => Promise<void>;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [toggling, setToggling] = useState(false);
+  const isDone = !!action.completedAt;
 
   const handleDelete = async () => {
     if (busy) return;
@@ -62,8 +66,26 @@ function ActionRow({
     }
   };
 
+  const handleToggle = async () => {
+    if (toggling) return;
+    setToggling(true);
+    try {
+      await onToggleComplete(!isDone);
+    } finally {
+      setToggling(false);
+    }
+  };
+
   return (
-    <div className="list-item action-row">
+    <div className={`list-item action-row${isDone ? ' action-row-done' : ''}`}>
+      <input
+        type="checkbox"
+        className="action-row-checkbox"
+        checked={isDone}
+        disabled={toggling}
+        onChange={handleToggle}
+        aria-label={isDone ? 'Mark as not done' : 'Mark as done'}
+      />
       <div className="action-row-text">
         <div className="item-title">{action.title}</div>
         {action.note && <div className="item-sub">{action.note}</div>}
@@ -115,6 +137,7 @@ export function HomeView() {
     setProjectModalOpen,
     actions,
     deleteAction,
+    updateAction,
     upcomingSessions,
     loadUpcomingSessions,
   } = useAppContext();
@@ -196,14 +219,45 @@ export function HomeView() {
               </div>
             </div>
           ) : (
-            actions.map((action) => (
-              <ActionRow
-                key={action.id}
-                action={action}
-                onEdit={() => openEditAction(action)}
-                onDelete={() => deleteAction(action.id)}
-              />
-            ))
+            <>
+              {actions
+                .filter((a) => !a.completedAt)
+                .map((action) => (
+                  <ActionRow
+                    key={action.id}
+                    action={action}
+                    onEdit={() => openEditAction(action)}
+                    onDelete={() => deleteAction(action.id)}
+                    onToggleComplete={(next) =>
+                      updateAction(action.id, {
+                        completedAt: next ? new Date().toISOString() : null,
+                      })
+                    }
+                  />
+                ))}
+              {actions.some((a) => a.completedAt) && (
+                <>
+                  <div className="list-item action-done-head">
+                    <div className="item-sub">Done today</div>
+                  </div>
+                  {actions
+                    .filter((a) => a.completedAt)
+                    .map((action) => (
+                      <ActionRow
+                        key={action.id}
+                        action={action}
+                        onEdit={() => openEditAction(action)}
+                        onDelete={() => deleteAction(action.id)}
+                        onToggleComplete={(next) =>
+                          updateAction(action.id, {
+                            completedAt: next ? new Date().toISOString() : null,
+                          })
+                        }
+                      />
+                    ))}
+                </>
+              )}
+            </>
           )}
         </div>
 

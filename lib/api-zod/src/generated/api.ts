@@ -781,6 +781,7 @@ export const ListActionsResponseItem = zod.object({
   note: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
+  completedAt: zod.coerce.date().nullable(),
 });
 export const ListActionsResponse = zod.array(ListActionsResponseItem);
 
@@ -799,6 +800,7 @@ export const CreateActionResponse = zod.object({
   note: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
+  completedAt: zod.coerce.date().nullable(),
 });
 
 /**
@@ -811,6 +813,7 @@ export const UpdateActionParams = zod.object({
 export const UpdateActionBody = zod.object({
   title: zod.string().min(1).optional(),
   note: zod.string().nullish(),
+  completedAt: zod.coerce.date().nullish(),
 });
 
 export const UpdateActionResponse = zod.object({
@@ -819,6 +822,7 @@ export const UpdateActionResponse = zod.object({
   note: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
+  completedAt: zod.coerce.date().nullable(),
 });
 
 /**

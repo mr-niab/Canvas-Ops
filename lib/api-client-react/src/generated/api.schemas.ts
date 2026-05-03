@@ -424,6 +424,7 @@ export interface Action {
   note?: string | null;
   createdAt: string;
   updatedAt: string;
+  completedAt: string | null;
 }
 
 export interface CreateActionRequest {
@@ -436,6 +437,7 @@ export interface UpdateActionRequest {
   /** @minLength 1 */
   title?: string;
   note?: string | null;
+  completedAt?: string | null;
 }
 
 export interface ProjectSession {

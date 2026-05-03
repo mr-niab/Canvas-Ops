@@ -24,6 +24,7 @@ function serialize(row: ActionRow) {
     note: row.note ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+    completedAt: row.completedAt ? row.completedAt.toISOString() : null,
   };
 }
 
@@ -96,6 +97,11 @@ router.patch("/actions/:actionId", async (req, res: Response) => {
     if (body.data.note !== undefined) {
       const next = body.data.note?.trim();
       updates.note = next ? next : null;
+    }
+    if (body.data.completedAt !== undefined) {
+      updates.completedAt = body.data.completedAt
+        ? new Date(body.data.completedAt)
+        : null;
     }
     const [row] = await db
       .update(actionsTable)

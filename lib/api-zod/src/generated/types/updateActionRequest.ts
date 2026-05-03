@@ -10,4 +10,5 @@ export interface UpdateActionRequest {
   /** @minLength 1 */
   title?: string;
   note?: string | null;
+  completedAt?: Date | null;
 }

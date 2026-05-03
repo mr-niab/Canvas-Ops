@@ -189,6 +189,7 @@ function normalizeAction(raw: {
   note?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
+  completedAt?: Date | string | null;
 }): Action {
   return {
     id: raw.id,
@@ -196,6 +197,7 @@ function normalizeAction(raw: {
     note: raw.note ?? null,
     createdAt: toIso(raw.createdAt),
     updatedAt: toIso(raw.updatedAt),
+    completedAt: raw.completedAt ? toIso(raw.completedAt) : null,
   };
 }
 
@@ -340,7 +342,7 @@ interface AppContextType {
   addAction: (input: { title: string; note?: string | null }) => Promise<void>;
   updateAction: (
     actionId: string,
-    updates: { title?: string; note?: string | null },
+    updates: { title?: string; note?: string | null; completedAt?: string | null },
   ) => Promise<void>;
   deleteAction: (actionId: string) => Promise<void>;
 
@@ -666,14 +668,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateAction = useCallback(
     async (
       actionId: string,
-      updates: { title?: string; note?: string | null },
+      updates: { title?: string; note?: string | null; completedAt?: string | null },
     ) => {
-      const body: { title?: string; note?: string | null } = {};
+      const body: { title?: string; note?: string | null; completedAt?: string | null } = {};
       if (updates.title !== undefined) body.title = updates.title.trim();
       if (updates.note !== undefined) {
         const next = typeof updates.note === 'string' ? updates.note.trim() : '';
         body.note = next ? next : null;
       }
+      if (updates.completedAt !== undefined) body.completedAt = updates.completedAt;
       const updated = await apiUpdateAction(actionId, body);
       const persisted = normalizeAction(updated);
       setActions((prev) => prev.map((a) => (a.id === actionId ? persisted : a)));
