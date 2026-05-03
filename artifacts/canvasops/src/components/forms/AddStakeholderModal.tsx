@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useAppContext } from '../../AppContext';
 import { Modal } from '../Modal';
 
@@ -10,14 +10,28 @@ const STATUS_OPTIONS: Array<{ label: string; cls: string }> = [
 ];
 
 export function AddStakeholderModal() {
-  const { isStakeholderModalOpen, setStakeholderModalOpen, addStakeholder } = useAppContext();
+  const {
+    isStakeholderModalOpen,
+    setStakeholderModalOpen,
+    addStakeholder,
+    projects,
+    stakeholderDepartments,
+  } = useAppContext();
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [email, setEmail] = useState('');
   const [statusIdx, setStatusIdx] = useState(0);
+  const [projectId, setProjectId] = useState('');
+  const [department, setDepartment] = useState('');
+  const datalistId = useId();
 
   const reset = () => {
-    setName(''); setRole(''); setEmail(''); setStatusIdx(0);
+    setName('');
+    setRole('');
+    setEmail('');
+    setStatusIdx(0);
+    setProjectId('');
+    setDepartment('');
   };
 
   const close = () => {
@@ -29,6 +43,7 @@ export function AddStakeholderModal() {
     e.preventDefault();
     if (!name.trim()) return;
     const status = STATUS_OPTIONS[statusIdx];
+    const trimmedDept = department.trim();
     addStakeholder({
       name: name.trim(),
       role: role.trim() || '—',
@@ -36,6 +51,8 @@ export function AddStakeholderModal() {
       lastContacted: '—',
       status: status.label,
       statusClass: status.cls,
+      projectId: projectId || null,
+      department: trimmedDept || null,
     });
     close();
   };
@@ -54,6 +71,26 @@ export function AddStakeholderModal() {
         <div>
           <label className="field-label">Email</label>
           <input className="field-input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" />
+        </div>
+        <div>
+          <label className="field-label">Project</label>
+          <select className="field-input" value={projectId} onChange={e => setProjectId(e.target.value)}>
+            <option value="">No project</option>
+            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="field-label">Department</label>
+          <input
+            className="field-input"
+            value={department}
+            onChange={e => setDepartment(e.target.value)}
+            placeholder="e.g. Design, Engineering"
+            list={datalistId}
+          />
+          <datalist id={datalistId}>
+            {stakeholderDepartments.map(d => <option key={d} value={d} />)}
+          </datalist>
         </div>
         <div>
           <label className="field-label">Status</label>

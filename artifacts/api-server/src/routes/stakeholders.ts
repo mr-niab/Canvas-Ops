@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Response } from "express";
 import { randomUUID } from "node:crypto";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNotNull, ne } from "drizzle-orm";
 import {
   CreateStakeholderBody,
   CreateStakeholderResponse,
@@ -8,7 +8,12 @@ import {
   UpdateStakeholderBody,
   UpdateStakeholderResponse,
 } from "@workspace/api-zod";
-import { db, stakeholdersTable, type StakeholderRow } from "@workspace/db";
+import {
+  db,
+  projectsTable,
+  stakeholdersTable,
+  type StakeholderRow,
+} from "@workspace/db";
 import { requireAuth, type AuthedRequest } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
@@ -24,7 +29,35 @@ function serialize(row: StakeholderRow) {
     lastContacted: row.lastContacted,
     status: row.status,
     statusClass: row.statusClass,
+    projectId: row.projectId ?? null,
+    department: row.department ?? null,
   };
+}
+
+function normalizeOptionalText(value: string | null | undefined): string | null {
+  if (value === undefined || value === null) return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+async function resolveProjectId(
+  organisationId: string,
+  projectId: string | null | undefined,
+): Promise<{ ok: true; value: string | null } | { ok: false }> {
+  if (projectId === undefined || projectId === null || projectId === "") {
+    return { ok: true, value: null };
+  }
+  const [row] = await db
+    .select({ id: projectsTable.id })
+    .from(projectsTable)
+    .where(
+      and(
+        eq(projectsTable.id, projectId),
+        eq(projectsTable.organisationId, organisationId),
+      ),
+    );
+  if (!row) return { ok: false };
+  return { ok: true, value: row.id };
 }
 
 router.get("/stakeholders", async (req, res: Response) => {
@@ -42,6 +75,30 @@ router.get("/stakeholders", async (req, res: Response) => {
   }
 });
 
+router.get("/stakeholders/departments", async (req, res: Response) => {
+  const organisationId = (req as AuthedRequest).organisationId;
+  try {
+    const rows = await db
+      .selectDistinct({ department: stakeholdersTable.department })
+      .from(stakeholdersTable)
+      .where(
+        and(
+          eq(stakeholdersTable.organisationId, organisationId),
+          isNotNull(stakeholdersTable.department),
+          ne(stakeholdersTable.department, ""),
+        ),
+      );
+    const list = rows
+      .map((r) => r.department ?? "")
+      .filter((d) => d.length > 0)
+      .sort((a, b) => a.localeCompare(b));
+    res.json(list);
+  } catch (error) {
+    req.log.error({ err: error }, "Failed to list stakeholder departments");
+    res.status(500).json({ error: "Failed to list stakeholder departments" });
+  }
+});
+
 router.post("/stakeholders", async (req, res: Response) => {
   const organisationId = (req as AuthedRequest).organisationId;
   const body = CreateStakeholderBody.safeParse(req.body);
@@ -50,6 +107,11 @@ router.post("/stakeholders", async (req, res: Response) => {
     return;
   }
   try {
+    const project = await resolveProjectId(organisationId, body.data.projectId);
+    if (!project.ok) {
+      res.status(400).json({ error: "Invalid projectId" });
+      return;
+    }
     const [row] = await db
       .insert(stakeholdersTable)
       .values({
@@ -61,6 +123,8 @@ router.post("/stakeholders", async (req, res: Response) => {
         lastContacted: body.data.lastContacted?.trim() || "—",
         status: body.data.status?.trim() || "Not contacted",
         statusClass: body.data.statusClass?.trim() || "blocked",
+        projectId: project.value,
+        department: normalizeOptionalText(body.data.department),
       })
       .returning();
     res.json(CreateStakeholderResponse.parse(serialize(row)));
@@ -89,6 +153,17 @@ router.patch("/stakeholders/:stakeholderId", async (req, res: Response) => {
       updates.status = body.data.status.trim() || "Not contacted";
     if (body.data.statusClass !== undefined)
       updates.statusClass = body.data.statusClass.trim() || "blocked";
+    if (body.data.projectId !== undefined) {
+      const project = await resolveProjectId(organisationId, body.data.projectId);
+      if (!project.ok) {
+        res.status(400).json({ error: "Invalid projectId" });
+        return;
+      }
+      updates.projectId = project.value;
+    }
+    if (body.data.department !== undefined) {
+      updates.department = normalizeOptionalText(body.data.department);
+    }
 
     if (Object.keys(updates).length === 0) {
       const [existing] = await db

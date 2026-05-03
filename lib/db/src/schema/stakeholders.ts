@@ -1,5 +1,6 @@
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { organisationsTable } from "./organisations";
+import { projectsTable } from "./projects";
 
 export const stakeholdersTable = pgTable("stakeholders", {
   id: text("id").primaryKey(),
@@ -12,6 +13,10 @@ export const stakeholdersTable = pgTable("stakeholders", {
   lastContacted: text("last_contacted").notNull().default("—"),
   status: text("status").notNull().default("Not contacted"),
   statusClass: text("status_class").notNull().default("blocked"),
+  projectId: text("project_id").references(() => projectsTable.id, {
+    onDelete: "set null",
+  }),
+  department: text("department"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

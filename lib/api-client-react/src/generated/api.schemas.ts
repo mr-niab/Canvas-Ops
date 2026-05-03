@@ -268,6 +268,8 @@ export interface Stakeholder {
   lastContacted: string;
   status: string;
   statusClass: string;
+  projectId?: string | null;
+  department?: string | null;
 }
 
 export interface CreateStakeholderRequest {
@@ -278,6 +280,8 @@ export interface CreateStakeholderRequest {
   lastContacted?: string;
   status?: string;
   statusClass?: string;
+  projectId?: string | null;
+  department?: string | null;
 }
 
 export interface UpdateStakeholderRequest {
@@ -288,6 +292,8 @@ export interface UpdateStakeholderRequest {
   lastContacted?: string;
   status?: string;
   statusClass?: string;
+  projectId?: string | null;
+  department?: string | null;
 }
 
 export interface LogEntry {

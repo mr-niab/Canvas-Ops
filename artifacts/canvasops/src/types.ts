@@ -67,6 +67,8 @@ export type Stakeholder = {
   lastContacted: string;
   status: string;
   statusClass: string;
+  projectId?: string | null;
+  department?: string | null;
 };
 
 export type LogEntry = {

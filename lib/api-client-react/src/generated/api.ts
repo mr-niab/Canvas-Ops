@@ -2852,6 +2852,82 @@ export const useCreateStakeholder = <
 };
 
 /**
+ * @summary List distinct stakeholder departments
+ */
+export const getListStakeholderDepartmentsUrl = () => {
+  return `/api/stakeholders/departments`;
+};
+
+export const listStakeholderDepartments = async (
+  options?: RequestInit,
+): Promise<string[]> => {
+  return customFetch<string[]>(getListStakeholderDepartmentsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListStakeholderDepartmentsQueryKey = () => {
+  return [`/api/stakeholders/departments`] as const;
+};
+
+export const getListStakeholderDepartmentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listStakeholderDepartments>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listStakeholderDepartments>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListStakeholderDepartmentsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listStakeholderDepartments>>
+  > = ({ signal }) => listStakeholderDepartments({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listStakeholderDepartments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListStakeholderDepartmentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listStakeholderDepartments>>
+>;
+export type ListStakeholderDepartmentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List distinct stakeholder departments
+ */
+
+export function useListStakeholderDepartments<
+  TData = Awaited<ReturnType<typeof listStakeholderDepartments>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listStakeholderDepartments>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListStakeholderDepartmentsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Update a stakeholder
  */
 export const getUpdateStakeholderUrl = (stakeholderId: string) => {

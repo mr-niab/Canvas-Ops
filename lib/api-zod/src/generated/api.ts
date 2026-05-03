@@ -506,6 +506,8 @@ export const ListStakeholdersResponseItem = zod.object({
   lastContacted: zod.string(),
   status: zod.string(),
   statusClass: zod.string(),
+  projectId: zod.string().nullish(),
+  department: zod.string().nullish(),
 });
 export const ListStakeholdersResponse = zod.array(ListStakeholdersResponseItem);
 
@@ -520,6 +522,8 @@ export const CreateStakeholderBody = zod.object({
   lastContacted: zod.string().optional(),
   status: zod.string().optional(),
   statusClass: zod.string().optional(),
+  projectId: zod.string().nullish(),
+  department: zod.string().nullish(),
 });
 
 export const CreateStakeholderResponse = zod.object({
@@ -530,7 +534,17 @@ export const CreateStakeholderResponse = zod.object({
   lastContacted: zod.string(),
   status: zod.string(),
   statusClass: zod.string(),
+  projectId: zod.string().nullish(),
+  department: zod.string().nullish(),
 });
+
+/**
+ * @summary List distinct stakeholder departments
+ */
+export const ListStakeholderDepartmentsResponseItem = zod.string();
+export const ListStakeholderDepartmentsResponse = zod.array(
+  ListStakeholderDepartmentsResponseItem,
+);
 
 /**
  * @summary Update a stakeholder
@@ -546,6 +560,8 @@ export const UpdateStakeholderBody = zod.object({
   lastContacted: zod.string().optional(),
   status: zod.string().optional(),
   statusClass: zod.string().optional(),
+  projectId: zod.string().nullish(),
+  department: zod.string().nullish(),
 });
 
 export const UpdateStakeholderResponse = zod.object({
@@ -556,6 +572,8 @@ export const UpdateStakeholderResponse = zod.object({
   lastContacted: zod.string(),
   status: zod.string(),
   statusClass: zod.string(),
+  projectId: zod.string().nullish(),
+  department: zod.string().nullish(),
 });
 
 /**

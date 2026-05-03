@@ -58,6 +58,7 @@ import {
   listProjectSessions as apiListProjectSessions,
   listProjects,
   listStakeholders,
+  listStakeholderDepartments,
   listTasks,
   listTeammates,
   listTeams,
@@ -302,6 +303,7 @@ interface AppContextType {
   stakeholders: Stakeholder[];
   logEntries: LogEntry[];
   actions: Action[];
+  stakeholderDepartments: string[];
 
   selectedProjectId: string | null;
   setSelectedProjectId: (id: string | null) => void;
@@ -449,6 +451,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [members, setMembers] = useState<Membership[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [actions, setActions] = useState<Action[]>([]);
+  const [stakeholderDepartments, setStakeholderDepartments] = useState<string[]>([]);
 
   const [evidenceByProject, setEvidenceByProject] = useState<
     Record<string, EvidenceState>
@@ -503,6 +506,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       role === 'owner' ? listInvites() : Promise.resolve([] as Awaited<ReturnType<typeof listInvites>>),
       listActions(),
     ]);
+    listStakeholderDepartments()
+      .then((rows) => setStakeholderDepartments(Array.isArray(rows) ? [...rows] : []))
+      .catch((err) => {
+        console.error('Failed to load stakeholder departments:', describeError(err));
+      });
     setMembers(
       memberRows.map((m) => ({
         userId: m.userId,
@@ -623,6 +631,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     async (stakeholder: Omit<Stakeholder, 'id'>) => {
       const created = await apiCreateStakeholder(stakeholder);
       setStakeholders((prev) => [...prev, { ...created }]);
+      const dept = (created.department ?? '').trim();
+      if (dept) {
+        setStakeholderDepartments((prev) =>
+          prev.includes(dept) ? prev : [...prev, dept].sort((a, b) => a.localeCompare(b)),
+        );
+      }
     },
     [],
   );
@@ -1295,6 +1309,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         stakeholders,
         logEntries,
         actions,
+        stakeholderDepartments,
         addAction,
         updateAction,
         deleteAction,

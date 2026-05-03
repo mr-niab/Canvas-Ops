@@ -850,6 +850,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/Stakeholder'
 
+  /stakeholders/departments:
+    get:
+      tags: [Stakeholders]
+      operationId: listStakeholderDepartments
+      summary: List distinct stakeholder departments
+      responses:
+        '200':
+          description: Distinct department names already in use.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
   /stakeholders/{stakeholderId}:
     patch:
       tags: [Stakeholders]
@@ -1797,6 +1812,12 @@ components:
           type: string
         statusClass:
           type: string
+        projectId:
+          type: string
+          nullable: true
+        department:
+          type: string
+          nullable: true
     CreateStakeholderRequest:
       type: object
       required: [name]
@@ -1814,6 +1835,12 @@ components:
           type: string
         statusClass:
           type: string
+        projectId:
+          type: string
+          nullable: true
+        department:
+          type: string
+          nullable: true
     UpdateStakeholderRequest:
       type: object
       properties:
@@ -1830,6 +1857,12 @@ components:
           type: string
         statusClass:
           type: string
+        projectId:
+          type: string
+          nullable: true
+        department:
+          type: string
+          nullable: true
 
     LogEntry:
       type: object

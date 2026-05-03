@@ -14,4 +14,6 @@ export interface UpdateStakeholderRequest {
   lastContacted?: string;
   status?: string;
   statusClass?: string;
+  projectId?: string | null;
+  department?: string | null;
 }
