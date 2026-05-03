@@ -181,6 +181,10 @@ button {
     box-shadow var(--transition);
 }
 
+.nav-btn + .nav-btn {
+  margin-top: 8px;
+}
+
 .nav-btn:hover {
   background: var(--hover-tint);
   border-color: var(--hover-border);

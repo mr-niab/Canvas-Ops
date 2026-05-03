@@ -23,37 +23,37 @@ export function Sidebar() {
         className={`nav-btn ${currentView === 'home' ? 'active' : ''}`}
         onClick={() => setCurrentView('home')}
       >
-        <span className="dot"></span>Home
+        Home
       </button>
       <button 
         className={`nav-btn ${currentView === 'project' ? 'active' : ''}`}
         onClick={() => setCurrentView('project')}
       >
-        <span className="dot"></span>Project detail
+        Project detail
       </button>
       <button 
         className={`nav-btn ${currentView === 'work' ? 'active' : ''}`}
         onClick={() => setCurrentView('work')}
       >
-        <span className="dot"></span>Workflow
+        Workflow
       </button>
       <button 
         className={`nav-btn ${currentView === 'stakeholders' ? 'active' : ''}`}
         onClick={() => setCurrentView('stakeholders')}
       >
-        <span className="dot"></span>Stakeholders
+        Stakeholders
       </button>
       <button 
         className={`nav-btn ${currentView === 'log' ? 'active' : ''}`}
         onClick={() => setCurrentView('log')}
       >
-        <span className="dot"></span>Project log
+        Project log
       </button>
       <button
         className={`nav-btn ${currentView === 'people' ? 'active' : ''}`}
         onClick={() => setCurrentView('people')}
       >
-        <span className="dot"></span>People &amp; Teams
+        People &amp; Teams
       </button>
 
       <div className="nav-label">Recent projects</div>
@@ -66,7 +66,6 @@ export function Sidebar() {
             className={`nav-btn ${isActive ? 'active' : ''}`}
             onClick={() => openProject(p.id)}
           >
-            <span className="dot" style={{ color: 'var(--service)', opacity: 1 }}></span>
             <span className="nav-btn-text">
               {p.name}
               {team && <small className="nav-btn-sub">{team.name}</small>}
