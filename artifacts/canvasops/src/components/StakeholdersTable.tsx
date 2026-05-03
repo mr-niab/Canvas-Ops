@@ -20,29 +20,34 @@ export function StakeholdersTable() {
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
+  const projectNamesById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of projects) map.set(p.id, p.name);
+    return map;
+  }, [projects]);
+
   const projectName = (id: string | null | undefined): string => {
     if (!id) return '';
-    return projects.find(p => p.id === id)?.name ?? '';
-  };
-
-  const cmp = (a: Stakeholder, b: Stakeholder, key: SortKey): number => {
-    const valueOf = (s: Stakeholder): string => {
-      if (key === 'project') return projectName(s.projectId).toLowerCase();
-      if (key === 'department') return String(s.department ?? '').toLowerCase();
-      return String(s[key as keyof Stakeholder] ?? '').toLowerCase();
-    };
-    const av = valueOf(a);
-    const bv = valueOf(b);
-    if (av < bv) return -1;
-    if (av > bv) return 1;
-    return 0;
+    return projectNamesById.get(id) ?? '';
   };
 
   const sorted = useMemo(() => {
-    const out = [...stakeholders].sort((a, b) => cmp(a, b, sortKey));
+    const valueOf = (s: Stakeholder, key: SortKey): string => {
+      if (key === 'project') {
+        return (s.projectId ? projectNamesById.get(s.projectId) ?? '' : '').toLowerCase();
+      }
+      if (key === 'department') return String(s.department ?? '').toLowerCase();
+      return String(s[key as keyof Stakeholder] ?? '').toLowerCase();
+    };
+    const out = [...stakeholders].sort((a, b) => {
+      const av = valueOf(a, sortKey);
+      const bv = valueOf(b, sortKey);
+      if (av < bv) return -1;
+      if (av > bv) return 1;
+      return 0;
+    });
     return sortDir === 'asc' ? out : out.reverse();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stakeholders, projects, sortKey, sortDir]);
+  }, [stakeholders, projectNamesById, sortKey, sortDir]);
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) {
