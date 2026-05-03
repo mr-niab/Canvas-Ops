@@ -1117,14 +1117,19 @@ h1 {
 /* ---------------- modal ---------------- */
 
 .modal-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
   padding: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
   width: 460px;
   max-width: 90vw;
+  max-height: 90vh;
   box-shadow: var(--shadow);
   color: var(--text);
+  overflow: auto;
 }
 
 .modal-dialog::backdrop {
