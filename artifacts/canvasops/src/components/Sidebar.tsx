@@ -1,12 +1,33 @@
 import { useAppContext } from '../AppContext';
 
-export function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  hidden?: boolean;
+  onNavigate?: () => void;
+}
+
+export function Sidebar({ mobileOpen = false, hidden = false, onNavigate }: SidebarProps) {
   const { currentView, setCurrentView, organisation, projects, teams, openProject, selectedProjectId } = useAppContext();
   const teamById = new Map(teams.map(t => [t.id, t]));
   const recentProjects = projects.slice(0, 4);
 
+  const go = (view: typeof currentView) => {
+    setCurrentView(view);
+    onNavigate?.();
+  };
+
+  const goProject = (id: string) => {
+    openProject(id);
+    onNavigate?.();
+  };
+
   return (
-    <aside className="sidebar">
+    <aside
+      id="primary-nav"
+      className={`sidebar${mobileOpen ? ' sidebar-mobile-open' : ''}`}
+      inert={hidden}
+      aria-hidden={hidden || undefined}
+    >
       <div className="brand">
         <div className="logo">
           <span></span>
@@ -19,39 +40,39 @@ export function Sidebar() {
       <div className="workspace-label">{organisation.name}</div>
 
       <div className="nav-label">Workspace</div>
-      <button 
+      <button
         className={`nav-btn ${currentView === 'home' ? 'active' : ''}`}
-        onClick={() => setCurrentView('home')}
+        onClick={() => go('home')}
       >
         Home
       </button>
-      <button 
+      <button
         className={`nav-btn ${currentView === 'project' ? 'active' : ''}`}
-        onClick={() => setCurrentView('project')}
+        onClick={() => go('project')}
       >
         Project detail
       </button>
-      <button 
+      <button
         className={`nav-btn ${currentView === 'work' ? 'active' : ''}`}
-        onClick={() => setCurrentView('work')}
+        onClick={() => go('work')}
       >
         Workflow
       </button>
-      <button 
+      <button
         className={`nav-btn ${currentView === 'stakeholders' ? 'active' : ''}`}
-        onClick={() => setCurrentView('stakeholders')}
+        onClick={() => go('stakeholders')}
       >
         Stakeholders
       </button>
-      <button 
+      <button
         className={`nav-btn ${currentView === 'log' ? 'active' : ''}`}
-        onClick={() => setCurrentView('log')}
+        onClick={() => go('log')}
       >
         Project log
       </button>
       <button
         className={`nav-btn ${currentView === 'people' ? 'active' : ''}`}
-        onClick={() => setCurrentView('people')}
+        onClick={() => go('people')}
       >
         People &amp; Teams
       </button>
@@ -64,7 +85,7 @@ export function Sidebar() {
           <button
             key={p.id}
             className={`nav-btn ${isActive ? 'active' : ''}`}
-            onClick={() => openProject(p.id)}
+            onClick={() => goProject(p.id)}
           >
             <span className="nav-btn-text">
               {p.name}
