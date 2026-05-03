@@ -1554,6 +1554,17 @@ h1 {
   color: var(--primary);
 }
 
+.sidebar-footer {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.export-btn[disabled] {
+  opacity: 0.7;
+  cursor: progress;
+}
+
 /* ---------------- people & teams ---------------- */
 
 .workspace-label {
