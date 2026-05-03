@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "i8pGgPFcDxF5cW3HXerwe"
+uri = "file://.local/exports/canvasops-screens.zip"
+type = "unspecified"
+title = "canvasops-screens.zip"
