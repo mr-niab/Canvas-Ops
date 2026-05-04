@@ -1,4 +1,4 @@
-import { toSvg } from 'html-to-image';
+import { toJpeg } from 'html-to-image';
 import JSZip from 'jszip';
 import type { View } from '../types';
 
@@ -57,17 +57,17 @@ export async function exportScreens(opts: ExportScreensOptions): Promise<void> {
   } = opts;
 
   const screens: ScreenSpec[] = [
-    { filename: '01-home.svg', label: 'Home', view: 'home' },
+    { filename: '01-home.jpg', label: 'Home', view: 'home' },
     {
-      filename: '02-project.svg',
+      filename: '02-project.jpg',
       label: 'Project',
       view: 'project',
       projectId: representativeProjectId,
     },
-    { filename: '03-workflow.svg', label: 'Workflow', view: 'work' },
-    { filename: '04-stakeholders.svg', label: 'Stakeholders', view: 'stakeholders' },
-    { filename: '05-log.svg', label: 'Log', view: 'log' },
-    { filename: '06-people.svg', label: 'People', view: 'people' },
+    { filename: '03-workflow.jpg', label: 'Workflow', view: 'work' },
+    { filename: '04-stakeholders.jpg', label: 'Stakeholders', view: 'stakeholders' },
+    { filename: '05-log.jpg', label: 'Log', view: 'log' },
+    { filename: '06-people.jpg', label: 'People', view: 'people' },
   ];
 
   const zip = new JSZip();
@@ -84,22 +84,23 @@ export async function exportScreens(opts: ExportScreensOptions): Promise<void> {
       setCurrentView(s.view);
 
       await nextPaint();
-      await wait(120);
+      await wait(200);
       await nextPaint();
 
       const target = document.querySelector('main.main') as HTMLElement | null;
       if (!target) continue;
 
-      const svgDataUrl = await toSvg(target, {
+      const jpegDataUrl = await toJpeg(target, {
         backgroundColor: bg,
         cacheBust: true,
-        pixelRatio: 1,
+        pixelRatio: 3,
+        quality: 0.95,
       });
 
-      const commaIdx = svgDataUrl.indexOf(',');
-      const encoded = commaIdx >= 0 ? svgDataUrl.slice(commaIdx + 1) : svgDataUrl;
-      const svgString = decodeURIComponent(encoded);
-      zip.file(s.filename, svgString);
+      // data:image/jpeg;base64,<base64>
+      const commaIdx = jpegDataUrl.indexOf(',');
+      const base64 = commaIdx >= 0 ? jpegDataUrl.slice(commaIdx + 1) : jpegDataUrl;
+      zip.file(s.filename, base64, { base64: true });
     }
 
     const blob = await zip.generateAsync({ type: 'blob' });
