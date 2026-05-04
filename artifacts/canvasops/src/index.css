@@ -1652,6 +1652,7 @@ h1 {
   grid-template-columns: 1.1fr 1fr;
   gap: var(--space-5);
   align-items: start;
+  margin-top: var(--space-5);
 }
 
 .people-add-form {
