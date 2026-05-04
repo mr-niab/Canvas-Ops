@@ -214,6 +214,17 @@ button {
   flex-shrink: 0;
 }
 
+/* Every page view is a <section> rendered directly inside .main. Grid + gap
+   gives one source of truth for the vertical gap between top-level page
+   sections, so no ad-hoc margin-top / margin-bottom is needed on individual
+   section blocks. The .main > section scope avoids coupling any future
+   nested semantic <section> elements to page-layout behaviour. */
+.main > section {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+}
+
 .main {
   padding: var(--space-6) var(--space-6) var(--space-7);
   max-width: 1200px;
@@ -586,7 +597,6 @@ h1 {
   display: grid;
   grid-template-columns: 1.6fr 1fr;
   gap: var(--space-5);
-  margin-top: var(--space-5);
 }
 
 .stack {
@@ -677,7 +687,6 @@ h1 {
   justify-content: space-between;
   gap: var(--space-4);
   align-items: flex-start;
-  margin-bottom: var(--space-5);
   flex-wrap: wrap;
 }
 
@@ -717,7 +726,6 @@ h1 {
   display: flex;
   gap: var(--space-2);
   flex-wrap: wrap;
-  margin: var(--space-5) 0;
 }
 
 .tab {
@@ -1050,9 +1058,6 @@ h1 {
   margin: var(--space-4) 0;
 }
 
-.low-section {
-  margin-top: var(--space-6);
-}
 
 .tag {
   background: var(--surface-3);
@@ -1621,9 +1626,6 @@ h1 {
   font-size: 13px;
 }
 
-.org-card {
-  margin-bottom: var(--space-5);
-}
 
 .org-display-row,
 .org-edit-row {
@@ -1652,7 +1654,6 @@ h1 {
   grid-template-columns: 1.1fr 1fr;
   gap: var(--space-5);
   align-items: start;
-  margin-top: var(--space-5);
 }
 
 .people-add-form {
