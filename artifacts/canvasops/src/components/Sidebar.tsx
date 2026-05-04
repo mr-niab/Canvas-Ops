@@ -1,6 +1,4 @@
-import { useState } from 'react';
 import { useAppContext } from '../AppContext';
-import { exportScreens } from '../lib/exportScreens';
 
 interface SidebarProps {
   mobileOpen?: boolean;
@@ -17,13 +15,9 @@ export function Sidebar({ mobileOpen = false, hidden = false, onNavigate }: Side
     teams,
     openProject,
     selectedProjectId,
-    setSelectedProjectId,
   } = useAppContext();
   const teamById = new Map(teams.map(t => [t.id, t]));
   const recentProjects = projects.slice(0, 4);
-
-  const [exporting, setExporting] = useState(false);
-  const [progress, setProgress] = useState<string>('');
 
   const go = (view: typeof currentView) => {
     setCurrentView(view);
@@ -33,33 +27,6 @@ export function Sidebar({ mobileOpen = false, hidden = false, onNavigate }: Side
   const goProject = (id: string) => {
     openProject(id);
     onNavigate?.();
-  };
-
-  const handleExport = async () => {
-    if (exporting) return;
-    setExporting(true);
-    setProgress('Preparing…');
-    const previousView = currentView;
-    const previousProjectId = selectedProjectId;
-    const repProjectId = selectedProjectId ?? projects[0]?.id ?? null;
-    try {
-      await exportScreens({
-        setCurrentView,
-        setSelectedProjectId,
-        representativeProjectId: repProjectId,
-        previousView,
-        previousProjectId,
-        onProgress: (current, total, label) => {
-          setProgress(`Capturing ${label} (${current}/${total})…`);
-        },
-      });
-    } catch (err) {
-      console.error('Export failed', err);
-      window.alert('Export failed. See console for details.');
-    } finally {
-      setExporting(false);
-      setProgress('');
-    }
   };
 
   return (
@@ -136,24 +103,6 @@ export function Sidebar({ mobileOpen = false, hidden = false, onNavigate }: Side
         );
       })}
 
-      <div className="sidebar-footer">
-        <button
-          type="button"
-          className="nav-btn export-btn"
-          onClick={handleExport}
-          disabled={exporting}
-          aria-busy={exporting}
-        >
-          {exporting ? (
-            <span className="nav-btn-text">
-              Exporting…
-              {progress && <small className="nav-btn-sub">{progress}</small>}
-            </span>
-          ) : (
-            'Export screens'
-          )}
-        </button>
-      </div>
     </aside>
   );
 }
