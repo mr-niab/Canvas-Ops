@@ -18,6 +18,8 @@ interface ScreenSpec {
   projectId?: string | null;
 }
 
+const DESKTOP_WIDTH = 1440;
+
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -46,6 +48,31 @@ function downloadBlob(blob: Blob, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function injectDesktopOverride(): HTMLStyleElement {
+  const el = document.createElement('style');
+  el.id = 'export-desktop-override';
+  el.textContent = `
+    .app {
+      width: ${DESKTOP_WIDTH}px !important;
+      display: grid !important;
+      grid-template-columns: 260px 1fr !important;
+    }
+    .sidebar {
+      display: flex !important;
+      position: sticky !important;
+      transform: translateX(0) !important;
+      height: 100vh !important;
+      top: 0 !important;
+    }
+    .menu-btn { display: none !important; }
+    .mobile-nav-backdrop { display: none !important; }
+    .topbar-user { display: flex !important; }
+    .search { min-width: 200px !important; }
+  `;
+  document.head.appendChild(el);
+  return el;
+}
+
 export async function exportScreens(opts: ExportScreensOptions): Promise<void> {
   const {
     setCurrentView,
@@ -72,6 +99,7 @@ export async function exportScreens(opts: ExportScreensOptions): Promise<void> {
 
   const zip = new JSZip();
   const bg = getBackgroundColor();
+  const styleOverride = injectDesktopOverride();
 
   try {
     for (let i = 0; i < screens.length; i++) {
@@ -84,10 +112,10 @@ export async function exportScreens(opts: ExportScreensOptions): Promise<void> {
       setCurrentView(s.view);
 
       await nextPaint();
-      await wait(200);
+      await wait(250);
       await nextPaint();
 
-      const target = document.querySelector('main.main') as HTMLElement | null;
+      const target = document.querySelector('.app') as HTMLElement | null;
       if (!target) continue;
 
       const jpegDataUrl = await toJpeg(target, {
@@ -95,9 +123,9 @@ export async function exportScreens(opts: ExportScreensOptions): Promise<void> {
         cacheBust: true,
         pixelRatio: 3,
         quality: 0.95,
+        width: DESKTOP_WIDTH,
       });
 
-      // data:image/jpeg;base64,<base64>
       const commaIdx = jpegDataUrl.indexOf(',');
       const base64 = commaIdx >= 0 ? jpegDataUrl.slice(commaIdx + 1) : jpegDataUrl;
       zip.file(s.filename, base64, { base64: true });
@@ -106,6 +134,7 @@ export async function exportScreens(opts: ExportScreensOptions): Promise<void> {
     const blob = await zip.generateAsync({ type: 'blob' });
     downloadBlob(blob, 'canvasops-screens.zip');
   } finally {
+    styleOverride.remove();
     setSelectedProjectId(previousProjectId);
     setCurrentView(previousView);
   }
