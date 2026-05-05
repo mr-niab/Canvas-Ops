@@ -143,7 +143,11 @@ function Lane({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const title = draftTitle.trim();
-    if (!title) return;
+    if (!title) {
+      setIsAdding(false);
+      setDraftTitle('');
+      return;
+    }
     await addTask({ discipline, title, status: 'Backlog', dependencies: [] });
     setIsAdding(false);
     setDraftTitle('');
