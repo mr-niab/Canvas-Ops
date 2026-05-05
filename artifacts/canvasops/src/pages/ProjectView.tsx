@@ -31,14 +31,90 @@ const DISCIPLINES: Array<{ key: Discipline; label: string; color: string }> = [
 ];
 
 function Lane({ discipline, label, color, tasks }: { discipline: Discipline; label: string; color: string; tasks: Task[] }) {
-  const { setEditingTaskId } = useAppContext();
+  const { setEditingTaskId, addTask } = useAppContext();
   const laneTasks = tasks.filter(t => t.discipline === discipline);
+  const [isAdding, setIsAdding] = useState(false);
+  const [draftTitle, setDraftTitle] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const title = draftTitle.trim();
+    if (!title) {
+      setIsAdding(false);
+      setDraftTitle('');
+      return;
+    }
+    await addTask({ discipline, title, status: 'Backlog', dependencies: [] });
+    setIsAdding(false);
+    setDraftTitle('');
+  };
+
+  const handleCancel = () => {
+    setIsAdding(false);
+    setDraftTitle('');
+  };
+
   return (
     <div className="lane">
       <div className="lane-head" style={{ color }}>
         <span style={{ width: 8, height: 8, borderRadius: 999, background: color }}></span>
         {label}
       </div>
+
+      {isAdding ? (
+        <form
+          style={{ padding: '8px 12px 0', display: 'grid', gap: 8 }}
+          onSubmit={handleSubmit}
+        >
+          <input
+            type="text"
+            aria-label="Task title"
+            placeholder="Task title"
+            autoFocus
+            required
+            value={draftTitle}
+            onChange={e => setDraftTitle(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '6px 10px',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--surface)',
+              color: 'var(--text)',
+              fontSize: 13,
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+          />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="submit" className="btn primary" style={{ padding: '4px 10px', fontSize: 12 }}>Add</button>
+            <button type="button" className="btn" onClick={handleCancel} style={{ padding: '4px 10px', fontSize: 12 }}>Cancel</button>
+          </div>
+        </form>
+      ) : (
+        <div style={{ padding: '8px 12px 0' }}>
+          <button
+            type="button"
+            aria-label={`Add task to ${label}`}
+            onClick={() => setIsAdding(true)}
+            style={{
+              width: '100%',
+              background: 'none',
+              border: '1px dashed var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              color: 'var(--muted)',
+              fontSize: 12,
+              fontWeight: 600,
+              padding: '6px 10px',
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+          >
+            + Add
+          </button>
+        </div>
+      )}
+
       <div className="lane-body">
         {laneTasks.map(t => (
           <div
