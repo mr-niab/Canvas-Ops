@@ -252,7 +252,6 @@ export function ProjectView() {
             return <div key={s} className={`stage ${cls}`}>{s}</div>;
           })}
         </div>
-        <div className="caption">Stage gates require: research evidence linked · service blueprint updated · UI validated · decisions logged</div>
       </div>
 
       <div className="tabs">
