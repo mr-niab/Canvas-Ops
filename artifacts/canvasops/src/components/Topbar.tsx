@@ -35,7 +35,6 @@ export function Topbar({ menuBtnRef, mobileNavOpen, onMenuClick }: TopbarProps) 
         </span>
       </button>
       <input className="search" placeholder="Search projects, tasks, stakeholders, evidence…" />
-      <button className="btn">Filter</button>
       <span className="topbar-user" title={authUser.email}>
         {authUser.name}
       </span>
