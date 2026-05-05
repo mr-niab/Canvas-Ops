@@ -1120,6 +1120,11 @@ h1 {
 */
 
 .crumb {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  text-align: left;
   font-size: 13px;
   color: var(--muted);
   margin-bottom: var(--space-1);

@@ -12,7 +12,7 @@ export function StakeholdersView() {
     <section>
       <div className="page-head">
         <div>
-          <div className="crumb" onClick={() => setCurrentView(crumbTarget)}>{crumbLabel}</div>
+          <button type="button" className="crumb" onClick={() => setCurrentView(crumbTarget)}>{crumbLabel}</button>
           <h1>Stakeholders</h1>
           <p className="sub flush">People connected to this project — recorded with role, email, last contact, and alignment status.</p>
         </div>

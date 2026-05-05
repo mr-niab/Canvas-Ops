@@ -12,7 +12,7 @@ export function LogView() {
     <section>
       <div className="page-head">
         <div>
-          <div className="crumb" onClick={() => setCurrentView(crumbTarget)}>{crumbLabel}</div>
+          <button type="button" className="crumb" onClick={() => setCurrentView(crumbTarget)}>{crumbLabel}</button>
           <h1>Project log</h1>
           <p className="sub flush">Chronological record of conversations, decisions, files, and key activity for this project.</p>
         </div>

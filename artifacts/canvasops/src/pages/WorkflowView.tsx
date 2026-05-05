@@ -349,7 +349,7 @@ export function WorkflowView() {
     <section>
       <div className="page-head">
         <div>
-          <div className="crumb" onClick={() => setCurrentView(crumbTarget)}>{crumbLabel}</div>
+          <button type="button" className="crumb" onClick={() => setCurrentView(crumbTarget)}>{crumbLabel}</button>
           <h1>Workflow</h1>
           <p className="sub flush">Cross-discipline kanban — all three disciplines visible in one board.</p>
         </div>

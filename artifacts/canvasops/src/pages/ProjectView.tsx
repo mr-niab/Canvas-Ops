@@ -102,7 +102,7 @@ export function ProjectView() {
       <section>
         <div className="page-head">
           <div>
-            <div className="crumb" onClick={() => setCurrentView('home')}>← All projects</div>
+            <button type="button" className="crumb" onClick={() => setCurrentView('home')}>← All projects</button>
             <h1>No project selected</h1>
             <p className="sub flush">Pick a project from Home or create a new one to get started.</p>
           </div>
@@ -125,7 +125,7 @@ export function ProjectView() {
     <section>
       <div className="page-head">
         <div>
-          <div className="crumb" onClick={() => setCurrentView('home')}>← All projects</div>
+          <button type="button" className="crumb" onClick={() => setCurrentView('home')}>← All projects</button>
           <h1>{project.name}</h1>
           <p className="sub flush">{project.meta}</p>
           <div className="project-team-row">
