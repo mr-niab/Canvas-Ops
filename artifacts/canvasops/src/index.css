@@ -1717,6 +1717,7 @@ h1 {
 
 .people-add-form .btn {
   white-space: nowrap;
+  align-self: end;
 }
 
 .people-empty {
