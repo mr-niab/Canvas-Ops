@@ -163,13 +163,12 @@ function Lane({
 
       {isAdding ? (
         <form
-          className="lane-inline-form"
+          style={{ padding: '8px 12px 0', display: 'grid', gap: 8 }}
           onSubmit={handleSubmit}
           onPointerDown={e => e.stopPropagation()}
           onKeyDown={e => e.stopPropagation()}
         >
           <input
-            className="lane-inline-input"
             type="text"
             aria-label="Task title"
             placeholder="Task title"
@@ -177,21 +176,43 @@ function Lane({
             required
             value={draftTitle}
             onChange={e => setDraftTitle(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '6px 10px',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--surface)',
+              color: 'var(--text)',
+              fontSize: 13,
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
           />
-          <div className="lane-inline-actions">
-            <button type="submit" className="btn primary sm">Add</button>
-            <button type="button" className="btn sm" onClick={handleCancel}>Cancel</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="submit" className="btn primary" style={{ padding: '4px 10px', fontSize: 12 }}>Add</button>
+            <button type="button" className="btn" onClick={handleCancel} style={{ padding: '4px 10px', fontSize: 12 }}>Cancel</button>
           </div>
         </form>
       ) : (
-        <div className="lane-add-row">
+        <div style={{ padding: '8px 12px 0' }}>
           <button
             type="button"
-            className="lane-add-btn"
             aria-label={`Add task to ${label}`}
             onPointerDown={e => e.stopPropagation()}
             onKeyDown={e => e.stopPropagation()}
             onClick={() => setIsAdding(true)}
+            style={{
+              width: '100%',
+              background: 'none',
+              border: '1px dashed var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              color: 'var(--muted)',
+              fontSize: 12,
+              fontWeight: 600,
+              padding: '6px 10px',
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
           >
             + Add
           </button>
