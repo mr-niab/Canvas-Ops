@@ -145,6 +145,7 @@ export function HomeView() {
 
   const [actionModalOpen, setActionModalOpen] = useState(false);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   const openAddAction = () => {
     setEditingAction(null);
@@ -164,6 +165,9 @@ export function HomeView() {
   useEffect(() => {
     void loadUpcomingSessions();
   }, [loadUpcomingSessions]);
+
+  const pendingCount = actions.filter((a) => !a.completedAt).length;
+  const doneCount = actions.filter((a) => !!a.completedAt).length;
 
   return (
     <section>
@@ -205,43 +209,63 @@ export function HomeView() {
 
       <div className="grid-2">
         <div className="card">
-          <div className="list-item action-head">
-            <div className="section-title flush">My actions today</div>
-            <button type="button" className="btn btn-icon" onClick={openAddAction}>
-              + Add action
-            </button>
-          </div>
-          {actions.length === 0 ? (
-            <div className="list-item action-empty">
-              <div className="item-title">Nothing on your plate yet</div>
-              <div className="item-sub">
-                Capture the things you want to get to today. Only you can see your list.
-              </div>
+          <div
+            className="list-item list-item-clickable"
+            role="button"
+            tabIndex={0}
+            aria-expanded={actionsOpen}
+            onClick={() => setActionsOpen((o) => !o)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setActionsOpen((o) => !o);
+              }
+            }}
+          >
+            <div className="section-title flush">My tasks</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginLeft: 'auto' }}>
+              {pendingCount > 0 && (
+                <span className="badge disc" style={{ fontSize: '11px', padding: '3px 8px' }}>
+                  {pendingCount} pending
+                </span>
+              )}
+              {doneCount > 0 && (
+                <span className="badge good" style={{ fontSize: '11px', padding: '3px 8px' }}>
+                  {doneCount} done
+                </span>
+              )}
+              {pendingCount === 0 && doneCount === 0 && (
+                <span className="item-sub" style={{ margin: 0 }}>Nothing yet</span>
+              )}
+              <span
+                className="muted"
+                style={{
+                  fontSize: '16px',
+                  lineHeight: 1,
+                  transform: actionsOpen ? 'rotate(180deg)' : 'none',
+                  transition: 'transform var(--transition)',
+                  display: 'inline-block',
+                }}
+                aria-hidden="true"
+              >
+                ⌄
+              </span>
             </div>
-          ) : (
+          </div>
+
+          {actionsOpen && (
             <>
-              {actions
-                .filter((a) => !a.completedAt)
-                .map((action) => (
-                  <ActionRow
-                    key={action.id}
-                    action={action}
-                    onEdit={() => openEditAction(action)}
-                    onDelete={() => deleteAction(action.id)}
-                    onToggleComplete={(next) =>
-                      updateAction(action.id, {
-                        completedAt: next ? new Date().toISOString() : null,
-                      })
-                    }
-                  />
-                ))}
-              {actions.some((a) => a.completedAt) && (
-                <>
-                  <div className="list-item action-done-head">
-                    <div className="item-sub">Done today</div>
+              {actions.length === 0 ? (
+                <div className="list-item action-empty">
+                  <div className="item-title">Nothing on your plate yet</div>
+                  <div className="item-sub">
+                    Capture the things you want to get to today. Only you can see your list.
                   </div>
+                </div>
+              ) : (
+                <>
                   {actions
-                    .filter((a) => a.completedAt)
+                    .filter((a) => !a.completedAt)
                     .map((action) => (
                       <ActionRow
                         key={action.id}
@@ -255,8 +279,35 @@ export function HomeView() {
                         }
                       />
                     ))}
+                  {actions.some((a) => a.completedAt) && (
+                    <>
+                      <div className="list-item action-done-head">
+                        <div className="item-sub">Done today</div>
+                      </div>
+                      {actions
+                        .filter((a) => a.completedAt)
+                        .map((action) => (
+                          <ActionRow
+                            key={action.id}
+                            action={action}
+                            onEdit={() => openEditAction(action)}
+                            onDelete={() => deleteAction(action.id)}
+                            onToggleComplete={(next) =>
+                              updateAction(action.id, {
+                                completedAt: next ? new Date().toISOString() : null,
+                              })
+                            }
+                          />
+                        ))}
+                    </>
+                  )}
                 </>
               )}
+              <div className="list-item">
+                <button type="button" className="btn btn-icon" onClick={openAddAction}>
+                  + Add action
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -286,7 +337,7 @@ export function HomeView() {
         </div>
       </div>
 
-      <div className="low-section card">
+      <div className="card">
         <div className="list-item">
           <div className="section-title flush">Upcoming sessions</div>
         </div>
