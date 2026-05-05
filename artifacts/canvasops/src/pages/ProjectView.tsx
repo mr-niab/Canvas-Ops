@@ -160,11 +160,13 @@ export function ProjectView() {
     deleteProjectSession,
     stakeholders,
     logEntries,
+    advanceProjectStage,
   } = useAppContext();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<ProjectSession | null>(null);
   const [pendingDeleteSessionId, setPendingDeleteSessionId] = useState<string | null>(null);
+  const [confirmAdvanceOpen, setConfirmAdvanceOpen] = useState(false);
 
   const projectId = selectedProjectId ?? projects[0]?.id ?? null;
   useEffect(() => {
@@ -230,7 +232,18 @@ export function ProjectView() {
       </div>
 
       <div className="card pad">
-        <div className="eyebrow">Project stage</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: 12 }}>
+          <div className="eyebrow" style={{ marginBottom: 0 }}>Project stage</div>
+          {currentIdx < STAGES.length - 1 && (
+            <button
+              className="btn primary"
+              style={{ fontSize: 13, padding: '5px 14px' }}
+              onClick={() => setConfirmAdvanceOpen(true)}
+            >
+              Advance to {STAGES[currentIdx + 1]} →
+            </button>
+          )}
+        </div>
         <div className="stage-track">
           {STAGES.map((s, i) => {
             let cls = '';
@@ -518,6 +531,17 @@ export function ProjectView() {
           }
         }}
         onClose={() => setPendingDeleteSessionId(null)}
+      />
+      <ConfirmDialog
+        isOpen={confirmAdvanceOpen}
+        title="Advance project stage"
+        message={`Move "${project.name}" from ${project.stage} to ${STAGES[currentIdx + 1]}? This will update the project stage for everyone on the team.`}
+        confirmLabel={`Advance to ${STAGES[currentIdx + 1]}`}
+        confirmClassName="btn primary"
+        onConfirm={() => {
+          void advanceProjectStage(project.id);
+        }}
+        onClose={() => setConfirmAdvanceOpen(false)}
       />
     </section>
   );

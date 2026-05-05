@@ -428,6 +428,7 @@ interface AppContextType {
     teamId?: string;
   }) => Promise<string>;
   setProjectTeam: (projectId: string, teamId: string | undefined) => Promise<void>;
+  advanceProjectStage: (projectId: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -1302,6 +1303,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  const STAGE_ORDER: Project['stage'][] = ['Intake', 'Discovery', 'Explore', 'Build', 'Launch'];
+
+  const advanceProjectStage = useCallback(
+    async (projectId: string) => {
+      const current = projects.find((p) => p.id === projectId);
+      if (!current) return;
+      const idx = STAGE_ORDER.indexOf(current.stage);
+      if (idx === -1 || idx >= STAGE_ORDER.length - 1) return;
+      const nextStage = STAGE_ORDER[idx + 1];
+      const updated = await apiUpdateProject(projectId, { stage: nextStage as 'Intake' | 'Discovery' | 'Explore' | 'Build' | 'Launch' });
+      const project = normalizeProject(updated);
+      setProjects((prev) => prev.map((p) => (p.id === projectId ? project : p)));
+    },
+    [projects],
+  );
+
   // ---------------------------------------------------------------------
   // Provider value
   // ---------------------------------------------------------------------
@@ -1374,6 +1391,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         removeTeammateFromTeam,
         addProject,
         setProjectTeam,
+        advanceProjectStage,
       }}
     >
       {children}
