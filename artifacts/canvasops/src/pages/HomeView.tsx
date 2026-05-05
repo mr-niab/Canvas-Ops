@@ -254,29 +254,45 @@ export function HomeView() {
                   {doneCount} done
                 </span>
               )}
-              {pendingCount === 0 && doneCount === 0 && (
-                <span className="item-sub" style={{ margin: 0 }}>Nothing yet</span>
+              {pendingCount === 0 && doneCount === 0 ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span className="item-sub" style={{ margin: 0 }}>Nothing yet</span>
+                  <span
+                    className="muted"
+                    style={{
+                      fontSize: '16px',
+                      lineHeight: 1,
+                      transform: actionsOpen ? 'rotate(180deg)' : 'none',
+                      transition: 'transform var(--transition)',
+                      display: 'inline-block',
+                    }}
+                    aria-hidden="true"
+                  >
+                    ⌄
+                  </span>
+                </span>
+              ) : (
+                <span
+                  className="muted"
+                  style={{
+                    fontSize: '16px',
+                    lineHeight: 1,
+                    transform: actionsOpen ? 'rotate(180deg)' : 'none',
+                    transition: 'transform var(--transition)',
+                    display: 'inline-block',
+                  }}
+                  aria-hidden="true"
+                >
+                  ⌄
+                </span>
               )}
-              <span
-                className="muted"
-                style={{
-                  fontSize: '16px',
-                  lineHeight: 1,
-                  transform: actionsOpen ? 'rotate(180deg)' : 'none',
-                  transition: 'transform var(--transition)',
-                  display: 'inline-block',
-                }}
-                aria-hidden="true"
-              >
-                ⌄
-              </span>
             </div>
           </div>
 
           {actions.length === 0 && !actionsOpen && (
             <div className="list-item">
               <button type="button" className="btn btn-icon" onClick={openAddAction}>
-                + Add
+                + Add task
               </button>
             </div>
           )}
@@ -333,7 +349,7 @@ export function HomeView() {
               )}
               <div className="list-item">
                 <button type="button" className="btn btn-icon" onClick={openAddAction}>
-                  + Add action
+                  + Add task
                 </button>
               </div>
             </>
