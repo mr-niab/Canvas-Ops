@@ -3,7 +3,7 @@ import { useAppContext } from '../../AppContext';
 import { Modal } from '../Modal';
 import { Stage } from '../../types';
 
-const STAGES: Stage[] = ['Intake', 'Discovery', 'Alpha', 'Beta', 'Live'];
+const STAGES: Stage[] = ['Intake', 'Discovery', 'Explore', 'Build', 'Launch'];
 
 export function AddProjectModal() {
   const { isProjectModalOpen, setProjectModalOpen, addProject, teams, openProject } = useAppContext();

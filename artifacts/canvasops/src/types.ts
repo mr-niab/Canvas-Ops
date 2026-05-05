@@ -1,6 +1,6 @@
 export type View = 'home' | 'project' | 'work' | 'stakeholders' | 'log' | 'people' | 'projects';
 
-export type Stage = 'Intake' | 'Discovery' | 'Alpha' | 'Beta' | 'Live';
+export type Stage = 'Intake' | 'Discovery' | 'Explore' | 'Build' | 'Launch';
 
 export type Discipline = 'UX/UI Design' | 'User Research' | 'Service Design';
 

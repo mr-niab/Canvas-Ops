@@ -11,7 +11,7 @@ export type ProjectStage = (typeof ProjectStage)[keyof typeof ProjectStage];
 export const ProjectStage = {
   Intake: "Intake",
   Discovery: "Discovery",
-  Alpha: "Alpha",
-  Beta: "Beta",
-  Live: "Live",
+  Explore: "Explore",
+  Build: "Build",
+  Launch: "Launch",
 } as const;

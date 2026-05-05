@@ -17,14 +17,14 @@ const router: IRouter = Router();
 
 router.use(requireAuth);
 
-type Stage = "Intake" | "Discovery" | "Alpha" | "Beta" | "Live";
+type Stage = "Intake" | "Discovery" | "Explore" | "Build" | "Launch";
 
 const STAGE_CLASS: Record<Stage, string> = {
   Intake: "disc",
   Discovery: "disc",
-  Alpha: "alpha",
-  Beta: "beta",
-  Live: "good",
+  Explore: "alpha",
+  Build: "beta",
+  Launch: "good",
 };
 
 function serialize(row: ProjectRow) {
@@ -91,7 +91,7 @@ router.post("/projects", async (req, res: Response) => {
         meta: body.data.meta?.trim() || "New project",
         stage,
         stageClass: STAGE_CLASS[stage],
-        status: stage === "Live" ? "Shipped" : "On track",
+        status: stage === "Launch" ? "Shipped" : "On track",
         statusClass: "good",
         teamId: body.data.teamId ?? null,
       })
@@ -126,7 +126,7 @@ router.patch("/projects/:projectId", async (req, res: Response) => {
       const stage = body.data.stage as Stage;
       updates.stage = stage;
       updates.stageClass = STAGE_CLASS[stage];
-      if (stage === "Live") updates.status = "Shipped";
+      if (stage === "Launch") updates.status = "Shipped";
     }
     if (body.data.teamId !== undefined) updates.teamId = body.data.teamId;
 

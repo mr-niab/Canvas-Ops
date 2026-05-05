@@ -12,7 +12,7 @@ export type UpdateProjectRequestStage =
 export const UpdateProjectRequestStage = {
   Intake: "Intake",
   Discovery: "Discovery",
-  Alpha: "Alpha",
-  Beta: "Beta",
-  Live: "Live",
+  Explore: "Explore",
+  Build: "Build",
+  Launch: "Launch",
 } as const;

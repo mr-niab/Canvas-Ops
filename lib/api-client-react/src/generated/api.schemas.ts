@@ -138,9 +138,9 @@ export type ProjectStage = (typeof ProjectStage)[keyof typeof ProjectStage];
 export const ProjectStage = {
   Intake: "Intake",
   Discovery: "Discovery",
-  Alpha: "Alpha",
-  Beta: "Beta",
-  Live: "Live",
+  Explore: "Explore",
+  Build: "Build",
+  Launch: "Launch",
 } as const;
 
 export interface Project {
@@ -160,9 +160,9 @@ export type CreateProjectRequestStage =
 export const CreateProjectRequestStage = {
   Intake: "Intake",
   Discovery: "Discovery",
-  Alpha: "Alpha",
-  Beta: "Beta",
-  Live: "Live",
+  Explore: "Explore",
+  Build: "Build",
+  Launch: "Launch",
 } as const;
 
 export interface CreateProjectRequest {
@@ -179,9 +179,9 @@ export type UpdateProjectRequestStage =
 export const UpdateProjectRequestStage = {
   Intake: "Intake",
   Discovery: "Discovery",
-  Alpha: "Alpha",
-  Beta: "Beta",
-  Live: "Live",
+  Explore: "Explore",
+  Build: "Build",
+  Launch: "Launch",
 } as const;
 
 export interface UpdateProjectRequest {

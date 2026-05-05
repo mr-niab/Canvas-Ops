@@ -332,7 +332,7 @@ export const ListProjectsResponseItem = zod.object({
   id: zod.string(),
   name: zod.string(),
   meta: zod.string(),
-  stage: zod.enum(["Intake", "Discovery", "Alpha", "Beta", "Live"]),
+  stage: zod.enum(["Intake", "Discovery", "Explore", "Build", "Launch"]),
   stageClass: zod.string(),
   status: zod.string(),
   statusClass: zod.string(),
@@ -347,7 +347,7 @@ export const ListProjectsResponse = zod.array(ListProjectsResponseItem);
 export const CreateProjectBody = zod.object({
   name: zod.string().min(1),
   meta: zod.string().optional(),
-  stage: zod.enum(["Intake", "Discovery", "Alpha", "Beta", "Live"]).optional(),
+  stage: zod.enum(["Intake", "Discovery", "Explore", "Build", "Launch"]).optional(),
   teamId: zod.string().nullish(),
 });
 
@@ -355,7 +355,7 @@ export const CreateProjectResponse = zod.object({
   id: zod.string(),
   name: zod.string(),
   meta: zod.string(),
-  stage: zod.enum(["Intake", "Discovery", "Alpha", "Beta", "Live"]),
+  stage: zod.enum(["Intake", "Discovery", "Explore", "Build", "Launch"]),
   stageClass: zod.string(),
   status: zod.string(),
   statusClass: zod.string(),
@@ -372,7 +372,7 @@ export const UpdateProjectParams = zod.object({
 export const UpdateProjectBody = zod.object({
   name: zod.string().min(1).optional(),
   meta: zod.string().optional(),
-  stage: zod.enum(["Intake", "Discovery", "Alpha", "Beta", "Live"]).optional(),
+  stage: zod.enum(["Intake", "Discovery", "Explore", "Build", "Launch"]).optional(),
   teamId: zod.string().nullish(),
 });
 
@@ -380,7 +380,7 @@ export const UpdateProjectResponse = zod.object({
   id: zod.string(),
   name: zod.string(),
   meta: zod.string(),
-  stage: zod.enum(["Intake", "Discovery", "Alpha", "Beta", "Live"]),
+  stage: zod.enum(["Intake", "Discovery", "Explore", "Build", "Launch"]),
   stageClass: zod.string(),
   status: zod.string(),
   statusClass: zod.string(),

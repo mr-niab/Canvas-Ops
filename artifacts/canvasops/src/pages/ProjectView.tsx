@@ -20,8 +20,8 @@ function formatSessionWhen(iso: string): string {
 
 type Tab = 'overview' | 'workflow' | 'evidence' | 'stakeholders' | 'resources' | 'log';
 
-const STAGES: Array<'Intake' | 'Discovery' | 'Alpha' | 'Beta' | 'Live'> = [
-  'Intake', 'Discovery', 'Alpha', 'Beta', 'Live'
+const STAGES: Array<'Intake' | 'Discovery' | 'Explore' | 'Build' | 'Launch'> = [
+  'Intake', 'Discovery', 'Explore', 'Build', 'Launch'
 ];
 
 const DISCIPLINES: Array<{ key: Discipline; label: string; color: string }> = [
