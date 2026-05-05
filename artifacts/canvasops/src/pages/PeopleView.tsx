@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useAppContext } from '../AppContext';
 import { Role, Team } from '../types';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 function describeError(err: unknown): string {
   if (err instanceof Error && err.message) return err.message;
@@ -70,6 +71,14 @@ export function PeopleView() {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null);
 
+  type PendingConfirm =
+    | { action: 'deleteTeam'; teamId: string; teamName: string }
+    | { action: 'deleteMate'; teammateId: string; mateName: string }
+    | { action: 'cancelInvite'; inviteId: string; email: string }
+    | { action: 'removeMember'; userId: string; name: string }
+    | null;
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm>(null);
+
   const selectedTeam = useMemo(
     () => teams.find(t => t.id === selectedTeamId) ?? null,
     [teams, selectedTeamId]
@@ -137,21 +146,13 @@ export function PeopleView() {
   const handleDeleteTeam = (teamId: string) => {
     const team = teams.find(t => t.id === teamId);
     if (!team) return;
-    const ok = window.confirm(`Delete team "${team.name}"? Teammates will remain but be unassigned from this team.`);
-    if (!ok) return;
-    deleteTeam(teamId);
-    if (selectedTeamId === teamId) {
-      const next = teams.find(t => t.id !== teamId);
-      setSelectedTeamId(next?.id ?? null);
-    }
+    setPendingConfirm({ action: 'deleteTeam', teamId, teamName: team.name });
   };
 
   const handleDeleteMate = (teammateId: string) => {
     const mate = teammates.find(m => m.id === teammateId);
     if (!mate) return;
-    const ok = window.confirm(`Remove "${mate.name}" from the organisation?`);
-    if (!ok) return;
-    deleteTeammate(teammateId);
+    setPendingConfirm({ action: 'deleteMate', teammateId, mateName: mate.name });
   };
 
   const handleSendInvite = async (e: React.FormEvent) => {
@@ -188,24 +189,61 @@ export function PeopleView() {
   };
 
   const handleCancelInvite = async (inviteId: string, email: string) => {
-    const ok = window.confirm(`Cancel invite for ${email}?`);
-    if (!ok) return;
-    try {
-      await cancelInvite(inviteId);
-    } catch (err) {
-      window.alert(describeError(err));
-    }
+    setPendingConfirm({ action: 'cancelInvite', inviteId, email });
   };
 
   const handleRemoveMember = async (userId: string, name: string) => {
-    const ok = window.confirm(`Remove ${name} from the organisation? They will lose access immediately.`);
-    if (!ok) return;
-    try {
-      await removeMember(userId);
-    } catch (err) {
-      window.alert(describeError(err));
+    setPendingConfirm({ action: 'removeMember', userId, name });
+  };
+
+  const handleConfirm = async () => {
+    if (!pendingConfirm) return;
+    if (pendingConfirm.action === 'deleteTeam') {
+      deleteTeam(pendingConfirm.teamId);
+      if (selectedTeamId === pendingConfirm.teamId) {
+        const next = teams.find(t => t.id !== pendingConfirm.teamId);
+        setSelectedTeamId(next?.id ?? null);
+      }
+    } else if (pendingConfirm.action === 'deleteMate') {
+      deleteTeammate(pendingConfirm.teammateId);
+    } else if (pendingConfirm.action === 'cancelInvite') {
+      try {
+        await cancelInvite(pendingConfirm.inviteId);
+      } catch (err) {
+        window.alert(describeError(err));
+      }
+    } else if (pendingConfirm.action === 'removeMember') {
+      try {
+        await removeMember(pendingConfirm.userId);
+      } catch (err) {
+        window.alert(describeError(err));
+      }
     }
   };
+
+  const confirmDialogProps = (() => {
+    if (!pendingConfirm) return { title: '', message: '', confirmLabel: 'Confirm' };
+    if (pendingConfirm.action === 'deleteTeam') return {
+      title: 'Delete team',
+      message: `Delete team "${pendingConfirm.teamName}"? Teammates will remain but be unassigned from this team.`,
+      confirmLabel: 'Delete team',
+    };
+    if (pendingConfirm.action === 'deleteMate') return {
+      title: 'Remove teammate',
+      message: `Remove "${pendingConfirm.mateName}" from the organisation?`,
+      confirmLabel: 'Remove',
+    };
+    if (pendingConfirm.action === 'cancelInvite') return {
+      title: 'Cancel invite',
+      message: `Cancel invite for ${pendingConfirm.email}?`,
+      confirmLabel: 'Cancel invite',
+    };
+    return {
+      title: 'Remove member',
+      message: `Remove ${pendingConfirm.name} from the organisation? They will lose access immediately.`,
+      confirmLabel: 'Remove',
+    };
+  })();
 
   const nonMembers = selectedTeam
     ? teammates.filter(m => !selectedTeam.teammateIds.includes(m.id))
@@ -595,6 +633,14 @@ export function PeopleView() {
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={pendingConfirm !== null}
+        title={confirmDialogProps.title}
+        message={confirmDialogProps.message}
+        confirmLabel={confirmDialogProps.confirmLabel}
+        onConfirm={() => { void handleConfirm(); }}
+        onClose={() => setPendingConfirm(null)}
+      />
     </section>
   );
 }

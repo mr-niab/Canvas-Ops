@@ -10,6 +10,7 @@ import { StakeholdersTable } from '../components/StakeholdersTable';
 import { LogList } from '../components/LogList';
 import { BlockedByChip } from '../components/BlockedByChip';
 import { EvidencePanel } from '../components/EvidencePanel';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 function formatSessionWhen(iso: string): string {
   const d = new Date(iso);
@@ -163,6 +164,7 @@ export function ProjectView() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<ProjectSession | null>(null);
+  const [pendingDeleteSessionId, setPendingDeleteSessionId] = useState<string | null>(null);
 
   const projectId = selectedProjectId ?? projects[0]?.id ?? null;
   useEffect(() => {
@@ -436,11 +438,7 @@ export function ProjectView() {
                         </button>
                         <button
                           className="btn small danger"
-                          onClick={() => {
-                            if (window.confirm(`Delete session "${s.title}"? This cannot be undone.`)) {
-                              void deleteProjectSession(project.id, s.id);
-                            }
-                          }}
+                          onClick={() => setPendingDeleteSessionId(s.id)}
                         >
                           Delete
                         </button>
@@ -508,6 +506,18 @@ export function ProjectView() {
         }}
         projectId={project.id}
         session={editingSession}
+      />
+      <ConfirmDialog
+        isOpen={pendingDeleteSessionId !== null}
+        title="Delete session"
+        message={`Delete session "${sessions.find(s => s.id === pendingDeleteSessionId)?.title ?? ''}"? This cannot be undone.`}
+        confirmLabel="Delete session"
+        onConfirm={() => {
+          if (pendingDeleteSessionId) {
+            void deleteProjectSession(project.id, pendingDeleteSessionId);
+          }
+        }}
+        onClose={() => setPendingDeleteSessionId(null)}
       />
     </section>
   );
