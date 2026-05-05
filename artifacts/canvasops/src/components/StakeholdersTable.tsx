@@ -15,7 +15,7 @@ const COLUMNS: Array<{ key: SortKey; label: string }> = [
   { key: 'status', label: 'Status' },
 ];
 
-export function StakeholdersTable() {
+export function StakeholdersTable({ projectId }: { projectId?: string }) {
   const { stakeholders, projects } = useAppContext();
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -31,6 +31,10 @@ export function StakeholdersTable() {
     return projectNamesById.get(id) ?? '';
   };
 
+  const filtered = projectId
+    ? stakeholders.filter(s => s.projectId === projectId)
+    : stakeholders;
+
   const sorted = useMemo(() => {
     const valueOf = (s: Stakeholder, key: SortKey): string => {
       if (key === 'project') {
@@ -39,7 +43,7 @@ export function StakeholdersTable() {
       if (key === 'department') return String(s.department ?? '').toLowerCase();
       return String(s[key as keyof Stakeholder] ?? '').toLowerCase();
     };
-    const out = [...stakeholders].sort((a, b) => {
+    const out = [...filtered].sort((a, b) => {
       const av = valueOf(a, sortKey);
       const bv = valueOf(b, sortKey);
       if (av < bv) return -1;
@@ -47,7 +51,7 @@ export function StakeholdersTable() {
       return 0;
     });
     return sortDir === 'asc' ? out : out.reverse();
-  }, [stakeholders, projectNamesById, sortKey, sortDir]);
+  }, [filtered, projectNamesById, sortKey, sortDir]);
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) {

@@ -1,11 +1,14 @@
 import { pgTable, text, integer, jsonb, timestamp } from "drizzle-orm/pg-core";
 import { organisationsTable } from "./organisations";
+import { projectsTable } from "./projects";
 
 export const tasksTable = pgTable("tasks", {
   id: text("id").primaryKey(),
   organisationId: text("organisation_id")
     .notNull()
     .references(() => organisationsTable.id, { onDelete: "cascade" }),
+  projectId: text("project_id")
+    .references(() => projectsTable.id, { onDelete: "set null" }),
   discipline: text("discipline").notNull(),
   title: text("title").notNull(),
   status: text("status").notNull().default("Backlog"),

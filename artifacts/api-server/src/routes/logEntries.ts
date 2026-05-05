@@ -16,6 +16,7 @@ router.use(requireAuth);
 function serialize(row: LogEntryRow) {
   return {
     id: row.id,
+    projectId: row.projectId ?? null,
     date: row.date,
     actor: row.actor,
     type: row.type,
@@ -26,11 +27,15 @@ function serialize(row: LogEntryRow) {
 
 router.get("/log-entries", async (req, res: Response) => {
   const organisationId = (req as AuthedRequest).organisationId;
+  const projectId = typeof req.query.projectId === "string" ? req.query.projectId : undefined;
   try {
+    const conditions = projectId
+      ? and(eq(logEntriesTable.organisationId, organisationId), eq(logEntriesTable.projectId, projectId))
+      : eq(logEntriesTable.organisationId, organisationId);
     const rows = await db
       .select()
       .from(logEntriesTable)
-      .where(eq(logEntriesTable.organisationId, organisationId))
+      .where(conditions)
       .orderBy(desc(logEntriesTable.createdAt));
     res.json(ListLogEntriesResponse.parse(rows.map(serialize)));
   } catch (error) {
@@ -52,6 +57,7 @@ router.post("/log-entries", async (req, res: Response) => {
       .values({
         id: `l${randomUUID()}`,
         organisationId,
+        projectId: body.data.projectId ?? null,
         date: body.data.date.trim(),
         actor: body.data.actor.trim(),
         type: body.data.type.trim(),

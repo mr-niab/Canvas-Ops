@@ -49,6 +49,7 @@ export type TaskPriority = 'High' | 'Medium' | 'Low';
 
 export type Task = {
   id: string;
+  projectId?: string | null;
   discipline: Discipline;
   title: string;
   status: string;
@@ -77,6 +78,7 @@ export type Stakeholder = {
 
 export type LogEntry = {
   id: string;
+  projectId?: string | null;
   date: string;
   actor: string;
   type: string;

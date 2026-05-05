@@ -9,6 +9,7 @@ import type { TaskDiscipline } from "./taskDiscipline";
 
 export interface Task {
   id: string;
+  projectId?: string | null;
   discipline: TaskDiscipline;
   title: string;
   status: string;

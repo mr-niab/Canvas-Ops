@@ -1,10 +1,13 @@
 import { useAppContext } from '../AppContext';
 
-export function LogList() {
+export function LogList({ projectId }: { projectId?: string }) {
   const { logEntries } = useAppContext();
+  const entries = projectId
+    ? logEntries.filter(e => e.projectId === projectId)
+    : logEntries;
   return (
     <>
-      {logEntries.map(entry => {
+      {entries.map(entry => {
         const [date, time] = entry.date.split(' · ');
         return (
           <div className="log-row" key={entry.id}>

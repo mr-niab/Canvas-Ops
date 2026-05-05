@@ -2284,35 +2284,37 @@ export const useDeleteProject = <
 /**
  * @summary List tasks
  */
-export const getListTasksUrl = () => {
-  return `/api/tasks`;
+export const getListTasksUrl = (params?: { projectId?: string }) => {
+  const query = params?.projectId ? `?projectId=${encodeURIComponent(params.projectId)}` : "";
+  return `/api/tasks${query}`;
 };
 
-export const listTasks = async (options?: RequestInit): Promise<Task[]> => {
-  return customFetch<Task[]>(getListTasksUrl(), {
+export const listTasks = async (params?: { projectId?: string }, options?: RequestInit): Promise<Task[]> => {
+  return customFetch<Task[]>(getListTasksUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getListTasksQueryKey = () => {
-  return [`/api/tasks`] as const;
+export const getListTasksQueryKey = (params?: { projectId?: string }) => {
+  return params?.projectId ? [`/api/tasks`, params] as const : [`/api/tasks`] as const;
 };
 
 export const getListTasksQueryOptions = <
   TData = Awaited<ReturnType<typeof listTasks>>,
   TError = ErrorType<ErrorEnvelope>,
 >(options?: {
+  params?: { projectId?: string };
   query?: UseQueryOptions<Awaited<ReturnType<typeof listTasks>>, TError, TData>;
   request?: SecondParameter<typeof customFetch>;
 }) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const { params, query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListTasksQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getListTasksQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listTasks>>> = ({
     signal,
-  }) => listTasks({ signal, ...requestOptions });
+  }) => listTasks(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listTasks>>,
@@ -2334,6 +2336,7 @@ export function useListTasks<
   TData = Awaited<ReturnType<typeof listTasks>>,
   TError = ErrorType<ErrorEnvelope>,
 >(options?: {
+  params?: { projectId?: string };
   query?: UseQueryOptions<Awaited<ReturnType<typeof listTasks>>, TError, TData>;
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -3101,27 +3104,30 @@ export const useDeleteStakeholder = <
 /**
  * @summary List log entries (newest first)
  */
-export const getListLogEntriesUrl = () => {
-  return `/api/log-entries`;
+export const getListLogEntriesUrl = (params?: { projectId?: string }) => {
+  const query = params?.projectId ? `?projectId=${encodeURIComponent(params.projectId)}` : "";
+  return `/api/log-entries${query}`;
 };
 
 export const listLogEntries = async (
+  params?: { projectId?: string },
   options?: RequestInit,
 ): Promise<LogEntry[]> => {
-  return customFetch<LogEntry[]>(getListLogEntriesUrl(), {
+  return customFetch<LogEntry[]>(getListLogEntriesUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getListLogEntriesQueryKey = () => {
-  return [`/api/log-entries`] as const;
+export const getListLogEntriesQueryKey = (params?: { projectId?: string }) => {
+  return params?.projectId ? [`/api/log-entries`, params] as const : [`/api/log-entries`] as const;
 };
 
 export const getListLogEntriesQueryOptions = <
   TData = Awaited<ReturnType<typeof listLogEntries>>,
   TError = ErrorType<ErrorEnvelope>,
 >(options?: {
+  params?: { projectId?: string };
   query?: UseQueryOptions<
     Awaited<ReturnType<typeof listLogEntries>>,
     TError,
@@ -3129,13 +3135,13 @@ export const getListLogEntriesQueryOptions = <
   >;
   request?: SecondParameter<typeof customFetch>;
 }) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const { params, query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getListLogEntriesQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getListLogEntriesQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listLogEntries>>> = ({
     signal,
-  }) => listLogEntries({ signal, ...requestOptions });
+  }) => listLogEntries(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listLogEntries>>,
@@ -3157,6 +3163,7 @@ export function useListLogEntries<
   TData = Awaited<ReturnType<typeof listLogEntries>>,
   TError = ErrorType<ErrorEnvelope>,
 >(options?: {
+  params?: { projectId?: string };
   query?: UseQueryOptions<
     Awaited<ReturnType<typeof listLogEntries>>,
     TError,

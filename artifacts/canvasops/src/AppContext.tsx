@@ -166,6 +166,7 @@ function normalizeBoard(raw: {
 
 function normalizeTask(raw: {
   id: string;
+  projectId?: string | null;
   discipline: string;
   title: string;
   status: string;
@@ -176,6 +177,7 @@ function normalizeTask(raw: {
 }): Task {
   const t: Task = {
     id: raw.id,
+    projectId: raw.projectId ?? null,
     discipline: raw.discipline as Task['discipline'],
     title: raw.title,
     status: raw.status,
@@ -448,6 +450,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isProjectModalOpen, setProjectModalOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const selectedProjectIdRef = useRef<string | null>(null);
+  selectedProjectIdRef.current = selectedProjectId;
 
   // -- Domain data --------------------------------------------------------
   const [authUser, setAuthUser] = useState<AuthUserState>(PLACEHOLDER_AUTH_USER);
@@ -574,9 +578,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [loadAllForUser]);
 
   // -- Project navigation -------------------------------------------------
-  const openProject = useCallback((id: string) => {
+  const openProject = useCallback(async (id: string) => {
     setSelectedProjectId(id);
     setCurrentView('project');
+    // Load project-scoped tasks and log entries in the background
+    try {
+      const [taskRows, logRows] = await Promise.all([
+        listTasks({ projectId: id }),
+        listLogEntries({ projectId: id }),
+      ]);
+      setTasks(prev => {
+        const otherTasks = prev.filter(t => t.projectId !== id);
+        return [...otherTasks, ...taskRows.map(normalizeTask)];
+      });
+      setLogEntries(prev => {
+        const otherEntries = prev.filter(e => e.projectId !== id);
+        return [...otherEntries, ...logRows.map(e => ({ ...e, projectId: e.projectId ?? null }))];
+      });
+    } catch (err) {
+      console.error('Failed to load project-scoped data:', describeError(err));
+    }
   }, []);
 
   // -- Tasks (server returns the full recomputed list) --------------------
@@ -588,6 +609,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       dependencies: task.dependencies ?? [],
       ...(task.priority !== undefined ? { priority: task.priority } : {}),
       ...(task.assignee !== undefined ? { assignee: task.assignee } : {}),
+      projectId: task.projectId !== undefined ? task.projectId : (selectedProjectIdRef.current ?? null),
     });
     setTasks(rows.map(normalizeTask));
   }, []);
@@ -660,7 +682,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // -- Log entries --------------------------------------------------------
   const addLogEntry = useCallback(async (entry: Omit<LogEntry, 'id'>) => {
-    const created = await apiCreateLogEntry(entry);
+    const created = await apiCreateLogEntry({
+      ...entry,
+      projectId: entry.projectId !== undefined ? entry.projectId : (selectedProjectIdRef.current ?? null),
+    });
     setLogEntries((prev) => [{ ...created }, ...prev]);
   }, []);
 

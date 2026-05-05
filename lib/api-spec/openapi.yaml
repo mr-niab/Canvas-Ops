@@ -682,6 +682,13 @@ paths:
       tags: [Tasks]
       operationId: listTasks
       summary: List tasks
+      parameters:
+        - name: projectId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: When provided, only return tasks belonging to this project.
       responses:
         '200':
           description: All tasks.
@@ -920,6 +927,13 @@ paths:
       tags: [LogEntries]
       operationId: listLogEntries
       summary: List log entries (newest first)
+      parameters:
+        - name: projectId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: When provided, only return log entries belonging to this project.
       responses:
         '200':
           description: All log entries.
@@ -1737,6 +1751,9 @@ components:
       properties:
         id:
           type: string
+        projectId:
+          type: string
+          nullable: true
         discipline:
           type: string
           enum: ['UX/UI Design', 'User Research', 'Service Design']
@@ -1779,6 +1796,9 @@ components:
           enum: ['High', 'Medium', 'Low']
         assignee:
           type: string
+        projectId:
+          type: string
+          nullable: true
     UpdateTaskRequest:
       type: object
       properties:
@@ -1889,6 +1909,9 @@ components:
       properties:
         id:
           type: string
+        projectId:
+          type: string
+          nullable: true
         date:
           type: string
         actor:
@@ -1918,6 +1941,9 @@ components:
         detail:
           type: string
           minLength: 1
+        projectId:
+          type: string
+          nullable: true
 
     UploadUrlRequest:
       type: object

@@ -203,6 +203,7 @@ export const TaskDiscipline = {
 
 export interface Task {
   id: string;
+  projectId?: string | null;
   discipline: TaskDiscipline;
   title: string;
   status: string;
@@ -229,6 +230,7 @@ export interface CreateTaskRequest {
   dependencies?: string[];
   priority?: "High" | "Medium" | "Low";
   assignee?: string;
+  projectId?: string | null;
 }
 
 export type UpdateTaskRequestDiscipline =
@@ -304,6 +306,7 @@ export interface UpdateStakeholderRequest {
 
 export interface LogEntry {
   id: string;
+  projectId?: string | null;
   date: string;
   actor: string;
   type: string;
@@ -322,6 +325,7 @@ export interface CreateLogEntryRequest {
   typeClass: string;
   /** @minLength 1 */
   detail: string;
+  projectId?: string | null;
 }
 
 export interface UploadUrlRequest {

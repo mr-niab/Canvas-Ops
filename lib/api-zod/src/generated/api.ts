@@ -399,6 +399,7 @@ export const DeleteProjectParams = zod.object({
  */
 export const ListTasksResponseItem = zod.object({
   id: zod.string(),
+  projectId: zod.string().nullish(),
   discipline: zod.enum(["UX/UI Design", "User Research", "Service Design"]),
   title: zod.string(),
   status: zod.string(),
@@ -420,10 +421,12 @@ export const CreateTaskBody = zod.object({
   dependencies: zod.array(zod.string()).optional(),
   priority: zod.enum(["High", "Medium", "Low"]).optional(),
   assignee: zod.string().optional(),
+  projectId: zod.string().nullish(),
 });
 
 export const CreateTaskResponseItem = zod.object({
   id: zod.string(),
+  projectId: zod.string().nullish(),
   discipline: zod.enum(["UX/UI Design", "User Research", "Service Design"]),
   title: zod.string(),
   status: zod.string(),
@@ -454,6 +457,7 @@ export const UpdateTaskBody = zod.object({
 
 export const UpdateTaskResponseItem = zod.object({
   id: zod.string(),
+  projectId: zod.string().nullish(),
   discipline: zod.enum(["UX/UI Design", "User Research", "Service Design"]),
   title: zod.string(),
   status: zod.string(),
@@ -473,6 +477,7 @@ export const DeleteTaskParams = zod.object({
 
 export const DeleteTaskResponseItem = zod.object({
   id: zod.string(),
+  projectId: zod.string().nullish(),
   discipline: zod.enum(["UX/UI Design", "User Research", "Service Design"]),
   title: zod.string(),
   status: zod.string(),
@@ -499,6 +504,7 @@ export const MoveTaskBody = zod.object({
 
 export const MoveTaskResponseItem = zod.object({
   id: zod.string(),
+  projectId: zod.string().nullish(),
   discipline: zod.enum(["UX/UI Design", "User Research", "Service Design"]),
   title: zod.string(),
   status: zod.string(),
@@ -602,6 +608,7 @@ export const DeleteStakeholderParams = zod.object({
  */
 export const ListLogEntriesResponseItem = zod.object({
   id: zod.string(),
+  projectId: zod.string().nullish(),
   date: zod.string(),
   actor: zod.string(),
   type: zod.string(),
@@ -620,10 +627,12 @@ export const CreateLogEntryBody = zod.object({
   type: zod.string().min(1),
   typeClass: zod.string().min(1),
   detail: zod.string().min(1),
+  projectId: zod.string().nullish(),
 });
 
 export const CreateLogEntryResponse = zod.object({
   id: zod.string(),
+  projectId: zod.string().nullish(),
   date: zod.string(),
   actor: zod.string(),
   type: zod.string(),

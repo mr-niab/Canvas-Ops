@@ -8,6 +8,7 @@
 
 export interface LogEntry {
   id: string;
+  projectId?: string | null;
   date: string;
   actor: string;
   type: string;

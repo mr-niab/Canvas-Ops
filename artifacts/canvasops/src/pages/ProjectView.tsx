@@ -177,6 +177,9 @@ export function ProjectView() {
 
   const project = projects.find(p => p.id === selectedProjectId) ?? projects[0] ?? null;
 
+  const projectTasks = project ? tasks.filter(t => t.projectId === project.id) : [];
+  const projectLogEntries = project ? logEntries.filter(e => e.projectId === project.id) : [];
+
   if (!project) {
     return (
       <section>
@@ -267,7 +270,7 @@ export function ProjectView() {
 
       {activeTab === 'overview' && (() => {
         const disciplineCounts = DISCIPLINES.map(d => {
-          const dt = tasks.filter(t => t.discipline === d.key);
+          const dt = projectTasks.filter(t => t.discipline === d.key);
           return {
             key: d.key,
             label: d.label,
@@ -279,123 +282,81 @@ export function ProjectView() {
         });
         const totalTasks = disciplineCounts.reduce((s, d) => s + d.total, 0);
 
-        const sortedSessions = [...sessions].sort(
-          (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
-        );
-        const nextSession = sortedSessions[0] ?? null;
-        const extraSessionCount = sortedSessions.length > 1 ? sortedSessions.length - 1 : 0;
-
         const projectStakeholders = stakeholders.filter(s => s.projectId === project.id);
 
-        const recentLog = [...logEntries]
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-          .slice(0, 3);
+        const recentLog = [...projectLogEntries].slice(0, 3);
 
         return (
-          <div className="project-layout">
-            <div className="stack">
-              <div className="card pad">
-                <div className="section-title">Workflow summary</div>
-                <div className="stack-tight">
-                  {totalTasks === 0 ? (
-                    <div className="item-sub">No tasks yet across any discipline.</div>
-                  ) : (
-                    disciplineCounts.map(d => d.total > 0 && (
-                      <div key={d.key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 999, background: d.color, flexShrink: 0, display: 'inline-block' }}></span>
-                        <span className="item-title" style={{ color: d.color, minWidth: 140 }}>{d.label}</span>
-                        <span className="item-sub">{d.total} task{d.total !== 1 ? 's' : ''}</span>
-                        {d.inProgress > 0 && <span className="badge">{d.inProgress} in progress</span>}
-                        {d.blocked > 0 && <span className="badge badge-blocked">{d.blocked} blocked</span>}
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="divider"></div>
-                <button className="btn" onClick={() => setActiveTab('workflow')}>Go to Workflow →</button>
-              </div>
-
-              {nextSession !== null && (
-                <div className="card">
-                  <div className="list-item list-item-row">
-                    <div className="section-title flush">Upcoming sessions</div>
-                    <button
-                      className="btn small"
-                      onClick={() => {
-                        setEditingSession(null);
-                        setSessionModalOpen(true);
-                      }}
-                    >
-                      + Add session
-                    </button>
-                  </div>
-                  <div className="list-item">
-                    <div className="item-title">{nextSession.title}</div>
-                    <div className="item-sub">
-                      {[formatSessionWhen(nextSession.scheduledAt), nextSession.attendees, nextSession.notes]
-                        .filter(Boolean)
-                        .join(' · ')}
+          <div className="overview-4col">
+            <div className="card pad">
+              <div className="section-title">Workflow</div>
+              <div className="stack-tight">
+                {totalTasks === 0 ? (
+                  <div className="item-sub">No tasks yet.</div>
+                ) : (
+                  disciplineCounts.map(d => d.total > 0 && (
+                    <div key={d.key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <span style={{ width: 8, height: 8, borderRadius: 999, background: d.color, flexShrink: 0, display: 'inline-block' }}></span>
+                      <span className="item-title" style={{ color: d.color, flex: '1 1 100px' }}>{d.label}</span>
+                      <span className="item-sub">{d.total} task{d.total !== 1 ? 's' : ''}</span>
+                      {d.blocked > 0 && <span className="badge badge-blocked">{d.blocked} blocked</span>}
                     </div>
-                    {extraSessionCount > 0 && (
-                      <div className="item-sub">+{extraSessionCount} more session{extraSessionCount !== 1 ? 's' : ''}</div>
-                    )}
-                  </div>
-                  <div className="list-item">
-                    <button className="btn" onClick={() => setActiveTab('workflow')}>Go to Workflow →</button>
-                  </div>
-                </div>
-              )}
+                  ))
+                )}
+              </div>
+              <div className="divider"></div>
+              <button className="btn" onClick={() => setActiveTab('workflow')}>Go to Workflow →</button>
             </div>
 
-            <div className="stack">
-              {projectStakeholders.length > 0 && (
-                <div className="card pad">
-                  <div className="section-title">Stakeholders</div>
-                  <div className="stack-tight">
-                    <div>
-                      <div className="item-title">{projectStakeholders.length} recorded</div>
-                      <div className="item-sub">
-                        {projectStakeholders.map(s => s.role).filter(Boolean).join(', ')}
-                      </div>
-                    </div>
-                    <div>
-                      <button className="btn" onClick={() => setActiveTab('stakeholders')}>Open stakeholders →</button>
-                    </div>
+            <div className="card pad">
+              <div className="section-title">Stakeholders</div>
+              {projectStakeholders.length === 0 ? (
+                <div className="item-sub">No stakeholders yet.</div>
+              ) : (
+                <div className="stack-tight">
+                  <div className="item-title">{projectStakeholders.length} recorded</div>
+                  <div className="item-sub">
+                    {projectStakeholders.map(s => s.role).filter(Boolean).join(', ')}
                   </div>
                 </div>
               )}
+              <div className="divider"></div>
+              <button className="btn" onClick={() => setActiveTab('stakeholders')}>Open stakeholders →</button>
+            </div>
 
-              {evidenceCount > 0 && (
-                <div className="card pad">
-                  <div className="section-title">Evidence</div>
-                  <div className="stack-tight">
-                    <div className="item-sub">
-                      {evidence.files.length > 0 && `${evidence.files.length} file${evidence.files.length !== 1 ? 's' : ''}`}
-                      {evidence.files.length > 0 && evidence.boards.length > 0 && ' · '}
-                      {evidence.boards.length > 0 && `${evidence.boards.length} linked board${evidence.boards.length !== 1 ? 's' : ''}`}
-                    </div>
-                    <div>
-                      <button className="btn" onClick={() => setActiveTab('evidence')}>Open Evidence →</button>
-                    </div>
+            <div className="card pad">
+              <div className="section-title">Evidence</div>
+              {evidenceCount === 0 ? (
+                <div className="item-sub">No evidence yet.</div>
+              ) : (
+                <div className="stack-tight">
+                  <div className="item-sub">
+                    {evidence.files.length > 0 && `${evidence.files.length} file${evidence.files.length !== 1 ? 's' : ''}`}
+                    {evidence.files.length > 0 && evidence.boards.length > 0 && ' · '}
+                    {evidence.boards.length > 0 && `${evidence.boards.length} linked board${evidence.boards.length !== 1 ? 's' : ''}`}
                   </div>
                 </div>
               )}
+              <div className="divider"></div>
+              <button className="btn" onClick={() => setActiveTab('evidence')}>Open Evidence →</button>
+            </div>
 
-              {recentLog.length > 0 && (
-                <div className="card pad">
-                  <div className="section-title">Recent log</div>
-                  <div className="stack-tight">
-                    {recentLog.map(entry => (
-                      <div key={entry.id}>
-                        <div className="item-title">{entry.detail}</div>
-                        <div className="item-sub">{entry.date} · {entry.actor} · {entry.type}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="divider"></div>
-                  <button className="btn" onClick={() => setActiveTab('log')}>Open full log →</button>
+            <div className="card pad">
+              <div className="section-title">Recent log</div>
+              {recentLog.length === 0 ? (
+                <div className="item-sub">No log entries yet.</div>
+              ) : (
+                <div className="stack-tight">
+                  {recentLog.map(entry => (
+                    <div key={entry.id}>
+                      <div className="item-title">{entry.detail}</div>
+                      <div className="item-sub">{entry.date} · {entry.actor}</div>
+                    </div>
+                  ))}
                 </div>
               )}
+              <div className="divider"></div>
+              <button className="btn" onClick={() => setActiveTab('log')}>Open full log →</button>
             </div>
           </div>
         );
@@ -406,7 +367,7 @@ export function ProjectView() {
           <div className="card pad">
             <div className="lane-wrap">
               {DISCIPLINES.map(d => (
-                <Lane key={d.key} discipline={d.key} label={d.label} color={d.color} tasks={tasks} />
+                <Lane key={d.key} discipline={d.key} label={d.label} color={d.color} tasks={projectTasks} />
               ))}
             </div>
           </div>
@@ -486,7 +447,7 @@ export function ProjectView() {
               <button className="btn primary" onClick={() => setStakeholderModalOpen(true)}>+ Add stakeholder</button>
             </div>
           </div>
-          <StakeholdersTable />
+          <StakeholdersTable projectId={project.id} />
         </div>
       )}
 
@@ -502,7 +463,7 @@ export function ProjectView() {
               <button className="btn primary" onClick={() => setLogModalOpen(true)}>+ Add log entry</button>
             </div>
           </div>
-          <LogList />
+          <LogList projectId={project.id} />
         </div>
       )}
 

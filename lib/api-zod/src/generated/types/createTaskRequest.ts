@@ -15,4 +15,5 @@ export interface CreateTaskRequest {
   dependencies?: string[];
   priority?: "High" | "Medium" | "Low";
   assignee?: string;
+  projectId?: string | null;
 }

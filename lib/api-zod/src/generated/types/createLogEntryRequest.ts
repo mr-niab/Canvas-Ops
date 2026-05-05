@@ -17,4 +17,5 @@ export interface CreateLogEntryRequest {
   typeClass: string;
   /** @minLength 1 */
   detail: string;
+  projectId?: string | null;
 }

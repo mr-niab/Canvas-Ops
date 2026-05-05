@@ -26,6 +26,7 @@ type Discipline = "UX/UI Design" | "User Research" | "Service Design";
 function serialize(row: TaskRow) {
   return {
     id: row.id,
+    projectId: row.projectId ?? null,
     discipline: row.discipline as Discipline,
     title: row.title,
     status: row.status,
@@ -36,11 +37,14 @@ function serialize(row: TaskRow) {
   };
 }
 
-async function loadAllForOrg(organisationId: string): Promise<TaskRow[]> {
+async function loadAllForOrg(organisationId: string, projectId?: string): Promise<TaskRow[]> {
+  const conditions = projectId
+    ? and(eq(tasksTable.organisationId, organisationId), eq(tasksTable.projectId, projectId))
+    : eq(tasksTable.organisationId, organisationId);
   return db
     .select()
     .from(tasksTable)
-    .where(eq(tasksTable.organisationId, organisationId))
+    .where(conditions)
     .orderBy(asc(tasksTable.discipline), asc(tasksTable.position), asc(tasksTable.createdAt));
 }
 
@@ -88,8 +92,9 @@ async function persistRecompute(organisationId: string): Promise<TaskRow[]> {
 
 router.get("/tasks", async (req, res: Response) => {
   const organisationId = (req as AuthedRequest).organisationId;
+  const projectId = typeof req.query.projectId === "string" ? req.query.projectId : undefined;
   try {
-    const rows = await loadAllForOrg(organisationId);
+    const rows = await loadAllForOrg(organisationId, projectId);
     res.json(ListTasksResponse.parse(rows.map(serialize)));
   } catch (error) {
     req.log.error({ err: error }, "Failed to list tasks");
@@ -122,6 +127,7 @@ router.post("/tasks", async (req, res: Response) => {
     await db.insert(tasksTable).values({
       id: `t${randomUUID()}`,
       organisationId,
+      projectId: body.data.projectId ?? null,
       discipline: body.data.discipline,
       title: body.data.title.trim(),
       status: body.data.status?.trim() || "Backlog",
