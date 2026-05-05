@@ -1751,6 +1751,13 @@ components:
           type: array
           items:
             type: string
+        priority:
+          type: string
+          enum: ['High', 'Medium', 'Low']
+          nullable: true
+        assignee:
+          type: string
+          nullable: true
     CreateTaskRequest:
       type: object
       required: [discipline, title]
@@ -1767,6 +1774,11 @@ components:
           type: array
           items:
             type: string
+        priority:
+          type: string
+          enum: ['High', 'Medium', 'Low']
+        assignee:
+          type: string
     UpdateTaskRequest:
       type: object
       properties:
@@ -1783,6 +1795,13 @@ components:
           type: array
           items:
             type: string
+        priority:
+          type: string
+          enum: ['High', 'Medium', 'Low']
+          nullable: true
+        assignee:
+          type: string
+          nullable: true
     MoveTaskRequest:
       type: object
       required: [discipline, targetIndex]

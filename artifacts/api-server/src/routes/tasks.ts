@@ -31,6 +31,8 @@ function serialize(row: TaskRow) {
     status: row.status,
     previousStatus: row.previousStatus ?? undefined,
     dependencies: row.dependencies,
+    priority: row.priority ?? undefined,
+    assignee: row.assignee ?? undefined,
   };
 }
 
@@ -125,6 +127,8 @@ router.post("/tasks", async (req, res: Response) => {
       status: body.data.status?.trim() || "Backlog",
       dependencies: body.data.dependencies ?? [],
       position: nextPos,
+      priority: body.data.priority ?? null,
+      assignee: body.data.assignee ?? null,
     });
     const rows = await persistRecompute(organisationId);
     res.json(CreateTaskResponse.parse(rows.map(serialize)));
@@ -152,6 +156,8 @@ router.patch("/tasks/:taskId", async (req, res: Response) => {
         (id) => id !== params.data.taskId,
       );
     }
+    if (body.data.priority !== undefined) updates.priority = body.data.priority ?? null;
+    if (body.data.assignee !== undefined) updates.assignee = body.data.assignee ?? null;
     if (Object.keys(updates).length > 0) {
       const result = await db
         .update(tasksTable)

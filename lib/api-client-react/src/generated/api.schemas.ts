@@ -208,6 +208,8 @@ export interface Task {
   status: string;
   previousStatus?: string | null;
   dependencies: string[];
+  priority?: "High" | "Medium" | "Low" | null;
+  assignee?: string | null;
 }
 
 export type CreateTaskRequestDiscipline =
@@ -225,6 +227,8 @@ export interface CreateTaskRequest {
   title: string;
   status?: string;
   dependencies?: string[];
+  priority?: "High" | "Medium" | "Low";
+  assignee?: string;
 }
 
 export type UpdateTaskRequestDiscipline =
@@ -243,6 +247,8 @@ export interface UpdateTaskRequest {
   status?: string;
   discipline?: UpdateTaskRequestDiscipline;
   dependencies?: string[];
+  priority?: "High" | "Medium" | "Low" | null;
+  assignee?: string | null;
 }
 
 export type MoveTaskRequestDiscipline =

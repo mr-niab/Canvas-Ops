@@ -45,6 +45,8 @@ export type Project = {
   teamId?: string;
 };
 
+export type TaskPriority = 'High' | 'Medium' | 'Low';
+
 export type Task = {
   id: string;
   discipline: Discipline;
@@ -57,6 +59,8 @@ export type Task = {
    * dependencies are satisfied. Absent on tasks that aren't auto-blocked.
    */
   previousStatus?: string;
+  priority?: TaskPriority;
+  assignee?: string;
 };
 
 export type Stakeholder = {

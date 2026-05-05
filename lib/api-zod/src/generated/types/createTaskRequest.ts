@@ -13,4 +13,6 @@ export interface CreateTaskRequest {
   title: string;
   status?: string;
   dependencies?: string[];
+  priority?: "High" | "Medium" | "Low";
+  assignee?: string;
 }

@@ -14,4 +14,6 @@ export interface UpdateTaskRequest {
   status?: string;
   discipline?: UpdateTaskRequestDiscipline;
   dependencies?: string[];
+  priority?: "High" | "Medium" | "Low" | null;
+  assignee?: string | null;
 }

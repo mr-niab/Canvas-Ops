@@ -171,6 +171,8 @@ function normalizeTask(raw: {
   status: string;
   dependencies: string[];
   previousStatus?: string | null;
+  priority?: string | null;
+  assignee?: string | null;
 }): Task {
   const t: Task = {
     id: raw.id,
@@ -180,6 +182,8 @@ function normalizeTask(raw: {
     dependencies: Array.isArray(raw.dependencies) ? [...raw.dependencies] : [],
   };
   if (raw.previousStatus) t.previousStatus = raw.previousStatus;
+  if (raw.priority) t.priority = raw.priority as Task['priority'];
+  if (raw.assignee) t.assignee = raw.assignee;
   return t;
 }
 
@@ -331,7 +335,10 @@ interface AppContextType {
   ) => Promise<void>;
   updateTask: (
     taskId: string,
-    updates: Partial<Pick<Task, 'title' | 'status' | 'discipline'>>,
+    updates: Partial<Pick<Task, 'title' | 'status' | 'discipline'>> & {
+      priority?: Task['priority'] | null;
+      assignee?: string | null;
+    },
   ) => Promise<void>;
   updateTaskDependencies: (taskId: string, dependencies: string[]) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
@@ -578,6 +585,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       title: task.title,
       status: task.status,
       dependencies: task.dependencies ?? [],
+      ...(task.priority !== undefined ? { priority: task.priority } : {}),
+      ...(task.assignee !== undefined ? { assignee: task.assignee } : {}),
     });
     setTasks(rows.map(normalizeTask));
   }, []);
@@ -600,7 +609,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateTask = useCallback(
     async (
       taskId: string,
-      updates: Partial<Pick<Task, 'title' | 'status' | 'discipline'>>,
+      updates: Partial<Pick<Task, 'title' | 'status' | 'discipline'>> & {
+        priority?: Task['priority'] | null;
+        assignee?: string | null;
+      },
     ) => {
       const rows = await apiUpdateTask(taskId, {
         ...(updates.title !== undefined ? { title: updates.title } : {}),
@@ -608,6 +620,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...(updates.discipline !== undefined
           ? { discipline: updates.discipline as UpdateTaskRequestDiscipline }
           : {}),
+        ...(updates.priority !== undefined ? { priority: updates.priority ?? null } : {}),
+        ...(updates.assignee !== undefined ? { assignee: updates.assignee ?? null } : {}),
       });
       setTasks(rows.map(normalizeTask));
     },

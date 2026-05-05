@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAppContext } from '../../AppContext';
 import { Modal } from '../Modal';
-import { Discipline, Task } from '../../types';
+import { Discipline, Task, TaskPriority } from '../../types';
 import { wouldCreateCycle } from '../../lib/dependencies';
 import { DependencyPicker } from './DependencyPicker';
 
 export function TaskDetailModal() {
-  const { tasks, editingTaskId, setEditingTaskId, updateTask, updateTaskDependencies, deleteTask } = useAppContext();
+  const { tasks, editingTaskId, setEditingTaskId, updateTask, updateTaskDependencies, deleteTask, teammates } = useAppContext();
   const task: Task | null = useMemo(
     () => (editingTaskId ? tasks.find(t => t.id === editingTaskId) ?? null : null),
     [editingTaskId, tasks]
@@ -16,6 +16,8 @@ export function TaskDetailModal() {
   const [draftStatus, setDraftStatus] = useState('Backlog');
   const [draftDiscipline, setDraftDiscipline] = useState<Discipline>('UX/UI Design');
   const [draftDeps, setDraftDeps] = useState<string[]>([]);
+  const [draftPriority, setDraftPriority] = useState<TaskPriority | ''>('');
+  const [draftAssignee, setDraftAssignee] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -36,6 +38,8 @@ export function TaskDetailModal() {
       setDraftStatus(task.status);
       setDraftDiscipline(task.discipline);
       setDraftDeps(task.dependencies ?? []);
+      setDraftPriority(task.priority ?? '');
+      setDraftAssignee(task.assignee ?? '');
       setError(null);
       setConfirmingDelete(false);
     }
@@ -79,6 +83,8 @@ export function TaskDetailModal() {
       title: trimmedTitle,
       status: draftStatus.trim() || 'Backlog',
       discipline: draftDiscipline,
+      priority: draftPriority || null,
+      assignee: draftAssignee.trim() || null,
     });
     updateTaskDependencies(task.id, draftDeps);
     close();
@@ -134,6 +140,34 @@ export function TaskDetailModal() {
               <option key={opt} value={opt} />
             ))}
           </datalist>
+        </div>
+        <div>
+          <label className="field-label" htmlFor="task-detail-priority">Priority</label>
+          <select
+            id="task-detail-priority"
+            className="field-input"
+            value={draftPriority}
+            onChange={e => setDraftPriority(e.target.value as TaskPriority | '')}
+          >
+            <option value="">— None —</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+        <div>
+          <label className="field-label" htmlFor="task-detail-assignee">Assignee</label>
+          <select
+            id="task-detail-assignee"
+            className="field-input"
+            value={draftAssignee}
+            onChange={e => setDraftAssignee(e.target.value)}
+          >
+            <option value="">— Unassigned —</option>
+            {teammates.map(tm => (
+              <option key={tm.id} value={tm.name}>{tm.name}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="field-label">Depends on</label>

@@ -46,6 +46,8 @@ function TaskCardPresentation({
   isOverlay?: boolean;
   onOpen?: () => void;
 }) {
+  const hasBadges = task.priority || task.assignee;
+
   return (
     <div className={`task${isOverlay ? ' task-overlay' : ''}`}>
       <div className="task-row">
@@ -69,6 +71,23 @@ function TaskCardPresentation({
         )}
       </div>
       <small>{task.status}</small>
+      {hasBadges && (
+        <div className="task-badges">
+          {task.priority && (
+            <span
+              className={`task-priority-badge task-priority-${task.priority.toLowerCase()}`}
+              aria-label={`Priority: ${task.priority}`}
+            >
+              {task.priority}
+            </span>
+          )}
+          {task.assignee && (
+            <span className="task-assignee-badge" aria-label={`Assigned to ${task.assignee}`}>
+              {task.assignee}
+            </span>
+          )}
+        </div>
+      )}
       <div className="task-meta">
         <BlockedByChip task={task} allTasks={allTasks} />
       </div>

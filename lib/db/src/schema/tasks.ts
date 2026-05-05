@@ -15,6 +15,8 @@ export const tasksTable = pgTable("tasks", {
     .notNull()
     .default([]),
   position: integer("position").notNull().default(0),
+  priority: text("priority"),
+  assignee: text("assignee"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

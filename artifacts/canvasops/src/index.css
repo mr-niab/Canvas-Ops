@@ -891,6 +891,51 @@ h1 {
   box-shadow: var(--focus-ring);
 }
 
+.task-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.task-priority-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.4;
+}
+
+.task-priority-badge.task-priority-high {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.task-priority-badge.task-priority-medium {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.task-priority-badge.task-priority-low {
+  background: var(--primary-bg);
+  color: var(--primary);
+}
+
+.task-assignee-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  background: var(--surface-3);
+  color: var(--muted);
+}
+
 .task-meta {
   display: flex;
   flex-wrap: wrap;

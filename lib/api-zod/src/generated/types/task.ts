@@ -14,4 +14,6 @@ export interface Task {
   status: string;
   previousStatus?: string | null;
   dependencies: string[];
+  priority?: "High" | "Medium" | "Low" | null;
+  assignee?: string | null;
 }

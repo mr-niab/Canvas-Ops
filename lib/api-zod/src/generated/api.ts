@@ -404,6 +404,8 @@ export const ListTasksResponseItem = zod.object({
   status: zod.string(),
   previousStatus: zod.string().nullish(),
   dependencies: zod.array(zod.string()),
+  priority: zod.enum(["High", "Medium", "Low"]).nullish(),
+  assignee: zod.string().nullish(),
 });
 export const ListTasksResponse = zod.array(ListTasksResponseItem);
 
@@ -416,6 +418,8 @@ export const CreateTaskBody = zod.object({
   title: zod.string().min(1),
   status: zod.string().optional(),
   dependencies: zod.array(zod.string()).optional(),
+  priority: zod.enum(["High", "Medium", "Low"]).optional(),
+  assignee: zod.string().optional(),
 });
 
 export const CreateTaskResponseItem = zod.object({
@@ -425,6 +429,8 @@ export const CreateTaskResponseItem = zod.object({
   status: zod.string(),
   previousStatus: zod.string().nullish(),
   dependencies: zod.array(zod.string()),
+  priority: zod.enum(["High", "Medium", "Low"]).nullish(),
+  assignee: zod.string().nullish(),
 });
 export const CreateTaskResponse = zod.array(CreateTaskResponseItem);
 
@@ -442,6 +448,8 @@ export const UpdateTaskBody = zod.object({
     .enum(["UX/UI Design", "User Research", "Service Design"])
     .optional(),
   dependencies: zod.array(zod.string()).optional(),
+  priority: zod.enum(["High", "Medium", "Low"]).nullish(),
+  assignee: zod.string().nullish(),
 });
 
 export const UpdateTaskResponseItem = zod.object({
@@ -451,6 +459,8 @@ export const UpdateTaskResponseItem = zod.object({
   status: zod.string(),
   previousStatus: zod.string().nullish(),
   dependencies: zod.array(zod.string()),
+  priority: zod.enum(["High", "Medium", "Low"]).nullish(),
+  assignee: zod.string().nullish(),
 });
 export const UpdateTaskResponse = zod.array(UpdateTaskResponseItem);
 
@@ -468,6 +478,8 @@ export const DeleteTaskResponseItem = zod.object({
   status: zod.string(),
   previousStatus: zod.string().nullish(),
   dependencies: zod.array(zod.string()),
+  priority: zod.enum(["High", "Medium", "Low"]).nullish(),
+  assignee: zod.string().nullish(),
 });
 export const DeleteTaskResponse = zod.array(DeleteTaskResponseItem);
 
@@ -492,6 +504,8 @@ export const MoveTaskResponseItem = zod.object({
   status: zod.string(),
   previousStatus: zod.string().nullish(),
   dependencies: zod.array(zod.string()),
+  priority: zod.enum(["High", "Medium", "Low"]).nullish(),
+  assignee: zod.string().nullish(),
 });
 export const MoveTaskResponse = zod.array(MoveTaskResponseItem);
 

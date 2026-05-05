@@ -1,21 +1,25 @@
 import { useState } from 'react';
 import { useAppContext } from '../../AppContext';
 import { Modal } from '../Modal';
-import { Discipline } from '../../types';
+import { Discipline, TaskPriority } from '../../types';
 import { DependencyPicker } from './DependencyPicker';
 
 export function AddTaskModal() {
-  const { isTaskModalOpen, setTaskModalOpen, addTask, tasks } = useAppContext();
+  const { isTaskModalOpen, setTaskModalOpen, addTask, tasks, teammates } = useAppContext();
   const [discipline, setDiscipline] = useState<Discipline>('UX/UI Design');
   const [title, setTitle] = useState('');
   const [status, setStatus] = useState('Backlog');
   const [dependencies, setDependencies] = useState<string[]>([]);
+  const [priority, setPriority] = useState<TaskPriority | ''>('');
+  const [assignee, setAssignee] = useState('');
 
   const reset = () => {
     setDiscipline('UX/UI Design');
     setTitle('');
     setStatus('Backlog');
     setDependencies([]);
+    setPriority('');
+    setAssignee('');
   };
 
   const close = () => {
@@ -31,6 +35,8 @@ export function AddTaskModal() {
       title: title.trim(),
       status: status.trim() || 'Backlog',
       dependencies,
+      ...(priority ? { priority } : {}),
+      ...(assignee ? { assignee } : {}),
     });
     close();
   };
@@ -61,6 +67,34 @@ export function AddTaskModal() {
             <option>Ready for session</option>
             <option>Complete</option>
             <option>Done</option>
+          </select>
+        </div>
+        <div>
+          <label className="field-label" htmlFor="add-task-priority">Priority (optional)</label>
+          <select
+            id="add-task-priority"
+            className="field-input"
+            value={priority}
+            onChange={e => setPriority(e.target.value as TaskPriority | '')}
+          >
+            <option value="">— None —</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+        <div>
+          <label className="field-label" htmlFor="add-task-assignee">Assignee (optional)</label>
+          <select
+            id="add-task-assignee"
+            className="field-input"
+            value={assignee}
+            onChange={e => setAssignee(e.target.value)}
+          >
+            <option value="">— Unassigned —</option>
+            {teammates.map(tm => (
+              <option key={tm.id} value={tm.name}>{tm.name}</option>
+            ))}
           </select>
         </div>
         <div>
