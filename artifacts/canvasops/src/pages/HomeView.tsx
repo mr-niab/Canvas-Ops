@@ -255,7 +255,17 @@ export function HomeView() {
                 </span>
               )}
               {pendingCount === 0 && doneCount === 0 && (
-                <span className="item-sub" style={{ margin: 0 }}>Nothing yet</span>
+                <>
+                  <span className="item-sub" style={{ margin: 0 }}>Nothing yet</span>
+                  <button
+                    type="button"
+                    className="btn small"
+                    onClick={(e) => { e.stopPropagation(); openAddAction(); }}
+                    style={{ padding: '3px 10px', fontSize: '12px' }}
+                  >
+                    + Add
+                  </button>
+                </>
               )}
               <span
                 className="muted"
