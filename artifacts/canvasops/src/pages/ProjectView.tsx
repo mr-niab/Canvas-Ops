@@ -81,6 +81,8 @@ export function ProjectView() {
     sessionsByProject,
     loadProjectSessions,
     deleteProjectSession,
+    stakeholders,
+    logEntries,
   } = useAppContext();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
@@ -173,42 +175,173 @@ export function ProjectView() {
         <button className={`tab ${activeTab === 'log' ? 'active' : ''}`} onClick={() => setActiveTab('log')}>Log</button>
       </div>
 
-      {activeTab === 'overview' && (
-        <div className="project-layout">
-          <div className="stack">
-            <div className="card pad">
-              <div className="section-title">Cross-discipline workflow</div>
-              <div className="lane-wrap">
-                {DISCIPLINES.map(d => (
-                  <Lane key={d.key} discipline={d.key} label={d.label} color={d.color} tasks={tasks} />
-                ))}
-              </div>
-            </div>
+      {activeTab === 'overview' && (() => {
+        const disciplineCounts = DISCIPLINES.map(d => {
+          const dt = tasks.filter(t => t.discipline === d.key);
+          return {
+            key: d.key,
+            label: d.label,
+            color: d.color,
+            total: dt.length,
+            inProgress: dt.filter(t => t.status === 'In Progress').length,
+            blocked: dt.filter(t => t.status === 'Blocked').length,
+          };
+        });
+        const totalTasks = disciplineCounts.reduce((s, d) => s + d.total, 0);
 
-            <div className="card">
-              <div className="list-item list-item-row">
-                <div className="section-title flush">Upcoming sessions</div>
-                <button
-                  className="btn small"
-                  onClick={() => {
-                    setEditingSession(null);
-                    setSessionModalOpen(true);
-                  }}
-                >
-                  + Add session
-                </button>
+        const sortedSessions = [...sessions].sort(
+          (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
+        );
+        const nextSession = sortedSessions[0] ?? null;
+        const extraSessionCount = sortedSessions.length > 1 ? sortedSessions.length - 1 : 0;
+
+        const projectStakeholders = stakeholders.filter(s => s.projectId === project.id);
+
+        const recentLog = [...logEntries]
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .slice(0, 3);
+
+        return (
+          <div className="project-layout">
+            <div className="stack">
+              <div className="card pad">
+                <div className="section-title">Workflow summary</div>
+                <div className="stack-tight">
+                  {totalTasks === 0 ? (
+                    <div className="item-sub">No tasks yet across any discipline.</div>
+                  ) : (
+                    disciplineCounts.map(d => d.total > 0 && (
+                      <div key={d.key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <span style={{ width: 8, height: 8, borderRadius: 999, background: d.color, flexShrink: 0, display: 'inline-block' }}></span>
+                        <span className="item-title" style={{ color: d.color, minWidth: 140 }}>{d.label}</span>
+                        <span className="item-sub">{d.total} task{d.total !== 1 ? 's' : ''}</span>
+                        {d.inProgress > 0 && <span className="badge">{d.inProgress} in progress</span>}
+                        {d.blocked > 0 && <span className="badge badge-blocked">{d.blocked} blocked</span>}
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="divider"></div>
+                <button className="btn" onClick={() => setActiveTab('workflow')}>Go to Workflow →</button>
               </div>
-              {sessions.length === 0 ? (
-                <div className="list-item">
-                  <div className="item-sub">
-                    No upcoming sessions. Schedule a crit, playback, or review to keep the team aligned.
+
+              {nextSession !== null && (
+                <div className="card">
+                  <div className="list-item list-item-row">
+                    <div className="section-title flush">Upcoming sessions</div>
+                    <button
+                      className="btn small"
+                      onClick={() => {
+                        setEditingSession(null);
+                        setSessionModalOpen(true);
+                      }}
+                    >
+                      + Add session
+                    </button>
+                  </div>
+                  <div className="list-item">
+                    <div className="item-title">{nextSession.title}</div>
+                    <div className="item-sub">
+                      {[formatSessionWhen(nextSession.scheduledAt), nextSession.attendees, nextSession.notes]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </div>
+                    {extraSessionCount > 0 && (
+                      <div className="item-sub">+{extraSessionCount} more session{extraSessionCount !== 1 ? 's' : ''}</div>
+                    )}
+                  </div>
+                  <div className="list-item">
+                    <button className="btn" onClick={() => setActiveTab('workflow')}>Go to Workflow →</button>
                   </div>
                 </div>
-              ) : (
-                sessions.map((s) => {
-                  const sub = [formatSessionWhen(s.scheduledAt), s.attendees, s.notes]
-                    .filter(Boolean)
-                    .join(' · ');
+              )}
+            </div>
+
+            <div className="stack">
+              {projectStakeholders.length > 0 && (
+                <div className="card pad">
+                  <div className="section-title">Stakeholders</div>
+                  <div className="stack-tight">
+                    <div>
+                      <div className="item-title">{projectStakeholders.length} recorded</div>
+                      <div className="item-sub">
+                        {projectStakeholders.map(s => s.role).filter(Boolean).join(', ')}
+                      </div>
+                    </div>
+                    <div>
+                      <button className="btn" onClick={() => setActiveTab('stakeholders')}>Open stakeholders →</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {evidenceCount > 0 && (
+                <div className="card pad">
+                  <div className="section-title">Evidence</div>
+                  <div className="stack-tight">
+                    <div className="item-sub">
+                      {evidence.files.length > 0 && `${evidence.files.length} file${evidence.files.length !== 1 ? 's' : ''}`}
+                      {evidence.files.length > 0 && evidence.boards.length > 0 && ' · '}
+                      {evidence.boards.length > 0 && `${evidence.boards.length} linked board${evidence.boards.length !== 1 ? 's' : ''}`}
+                    </div>
+                    <div>
+                      <button className="btn" onClick={() => setActiveTab('evidence')}>Open Evidence →</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {recentLog.length > 0 && (
+                <div className="card pad">
+                  <div className="section-title">Recent log</div>
+                  <div className="stack-tight">
+                    {recentLog.map(entry => (
+                      <div key={entry.id}>
+                        <div className="item-title">{entry.detail}</div>
+                        <div className="item-sub">{entry.date} · {entry.actor} · {entry.type}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="divider"></div>
+                  <button className="btn" onClick={() => setActiveTab('log')}>Open full log →</button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {activeTab === 'workflow' && (
+        <div className="stack">
+          <div className="card pad">
+            <div className="lane-wrap">
+              {DISCIPLINES.map(d => (
+                <Lane key={d.key} discipline={d.key} label={d.label} color={d.color} tasks={tasks} />
+              ))}
+            </div>
+          </div>
+          <div className="card">
+            <div className="list-item list-item-row">
+              <div className="section-title flush">Sessions</div>
+              <button
+                className="btn small"
+                onClick={() => {
+                  setEditingSession(null);
+                  setSessionModalOpen(true);
+                }}
+              >
+                + Add session
+              </button>
+            </div>
+            {sessions.length === 0 ? (
+              <div className="list-item">
+                <div className="item-sub">No sessions yet. Schedule a crit, playback, or review to keep the team aligned.</div>
+              </div>
+            ) : (
+              [...sessions]
+                .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+                .map(s => {
+                  const sub = [formatSessionWhen(s.scheduledAt), s.attendees, s.notes].filter(Boolean).join(' · ');
                   return (
                     <div key={s.id} className="list-item list-item-row">
                       <div className="list-item-main">
@@ -228,11 +361,7 @@ export function ProjectView() {
                         <button
                           className="btn small danger"
                           onClick={() => {
-                            if (
-                              window.confirm(
-                                `Delete session "${s.title}"? This cannot be undone.`,
-                              )
-                            ) {
+                            if (window.confirm(`Delete session "${s.title}"? This cannot be undone.`)) {
                               void deleteProjectSession(project.id, s.id);
                             }
                           }}
@@ -243,53 +372,7 @@ export function ProjectView() {
                     </div>
                   );
                 })
-              )}
-            </div>
-          </div>
-
-          <div className="stack">
-            <div className="card pad">
-              <div className="section-title">Stakeholders</div>
-              <div className="stack-tight">
-                <div>
-                  <div className="item-title">5 recorded</div>
-                  <div className="item-sub">Project sponsor, service owner, operations lead, IT lead, research representative</div>
-                </div>
-                <div>
-                  <button className="btn" onClick={() => setActiveTab('stakeholders')}>Open stakeholders →</button>
-                </div>
-              </div>
-            </div>
-
-            <div className="card pad">
-              <div className="section-title">Recent log</div>
-              <div className="stack-tight">
-                <div>
-                  <div className="item-title">Stakeholder call notes added</div>
-                  <div className="item-sub">Today · Jamie D. · Conversation</div>
-                </div>
-                <div>
-                  <div className="item-title">Service blueprint v3 uploaded</div>
-                  <div className="item-sub">Yesterday · Tom K. · File</div>
-                </div>
-                <div>
-                  <div className="item-title">Stage note updated</div>
-                  <div className="item-sub">30 Apr · Anika P. · Decision</div>
-                </div>
-              </div>
-              <div className="divider"></div>
-              <button className="btn" onClick={() => setActiveTab('log')}>Open full log →</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'workflow' && (
-        <div className="card pad">
-          <div className="lane-wrap">
-            {DISCIPLINES.map(d => (
-              <Lane key={d.key} discipline={d.key} label={d.label} color={d.color} tasks={tasks} />
-            ))}
+            )}
           </div>
         </div>
       )}
