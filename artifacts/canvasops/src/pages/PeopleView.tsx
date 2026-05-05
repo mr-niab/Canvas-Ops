@@ -313,22 +313,28 @@ export function PeopleView() {
 
         {isOwner && (
           <form className="people-add-form" onSubmit={handleSendInvite}>
-            <input
-              className="field-input"
-              type="email"
-              placeholder="Email to invite"
-              value={inviteEmail}
-              onChange={e => setInviteEmail(e.target.value)}
-              required
-            />
-            <select
-              className="field-input"
-              value={inviteRole}
-              onChange={e => setInviteRole(e.target.value as Role)}
-            >
-              <option value="member">Member</option>
-              <option value="owner">Owner</option>
-            </select>
+            <div>
+              <div className="field-label">Email</div>
+              <input
+                className="field-input"
+                type="email"
+                placeholder="you@example.com"
+                value={inviteEmail}
+                onChange={e => setInviteEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <div className="field-label">Role</div>
+              <select
+                className="field-input"
+                value={inviteRole}
+                onChange={e => setInviteRole(e.target.value as Role)}
+              >
+                <option value="member">Member</option>
+                <option value="owner">Owner</option>
+              </select>
+            </div>
             <button
               type="submit"
               className="btn primary"
@@ -410,18 +416,24 @@ export function PeopleView() {
             </div>
 
             <form className="people-add-form" onSubmit={handleAddTeam}>
-              <input
-                className="field-input"
-                placeholder="New team name"
-                value={newTeamName}
-                onChange={e => setNewTeamName(e.target.value)}
-              />
-              <input
-                className="field-input"
-                placeholder="Description (optional)"
-                value={newTeamDesc}
-                onChange={e => setNewTeamDesc(e.target.value)}
-              />
+              <div>
+                <div className="field-label">Team name</div>
+                <input
+                  className="field-input"
+                  placeholder="e.g. Design"
+                  value={newTeamName}
+                  onChange={e => setNewTeamName(e.target.value)}
+                />
+              </div>
+              <div>
+                <div className="field-label">Description</div>
+                <input
+                  className="field-input"
+                  placeholder="Optional"
+                  value={newTeamDesc}
+                  onChange={e => setNewTeamDesc(e.target.value)}
+                />
+              </div>
               <button type="submit" className="btn primary" disabled={!newTeamName.trim()}>+ Add team</button>
             </form>
 
@@ -436,18 +448,24 @@ export function PeopleView() {
                 >
                   {editingTeamId === team.id ? (
                     <div className="team-edit">
-                      <input
-                        className="field-input"
-                        value={teamDraftName}
-                        onChange={e => setTeamDraftName(e.target.value)}
-                        autoFocus
-                      />
-                      <input
-                        className="field-input"
-                        placeholder="Description"
-                        value={teamDraftDesc}
-                        onChange={e => setTeamDraftDesc(e.target.value)}
-                      />
+                      <div>
+                        <div className="field-label">Team name</div>
+                        <input
+                          className="field-input"
+                          value={teamDraftName}
+                          onChange={e => setTeamDraftName(e.target.value)}
+                          autoFocus
+                        />
+                      </div>
+                      <div>
+                        <div className="field-label">Description</div>
+                        <input
+                          className="field-input"
+                          placeholder="Optional"
+                          value={teamDraftDesc}
+                          onChange={e => setTeamDraftDesc(e.target.value)}
+                        />
+                      </div>
                       <div className="cluster-sm">
                         <button className="btn" onClick={() => setEditingTeamId(null)}>Cancel</button>
                         <button className="btn primary" onClick={saveTeamEdit} disabled={!teamDraftName.trim()}>Save</button>
@@ -550,25 +568,34 @@ export function PeopleView() {
             </div>
 
             <form className="people-add-form" onSubmit={handleAddMate}>
-              <input
-                className="field-input"
-                placeholder="Name"
-                value={newMateName}
-                onChange={e => setNewMateName(e.target.value)}
-              />
-              <input
-                className="field-input"
-                type="email"
-                placeholder="Email (optional)"
-                value={newMateEmail}
-                onChange={e => setNewMateEmail(e.target.value)}
-              />
-              <input
-                className="field-input"
-                placeholder="Role (optional)"
-                value={newMateRole}
-                onChange={e => setNewMateRole(e.target.value)}
-              />
+              <div>
+                <div className="field-label">Name</div>
+                <input
+                  className="field-input"
+                  placeholder="e.g. Alex Kim"
+                  value={newMateName}
+                  onChange={e => setNewMateName(e.target.value)}
+                />
+              </div>
+              <div>
+                <div className="field-label">Email</div>
+                <input
+                  className="field-input"
+                  type="email"
+                  placeholder="Optional"
+                  value={newMateEmail}
+                  onChange={e => setNewMateEmail(e.target.value)}
+                />
+              </div>
+              <div>
+                <div className="field-label">Role</div>
+                <input
+                  className="field-input"
+                  placeholder="Optional"
+                  value={newMateRole}
+                  onChange={e => setNewMateRole(e.target.value)}
+                />
+              </div>
               <button type="submit" className="btn primary" disabled={!newMateName.trim()}>+ Add teammate</button>
             </form>
 
@@ -580,25 +607,34 @@ export function PeopleView() {
                 <div key={mate.id} className="teammate-row">
                   {editingMateId === mate.id ? (
                     <div className="team-edit">
-                      <input
-                        className="field-input"
-                        value={mateDraftName}
-                        onChange={e => setMateDraftName(e.target.value)}
-                        autoFocus
-                      />
-                      <input
-                        className="field-input"
-                        placeholder="Email"
-                        type="email"
-                        value={mateDraftEmail}
-                        onChange={e => setMateDraftEmail(e.target.value)}
-                      />
-                      <input
-                        className="field-input"
-                        placeholder="Role"
-                        value={mateDraftRole}
-                        onChange={e => setMateDraftRole(e.target.value)}
-                      />
+                      <div>
+                        <div className="field-label">Name</div>
+                        <input
+                          className="field-input"
+                          value={mateDraftName}
+                          onChange={e => setMateDraftName(e.target.value)}
+                          autoFocus
+                        />
+                      </div>
+                      <div>
+                        <div className="field-label">Email</div>
+                        <input
+                          className="field-input"
+                          placeholder="Optional"
+                          type="email"
+                          value={mateDraftEmail}
+                          onChange={e => setMateDraftEmail(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <div className="field-label">Role</div>
+                        <input
+                          className="field-input"
+                          placeholder="Optional"
+                          value={mateDraftRole}
+                          onChange={e => setMateDraftRole(e.target.value)}
+                        />
+                      </div>
                       <div className="cluster-sm">
                         <button className="btn" onClick={() => setEditingMateId(null)}>Cancel</button>
                         <button className="btn primary" onClick={saveMateEdit} disabled={!mateDraftName.trim()}>Save</button>
