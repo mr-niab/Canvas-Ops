@@ -147,7 +147,25 @@ export function HomeView() {
 
   const [actionModalOpen, setActionModalOpen] = useState(false);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
-  const [actionsOpen, setActionsOpen] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(() => {
+    try {
+      return localStorage.getItem('home.actionsOpen') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleActionsOpen = () => {
+    setActionsOpen((o) => {
+      const next = !o;
+      try {
+        localStorage.setItem('home.actionsOpen', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   const openAddAction = () => {
     setEditingAction(null);
@@ -216,11 +234,11 @@ export function HomeView() {
             role="button"
             tabIndex={0}
             aria-expanded={actionsOpen}
-            onClick={() => setActionsOpen((o) => !o)}
+            onClick={toggleActionsOpen}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                setActionsOpen((o) => !o);
+                toggleActionsOpen();
               }
             }}
           >
