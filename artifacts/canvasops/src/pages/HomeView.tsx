@@ -133,6 +133,8 @@ export function HomeView() {
   const {
     projects,
     teams,
+    stakeholders,
+    logEntries,
     openProject,
     setProjectModalOpen,
     actions,
@@ -318,19 +320,15 @@ export function HomeView() {
             <div className="kpi">
               <div className="card pad">
                 <div className="muted">Active projects</div>
-                <strong>12</strong>
-              </div>
-              <div className="card pad">
-                <div className="muted">Awaiting review</div>
-                <strong>4</strong>
+                <strong>{projects.length}</strong>
               </div>
               <div className="card pad">
                 <div className="muted">Stakeholders</div>
-                <strong>26</strong>
+                <strong>{stakeholders.length}</strong>
               </div>
               <div className="card pad">
                 <div className="muted">Open log items</div>
-                <strong>18</strong>
+                <strong>{logEntries.length}</strong>
               </div>
             </div>
           </div>
