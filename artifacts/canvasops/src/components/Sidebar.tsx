@@ -55,28 +55,10 @@ export function Sidebar({ mobileOpen = false, hidden = false, onNavigate }: Side
         Home
       </button>
       <button
-        className={`nav-btn ${currentView === 'project' ? 'active' : ''}`}
-        onClick={() => go('project')}
+        className={`nav-btn ${currentView === 'projects' ? 'active' : ''}`}
+        onClick={() => go('projects')}
       >
-        Project detail
-      </button>
-      <button
-        className={`nav-btn ${currentView === 'work' ? 'active' : ''}`}
-        onClick={() => go('work')}
-      >
-        Workflow
-      </button>
-      <button
-        className={`nav-btn ${currentView === 'stakeholders' ? 'active' : ''}`}
-        onClick={() => go('stakeholders')}
-      >
-        Stakeholders
-      </button>
-      <button
-        className={`nav-btn ${currentView === 'log' ? 'active' : ''}`}
-        onClick={() => go('log')}
-      >
-        Project log
+        Projects
       </button>
       <button
         className={`nav-btn ${currentView === 'people' ? 'active' : ''}`}

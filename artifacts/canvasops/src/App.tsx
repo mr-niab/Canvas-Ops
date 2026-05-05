@@ -8,6 +8,7 @@ import { WorkflowView } from './pages/WorkflowView';
 import { StakeholdersView } from './pages/StakeholdersView';
 import { LogView } from './pages/LogView';
 import { PeopleView } from './pages/PeopleView';
+import { ProjectsView } from './pages/ProjectsView';
 
 const MOBILE_QUERY = '(max-width: 1100px)';
 
@@ -40,6 +41,8 @@ function ViewRouter() {
       return <LogView />;
     case 'people':
       return <PeopleView />;
+    case 'projects':
+      return <ProjectsView />;
     default:
       return <HomeView />;
   }

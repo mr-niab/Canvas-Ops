@@ -1,4 +1,4 @@
-export type View = 'home' | 'project' | 'work' | 'stakeholders' | 'log' | 'people';
+export type View = 'home' | 'project' | 'work' | 'stakeholders' | 'log' | 'people' | 'projects';
 
 export type Stage = 'Intake' | 'Discovery' | 'Alpha' | 'Beta' | 'Live';
 
