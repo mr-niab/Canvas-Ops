@@ -136,6 +136,23 @@ function Lane({
     id: `lane:${discipline}`,
     data: { type: 'lane', discipline },
   });
+  const { addTask } = useAppContext();
+  const [isAdding, setIsAdding] = useState(false);
+  const [draftTitle, setDraftTitle] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const title = draftTitle.trim();
+    if (!title) return;
+    await addTask({ discipline, title, status: 'Backlog', dependencies: [] });
+    setIsAdding(false);
+    setDraftTitle('');
+  };
+
+  const handleCancel = () => {
+    setIsAdding(false);
+    setDraftTitle('');
+  };
 
   return (
     <div className={`lane${isOver ? ' lane-active' : ''}`}>
@@ -143,6 +160,44 @@ function Lane({
         <span style={{ width: 8, height: 8, borderRadius: 999, background: color }}></span>
         {label}
       </div>
+
+      {isAdding ? (
+        <form
+          className="lane-inline-form"
+          onSubmit={handleSubmit}
+          onPointerDown={e => e.stopPropagation()}
+          onKeyDown={e => e.stopPropagation()}
+        >
+          <input
+            className="lane-inline-input"
+            type="text"
+            aria-label="Task title"
+            placeholder="Task title"
+            autoFocus
+            required
+            value={draftTitle}
+            onChange={e => setDraftTitle(e.target.value)}
+          />
+          <div className="lane-inline-actions">
+            <button type="submit" className="btn primary sm">Add</button>
+            <button type="button" className="btn sm" onClick={handleCancel}>Cancel</button>
+          </div>
+        </form>
+      ) : (
+        <div className="lane-add-row">
+          <button
+            type="button"
+            className="lane-add-btn"
+            aria-label={`Add task to ${label}`}
+            onPointerDown={e => e.stopPropagation()}
+            onKeyDown={e => e.stopPropagation()}
+            onClick={() => setIsAdding(true)}
+          >
+            + Add
+          </button>
+        </div>
+      )}
+
       <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
         <div ref={setNodeRef} className="lane-body">
           {tasks.map(t => (

@@ -825,6 +825,64 @@ h1 {
   gap: var(--space-3);
 }
 
+.lane-add-row {
+  padding: var(--space-2) var(--space-3) 0;
+}
+
+.lane-add-btn {
+  width: 100%;
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  text-align: left;
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
+}
+
+.lane-add-btn:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-bg);
+}
+
+.lane-inline-form {
+  padding: var(--space-2) var(--space-3) 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.lane-inline-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.lane-inline-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-bg);
+}
+
+.lane-inline-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.btn.sm {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+}
+
 .task {
   background: var(--surface-2);
   border: 1px solid var(--border);
