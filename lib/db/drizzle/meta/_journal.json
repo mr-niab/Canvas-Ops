@@ -57,6 +57,13 @@
       "when": 1746417600000,
       "tag": "0007_task_priority_assignee",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1746460800000,
+      "tag": "0008_rename_stages",
+      "breakpoints": true
     }
   ]
 }
