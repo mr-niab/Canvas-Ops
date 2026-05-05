@@ -255,22 +255,7 @@ export function HomeView() {
                 </span>
               )}
               {pendingCount === 0 && doneCount === 0 ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <span className="item-sub" style={{ margin: 0 }}>Nothing yet</span>
-                  <span
-                    className="muted"
-                    style={{
-                      fontSize: '16px',
-                      lineHeight: 1,
-                      transform: actionsOpen ? 'rotate(180deg)' : 'none',
-                      transition: 'transform var(--transition)',
-                      display: 'inline-block',
-                    }}
-                    aria-hidden="true"
-                  >
-                    ⌄
-                  </span>
-                </span>
+                <span className="item-sub" style={{ margin: 0 }}>Nothing yet</span>
               ) : (
                 <span
                   className="muted"
