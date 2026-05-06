@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAppContext } from '../AppContext';
 import { Project, Action } from '../types';
-import { AddProjectModal } from '../components/forms/AddProjectModal';
 import { AddActionModal } from '../components/forms/AddActionModal';
 
 function formatSessionWhen(iso: string): string {
@@ -405,7 +404,6 @@ export function HomeView() {
         )}
       </div>
 
-      <AddProjectModal />
       <AddActionModal
         isOpen={actionModalOpen}
         onClose={closeActionModal}

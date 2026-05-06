@@ -9,6 +9,7 @@ import { StakeholdersView } from './pages/StakeholdersView';
 import { LogView } from './pages/LogView';
 import { PeopleView } from './pages/PeopleView';
 import { ProjectsView } from './pages/ProjectsView';
+import { AddProjectModal } from './components/forms/AddProjectModal';
 
 const MOBILE_QUERY = '(max-width: 1100px)';
 
@@ -99,6 +100,7 @@ function Shell() {
         />
         <ViewRouter />
       </main>
+      <AddProjectModal />
     </div>
   );
 }
