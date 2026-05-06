@@ -201,6 +201,16 @@ export const TaskDiscipline = {
   Service_Design: "Service Design",
 } as const;
 
+export type TaskPriority =
+  | (typeof TaskPriority)[keyof typeof TaskPriority]
+  | null;
+
+export const TaskPriority = {
+  High: "High",
+  Medium: "Medium",
+  Low: "Low",
+} as const;
+
 export interface Task {
   id: string;
   projectId?: string | null;
@@ -209,7 +219,7 @@ export interface Task {
   status: string;
   previousStatus?: string | null;
   dependencies: string[];
-  priority?: "High" | "Medium" | "Low" | null;
+  priority?: TaskPriority;
   assignee?: string | null;
 }
 
@@ -222,13 +232,22 @@ export const CreateTaskRequestDiscipline = {
   Service_Design: "Service Design",
 } as const;
 
+export type CreateTaskRequestPriority =
+  (typeof CreateTaskRequestPriority)[keyof typeof CreateTaskRequestPriority];
+
+export const CreateTaskRequestPriority = {
+  High: "High",
+  Medium: "Medium",
+  Low: "Low",
+} as const;
+
 export interface CreateTaskRequest {
   discipline: CreateTaskRequestDiscipline;
   /** @minLength 1 */
   title: string;
   status?: string;
   dependencies?: string[];
-  priority?: "High" | "Medium" | "Low";
+  priority?: CreateTaskRequestPriority;
   assignee?: string;
   projectId?: string | null;
 }
@@ -242,6 +261,16 @@ export const UpdateTaskRequestDiscipline = {
   Service_Design: "Service Design",
 } as const;
 
+export type UpdateTaskRequestPriority =
+  | (typeof UpdateTaskRequestPriority)[keyof typeof UpdateTaskRequestPriority]
+  | null;
+
+export const UpdateTaskRequestPriority = {
+  High: "High",
+  Medium: "Medium",
+  Low: "Low",
+} as const;
+
 export interface UpdateTaskRequest {
   /** @minLength 1 */
   title?: string;
@@ -249,8 +278,9 @@ export interface UpdateTaskRequest {
   status?: string;
   discipline?: UpdateTaskRequestDiscipline;
   dependencies?: string[];
-  priority?: "High" | "Medium" | "Low" | null;
+  priority?: UpdateTaskRequestPriority;
   assignee?: string | null;
+  projectId?: string | null;
 }
 
 export type MoveTaskRequestDiscipline =
@@ -325,6 +355,10 @@ export interface CreateLogEntryRequest {
   typeClass: string;
   /** @minLength 1 */
   detail: string;
+  projectId?: string | null;
+}
+
+export interface UpdateLogEntryRequest {
   projectId?: string | null;
 }
 
@@ -487,3 +521,17 @@ export interface UpdateProjectSessionRequest {
   attendees?: string;
   notes?: string;
 }
+
+export type ListTasksParams = {
+  /**
+   * When provided, only return tasks belonging to this project.
+   */
+  projectId?: string;
+};
+
+export type ListLogEntriesParams = {
+  /**
+   * When provided, only return log entries belonging to this project.
+   */
+  projectId?: string;
+};

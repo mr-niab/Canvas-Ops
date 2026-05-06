@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CreateTaskRequestDiscipline } from "./createTaskRequestDiscipline";
+import type { CreateTaskRequestPriority } from "./createTaskRequestPriority";
 
 export interface CreateTaskRequest {
   discipline: CreateTaskRequestDiscipline;
@@ -13,7 +14,7 @@ export interface CreateTaskRequest {
   title: string;
   status?: string;
   dependencies?: string[];
-  priority?: "High" | "Medium" | "Low";
+  priority?: CreateTaskRequestPriority;
   assignee?: string;
   projectId?: string | null;
 }

@@ -347,7 +347,9 @@ export const ListProjectsResponse = zod.array(ListProjectsResponseItem);
 export const CreateProjectBody = zod.object({
   name: zod.string().min(1),
   meta: zod.string().optional(),
-  stage: zod.enum(["Intake", "Discovery", "Explore", "Build", "Launch"]).optional(),
+  stage: zod
+    .enum(["Intake", "Discovery", "Explore", "Build", "Launch"])
+    .optional(),
   teamId: zod.string().nullish(),
 });
 
@@ -372,7 +374,9 @@ export const UpdateProjectParams = zod.object({
 export const UpdateProjectBody = zod.object({
   name: zod.string().min(1).optional(),
   meta: zod.string().optional(),
-  stage: zod.enum(["Intake", "Discovery", "Explore", "Build", "Launch"]).optional(),
+  stage: zod
+    .enum(["Intake", "Discovery", "Explore", "Build", "Launch"])
+    .optional(),
   teamId: zod.string().nullish(),
 });
 
@@ -397,6 +401,13 @@ export const DeleteProjectParams = zod.object({
 /**
  * @summary List tasks
  */
+export const ListTasksQueryParams = zod.object({
+  projectId: zod.coerce
+    .string()
+    .optional()
+    .describe("When provided, only return tasks belonging to this project."),
+});
+
 export const ListTasksResponseItem = zod.object({
   id: zod.string(),
   projectId: zod.string().nullish(),
@@ -453,6 +464,7 @@ export const UpdateTaskBody = zod.object({
   dependencies: zod.array(zod.string()).optional(),
   priority: zod.enum(["High", "Medium", "Low"]).nullish(),
   assignee: zod.string().nullish(),
+  projectId: zod.string().nullish(),
 });
 
 export const UpdateTaskResponseItem = zod.object({
@@ -606,6 +618,15 @@ export const DeleteStakeholderParams = zod.object({
 /**
  * @summary List log entries (newest first)
  */
+export const ListLogEntriesQueryParams = zod.object({
+  projectId: zod.coerce
+    .string()
+    .optional()
+    .describe(
+      "When provided, only return log entries belonging to this project.",
+    ),
+});
+
 export const ListLogEntriesResponseItem = zod.object({
   id: zod.string(),
   projectId: zod.string().nullish(),
@@ -631,6 +652,27 @@ export const CreateLogEntryBody = zod.object({
 });
 
 export const CreateLogEntryResponse = zod.object({
+  id: zod.string(),
+  projectId: zod.string().nullish(),
+  date: zod.string(),
+  actor: zod.string(),
+  type: zod.string(),
+  typeClass: zod.string(),
+  detail: zod.string(),
+});
+
+/**
+ * @summary Update a log entry (assign to a project)
+ */
+export const UpdateLogEntryParams = zod.object({
+  logEntryId: zod.coerce.string(),
+});
+
+export const UpdateLogEntryBody = zod.object({
+  projectId: zod.string().nullish(),
+});
+
+export const UpdateLogEntryResponse = zod.object({
   id: zod.string(),
   projectId: zod.string().nullish(),
   date: zod.string(),

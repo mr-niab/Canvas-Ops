@@ -161,6 +161,8 @@ export function ProjectView() {
     stakeholders,
     logEntries,
     advanceProjectStage,
+    assignTaskToProject,
+    assignLogEntryToProject,
   } = useAppContext();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
@@ -179,6 +181,8 @@ export function ProjectView() {
 
   const projectTasks = project ? tasks.filter(t => t.projectId === project.id) : [];
   const projectLogEntries = project ? logEntries.filter(e => e.projectId === project.id) : [];
+  const unscopedTasks = project ? tasks.filter(t => t.projectId === null || t.projectId === undefined) : [];
+  const unscopedLogEntries = project ? logEntries.filter(e => e.projectId === null || e.projectId === undefined) : [];
 
   if (!project) {
     return (
@@ -371,6 +375,31 @@ export function ProjectView() {
               ))}
             </div>
           </div>
+          {unscopedTasks.length > 0 && (
+            <div className="card pad">
+              <div className="section-title tight" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>Unlinked tasks</span>
+                <span className="badge" style={{ background: 'var(--surface-alt)', color: 'var(--muted)', fontSize: 11 }}>{unscopedTasks.length}</span>
+              </div>
+              <div className="muted-meta" style={{ marginBottom: 12 }}>These tasks were created before project linking was introduced. Link them to this project to include them in the Workflow view.</div>
+              <div className="stack-tight">
+                {unscopedTasks.map(t => (
+                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1 1 200px' }}>
+                      <div className="item-title">{t.title}</div>
+                      <div className="item-sub">{t.discipline} · {t.status}</div>
+                    </div>
+                    <button
+                      className="btn small"
+                      onClick={() => void assignTaskToProject(t.id, project.id)}
+                    >
+                      Link to project
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="card">
             <div className="list-item list-item-row">
               <div className="section-title flush">Sessions</div>
@@ -452,18 +481,45 @@ export function ProjectView() {
       )}
 
       {activeTab === 'log' && (
-        <div className="card pad">
-          <div className="toolbar">
-            <div>
-              <div className="section-title tight">Project log</div>
-              <div className="muted-meta">Chronological record of conversations, decisions, files, and key activity for this project.</div>
+        <div className="stack">
+          <div className="card pad">
+            <div className="toolbar">
+              <div>
+                <div className="section-title tight">Project log</div>
+                <div className="muted-meta">Chronological record of conversations, decisions, files, and key activity for this project.</div>
+              </div>
+              <div className="cluster-sm">
+                <button className="btn" onClick={() => setCurrentView('log')}>Open full page →</button>
+                <button className="btn primary" onClick={() => setLogModalOpen(true)}>+ Add log entry</button>
+              </div>
             </div>
-            <div className="cluster-sm">
-              <button className="btn" onClick={() => setCurrentView('log')}>Open full page →</button>
-              <button className="btn primary" onClick={() => setLogModalOpen(true)}>+ Add log entry</button>
-            </div>
+            <LogList projectId={project.id} />
           </div>
-          <LogList projectId={project.id} />
+          {unscopedLogEntries.length > 0 && (
+            <div className="card pad">
+              <div className="section-title tight" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span>Unlinked log entries</span>
+                <span className="badge" style={{ background: 'var(--surface-alt)', color: 'var(--muted)', fontSize: 11 }}>{unscopedLogEntries.length}</span>
+              </div>
+              <div className="muted-meta" style={{ marginBottom: 12 }}>These entries were created before project linking was introduced. Link them to this project to include them in the Log view.</div>
+              <div className="stack-tight">
+                {unscopedLogEntries.map(e => (
+                  <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1 1 200px' }}>
+                      <div className="item-title">{e.detail}</div>
+                      <div className="item-sub">{e.date} · {e.actor} · <span className={`badge ${e.typeClass}`}>{e.type}</span></div>
+                    </div>
+                    <button
+                      className="btn small"
+                      onClick={() => void assignLogEntryToProject(e.id, project.id)}
+                    >
+                      Link to project
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

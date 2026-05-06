@@ -164,6 +164,7 @@ router.patch("/tasks/:taskId", async (req, res: Response) => {
     }
     if (body.data.priority !== undefined) updates.priority = body.data.priority ?? null;
     if (body.data.assignee !== undefined) updates.assignee = body.data.assignee ?? null;
+    if (body.data.projectId !== undefined) updates.projectId = body.data.projectId ?? null;
     if (Object.keys(updates).length > 0) {
       const result = await db
         .update(tasksTable)

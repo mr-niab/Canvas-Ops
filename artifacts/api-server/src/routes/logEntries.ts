@@ -5,6 +5,9 @@ import {
   CreateLogEntryBody,
   CreateLogEntryResponse,
   ListLogEntriesResponse,
+  UpdateLogEntryBody,
+  UpdateLogEntryParams,
+  UpdateLogEntryResponse,
 } from "@workspace/api-zod";
 import { db, logEntriesTable, type LogEntryRow } from "@workspace/db";
 import { requireAuth, type AuthedRequest } from "../middlewares/requireAuth";
@@ -69,6 +72,42 @@ router.post("/log-entries", async (req, res: Response) => {
   } catch (error) {
     req.log.error({ err: error }, "Failed to create log entry");
     res.status(500).json({ error: "Failed to create log entry" });
+  }
+});
+
+router.patch("/log-entries/:logEntryId", async (req, res: Response) => {
+  const organisationId = (req as AuthedRequest).organisationId;
+  const params = UpdateLogEntryParams.safeParse(req.params);
+  const body = UpdateLogEntryBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: "Invalid request" });
+    return;
+  }
+  try {
+    const updates: Partial<LogEntryRow> = {};
+    if (body.data.projectId !== undefined) updates.projectId = body.data.projectId ?? null;
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: "No fields to update" });
+      return;
+    }
+    const [row] = await db
+      .update(logEntriesTable)
+      .set(updates)
+      .where(
+        and(
+          eq(logEntriesTable.id, params.data.logEntryId),
+          eq(logEntriesTable.organisationId, organisationId),
+        ),
+      )
+      .returning();
+    if (!row) {
+      res.status(404).json({ error: "Log entry not found" });
+      return;
+    }
+    res.json(UpdateLogEntryResponse.parse(serialize(row)));
+  } catch (error) {
+    req.log.error({ err: error }, "Failed to update log entry");
+    res.status(500).json({ error: "Failed to update log entry" });
   }
 });
 

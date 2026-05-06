@@ -76,6 +76,7 @@ import {
   updateProject as apiUpdateProject,
   updateProjectSession as apiUpdateProjectSession,
   updateTask as apiUpdateTask,
+  updateLogEntry as apiUpdateLogEntry,
   updateTeam as apiUpdateTeam,
   updateTeammate as apiUpdateTeammate,
 } from '@workspace/api-client-react';
@@ -344,8 +345,10 @@ interface AppContextType {
   ) => Promise<void>;
   updateTaskDependencies: (taskId: string, dependencies: string[]) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
+  assignTaskToProject: (taskId: string, projectId: string) => Promise<void>;
   addStakeholder: (stakeholder: Omit<Stakeholder, 'id'>) => Promise<void>;
   addLogEntry: (entry: Omit<LogEntry, 'id'>) => Promise<void>;
+  assignLogEntryToProject: (logEntryId: string, projectId: string) => Promise<void>;
 
   // Personal actions ------------------------------------------------------
   addAction: (input: { title: string; note?: string | null }) => Promise<void>;
@@ -665,6 +668,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setEditingTaskId(null);
   }, []);
 
+  const assignTaskToProject = useCallback(
+    async (taskId: string, projectId: string) => {
+      const rows = await apiUpdateTask(taskId, { projectId });
+      setTasks(rows.map(normalizeTask));
+    },
+    [],
+  );
+
   // -- Stakeholders -------------------------------------------------------
   const addStakeholder = useCallback(
     async (stakeholder: Omit<Stakeholder, 'id'>) => {
@@ -688,6 +699,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
     setLogEntries((prev) => [{ ...created }, ...prev]);
   }, []);
+
+  const assignLogEntryToProject = useCallback(
+    async (logEntryId: string, projectId: string) => {
+      const updated = await apiUpdateLogEntry(logEntryId, { projectId });
+      setLogEntries((prev) =>
+        prev.map((e) =>
+          e.id === logEntryId ? { ...e, projectId: updated.projectId ?? null } : e,
+        ),
+      );
+    },
+    [],
+  );
 
   // -- Personal actions --------------------------------------------------
   const addAction = useCallback(
@@ -1390,8 +1413,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updateTask,
         updateTaskDependencies,
         deleteTask,
+        assignTaskToProject,
         addStakeholder,
         addLogEntry,
+        assignLogEntryToProject,
         getProjectEvidence,
         loadProjectEvidence,
         uploadEvidenceFile,

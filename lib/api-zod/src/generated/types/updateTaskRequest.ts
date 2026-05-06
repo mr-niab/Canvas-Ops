@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { UpdateTaskRequestDiscipline } from "./updateTaskRequestDiscipline";
+import type { UpdateTaskRequestPriority } from "./updateTaskRequestPriority";
 
 export interface UpdateTaskRequest {
   /** @minLength 1 */
@@ -14,6 +15,7 @@ export interface UpdateTaskRequest {
   status?: string;
   discipline?: UpdateTaskRequestDiscipline;
   dependencies?: string[];
-  priority?: "High" | "Medium" | "Low" | null;
+  priority?: UpdateTaskRequestPriority;
   assignee?: string | null;
+  projectId?: string | null;
 }

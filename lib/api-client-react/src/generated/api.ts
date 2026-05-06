@@ -36,6 +36,8 @@ import type {
   HealthStatus,
   Invite,
   LinkedBoard,
+  ListLogEntriesParams,
+  ListTasksParams,
   LogEntry,
   LoginRequest,
   Member,
@@ -51,6 +53,7 @@ import type {
   Teammate,
   UpcomingSession,
   UpdateActionRequest,
+  UpdateLogEntryRequest,
   UpdateOrganisationRequest,
   UpdateProjectRequest,
   UpdateProjectSessionRequest,
@@ -2284,31 +2287,51 @@ export const useDeleteProject = <
 /**
  * @summary List tasks
  */
-export const getListTasksUrl = (params?: { projectId?: string }) => {
-  const query = params?.projectId ? `?projectId=${encodeURIComponent(params.projectId)}` : "";
-  return `/api/tasks${query}`;
+export const getListTasksUrl = (params?: ListTasksParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/tasks?${stringifiedParams}`
+    : `/api/tasks`;
 };
 
-export const listTasks = async (params?: { projectId?: string }, options?: RequestInit): Promise<Task[]> => {
+export const listTasks = async (
+  params?: ListTasksParams,
+  options?: RequestInit,
+): Promise<Task[]> => {
   return customFetch<Task[]>(getListTasksUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getListTasksQueryKey = (params?: { projectId?: string }) => {
-  return params?.projectId ? [`/api/tasks`, params] as const : [`/api/tasks`] as const;
+export const getListTasksQueryKey = (params?: ListTasksParams) => {
+  return [`/api/tasks`, ...(params ? [params] : [])] as const;
 };
 
 export const getListTasksQueryOptions = <
   TData = Awaited<ReturnType<typeof listTasks>>,
   TError = ErrorType<ErrorEnvelope>,
->(options?: {
-  params?: { projectId?: string };
-  query?: UseQueryOptions<Awaited<ReturnType<typeof listTasks>>, TError, TData>;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
-  const { params, query: queryOptions, request: requestOptions } = options ?? {};
+>(
+  params?: ListTasksParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTasks>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey = queryOptions?.queryKey ?? getListTasksQueryKey(params);
 
@@ -2335,12 +2358,18 @@ export type ListTasksQueryError = ErrorType<ErrorEnvelope>;
 export function useListTasks<
   TData = Awaited<ReturnType<typeof listTasks>>,
   TError = ErrorType<ErrorEnvelope>,
->(options?: {
-  params?: { projectId?: string };
-  query?: UseQueryOptions<Awaited<ReturnType<typeof listTasks>>, TError, TData>;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListTasksQueryOptions(options);
+>(
+  params?: ListTasksParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTasks>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTasksQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -3104,13 +3133,24 @@ export const useDeleteStakeholder = <
 /**
  * @summary List log entries (newest first)
  */
-export const getListLogEntriesUrl = (params?: { projectId?: string }) => {
-  const query = params?.projectId ? `?projectId=${encodeURIComponent(params.projectId)}` : "";
-  return `/api/log-entries${query}`;
+export const getListLogEntriesUrl = (params?: ListLogEntriesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/log-entries?${stringifiedParams}`
+    : `/api/log-entries`;
 };
 
 export const listLogEntries = async (
-  params?: { projectId?: string },
+  params?: ListLogEntriesParams,
   options?: RequestInit,
 ): Promise<LogEntry[]> => {
   return customFetch<LogEntry[]>(getListLogEntriesUrl(params), {
@@ -3119,23 +3159,25 @@ export const listLogEntries = async (
   });
 };
 
-export const getListLogEntriesQueryKey = (params?: { projectId?: string }) => {
-  return params?.projectId ? [`/api/log-entries`, params] as const : [`/api/log-entries`] as const;
+export const getListLogEntriesQueryKey = (params?: ListLogEntriesParams) => {
+  return [`/api/log-entries`, ...(params ? [params] : [])] as const;
 };
 
 export const getListLogEntriesQueryOptions = <
   TData = Awaited<ReturnType<typeof listLogEntries>>,
   TError = ErrorType<ErrorEnvelope>,
->(options?: {
-  params?: { projectId?: string };
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listLogEntries>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
-  const { params, query: queryOptions, request: requestOptions } = options ?? {};
+>(
+  params?: ListLogEntriesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listLogEntries>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey = queryOptions?.queryKey ?? getListLogEntriesQueryKey(params);
 
@@ -3162,16 +3204,18 @@ export type ListLogEntriesQueryError = ErrorType<ErrorEnvelope>;
 export function useListLogEntries<
   TData = Awaited<ReturnType<typeof listLogEntries>>,
   TError = ErrorType<ErrorEnvelope>,
->(options?: {
-  params?: { projectId?: string };
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof listLogEntries>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getListLogEntriesQueryOptions(options);
+>(
+  params?: ListLogEntriesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listLogEntries>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListLogEntriesQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -3264,6 +3308,93 @@ export const useCreateLogEntry = <
   TContext
 > => {
   return useMutation(getCreateLogEntryMutationOptions(options));
+};
+
+/**
+ * @summary Update a log entry (assign to a project)
+ */
+export const getUpdateLogEntryUrl = (logEntryId: string) => {
+  return `/api/log-entries/${logEntryId}`;
+};
+
+export const updateLogEntry = async (
+  logEntryId: string,
+  updateLogEntryRequest: UpdateLogEntryRequest,
+  options?: RequestInit,
+): Promise<LogEntry> => {
+  return customFetch<LogEntry>(getUpdateLogEntryUrl(logEntryId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateLogEntryRequest),
+  });
+};
+
+export const getUpdateLogEntryMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateLogEntry>>,
+    TError,
+    { logEntryId: string; data: BodyType<UpdateLogEntryRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateLogEntry>>,
+  TError,
+  { logEntryId: string; data: BodyType<UpdateLogEntryRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateLogEntry"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateLogEntry>>,
+    { logEntryId: string; data: BodyType<UpdateLogEntryRequest> }
+  > = (props) => {
+    const { logEntryId, data } = props ?? {};
+
+    return updateLogEntry(logEntryId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateLogEntryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateLogEntry>>
+>;
+export type UpdateLogEntryMutationBody = BodyType<UpdateLogEntryRequest>;
+export type UpdateLogEntryMutationError = ErrorType<ErrorEnvelope>;
+
+/**
+ * @summary Update a log entry (assign to a project)
+ */
+export const useUpdateLogEntry = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateLogEntry>>,
+    TError,
+    { logEntryId: string; data: BodyType<UpdateLogEntryRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateLogEntry>>,
+  TError,
+  { logEntryId: string; data: BodyType<UpdateLogEntryRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateLogEntryMutationOptions(options));
 };
 
 /**

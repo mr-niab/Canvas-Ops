@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { TaskDiscipline } from "./taskDiscipline";
+import type { TaskPriority } from "./taskPriority";
 
 export interface Task {
   id: string;
@@ -15,6 +16,6 @@ export interface Task {
   status: string;
   previousStatus?: string | null;
   dependencies: string[];
-  priority?: "High" | "Medium" | "Low" | null;
+  priority?: TaskPriority;
   assignee?: string | null;
 }
